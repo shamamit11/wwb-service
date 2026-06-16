@@ -260,6 +260,87 @@ class PostApiTest extends TestCase
             ]);
     }
 
+    public function test_admin_can_publish_schedule_and_unpublish_posts(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($admin, $category, [
+            'status' => Post::STATUS_DRAFT,
+            'published_at' => null,
+            'scheduled_for' => null,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/schedule", [
+            'scheduled_for' => '2026-06-20T09:00:00+00:00',
+        ])->assertOk()
+            ->assertJsonPath('data.status', Post::STATUS_SCHEDULED)
+            ->assertJsonPath('data.scheduled_for', '2026-06-20T09:00:00.000000Z')
+            ->assertJsonPath('data.published_at', null);
+
+        $this->travelTo(now()->setDate(2026, 6, 18)->setTime(11, 45, 0));
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/publish")
+            ->assertOk()
+            ->assertJsonPath('data.status', Post::STATUS_PUBLISHED)
+            ->assertJsonPath('data.scheduled_for', null)
+            ->assertJsonPath('data.published_at', '2026-06-18T11:45:00.000000Z');
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/unpublish")
+            ->assertOk()
+            ->assertJsonPath('data.status', Post::STATUS_UNPUBLISHED)
+            ->assertJsonPath('data.scheduled_for', null)
+            ->assertJsonPath('data.published_at', null);
+
+        $this->travelBack();
+    }
+
+    public function test_admin_post_transition_endpoints_block_invalid_state_changes(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $publishedPost = $this->createPost($admin, $category, [
+            'status' => Post::STATUS_PUBLISHED,
+            'published_at' => '2026-06-14 12:00:00',
+            'scheduled_for' => null,
+        ]);
+        $archivedPost = $this->createPost($admin, $category, [
+            'title' => 'Archived Post',
+            'slug' => 'archived-post',
+            'status' => Post::STATUS_ARCHIVED,
+            'published_at' => null,
+            'scheduled_for' => null,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$publishedPost->id}/schedule", [
+            'scheduled_for' => '2026-06-20T09:00:00+00:00',
+        ])->assertStatus(409)
+            ->assertJsonPath('error_code', 'CONFLICT')
+            ->assertJsonPath('errors.status.0', Post::STATUS_PUBLISHED)
+            ->assertJsonPath('errors.action.0', 'schedule');
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$archivedPost->id}/publish")
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'CONFLICT')
+            ->assertJsonPath('errors.status.0', Post::STATUS_ARCHIVED)
+            ->assertJsonPath('errors.action.0', 'publish');
+    }
+
+    public function test_admin_schedule_endpoint_requires_a_future_timestamp(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($admin, $category);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/schedule", [
+            'scheduled_for' => '2026-06-01T09:00:00+00:00',
+        ])->assertStatus(422)
+            ->assertJsonPath('error_code', 'VALIDATION_ERROR')
+            ->assertJsonPath('errors.scheduled_for.0', 'The scheduled for field must be a date after now.');
+    }
+
     private function createCategory(User $author, string $name, string $slug): Category
     {
         return Category::query()->create([

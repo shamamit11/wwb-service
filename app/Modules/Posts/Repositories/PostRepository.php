@@ -5,6 +5,7 @@ namespace App\Modules\Posts\Repositories;
 use App\Models\Post;
 use App\Modules\Posts\Data\CreatePostData;
 use App\Modules\Posts\Data\PostFiltersData;
+use App\Modules\Posts\Data\PostStateTransitionData;
 use App\Modules\Posts\Data\UpdatePostData;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -13,6 +14,8 @@ interface PostRepository
     public function create(CreatePostData $data): Post;
 
     public function update(Post $post, UpdatePostData $data): Post;
+
+    public function transition(Post $post, PostStateTransitionData $data): Post;
 
     public function delete(Post $post): void;
 

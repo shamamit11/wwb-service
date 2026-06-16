@@ -2,19 +2,19 @@
 
 ## Task Summary
 
-Implement CRUD APIs for posts and structured block payloads.
+Implement publish, schedule, and unpublish services and admin API endpoints for post lifecycle transitions.
 
 ## Requested Outcome
 
-- add post controllers
-- add requests
-- add resources
-- add filtering and sorting support
+- add publish service
+- add schedule service
+- add unpublish service
+- add admin endpoints
 
 ## Scope Boundaries
 
-- in scope: admin post CRUD endpoints, list filters/sorts, request validation, DTO conversion, API resources, routes, and tests
-- out of scope: publish/schedule/unpublish endpoints, public post endpoints, SEO resources, sibling repositories, and frontend/admin UI work
+- in scope: explicit post lifecycle transition services, request validation, controller endpoints, routes, domain error handling, and tests
+- out of scope: public post endpoints, scheduler jobs that execute scheduled publishes, sibling repositories, and frontend/admin UI work
 
 ## Context Files Loaded
 
@@ -22,75 +22,78 @@ Implement CRUD APIs for posts and structured block payloads.
 - `.agent/tasks/current-task.md`
 - `.agent/agents/SHARED-INSTRUCTIONS.md`
 - `.agent/agents/CODEX.md`
+- `.agent/PROJECT-CONTEXT.md`
 - `.agent/ARCHITECTURE.md`
+- `.agent/COMMANDS.md`
+- `.agent/TESTING.md`
+- `.agent/knowledge-base/api-standards.md`
+- `.agent/knowledge-base/module-map.md`
+- `.agent/knowledge-base/content-lifecycle.md`
 - `.agent/skills/laravel-api.md`
 - `.agent/skills/api-contracts.md`
-- `.agent/skills/database.md`
 - `docs/OPENAPI_SPEC.md`
 - `docs/DATABASE_DESIGN.md`
 
 ## Repository Files Inspected
 
+- `bootstrap/app.php`
 - `routes/api.php`
-- `app/Http/Controllers/Api/V1/Admin/TemplateController.php`
-- `app/Http/Controllers/Api/V1/Admin/MediaController.php`
+- `app/Models/Post.php`
 - `app/Http/Controllers/Api/V1/Admin/PostController.php`
-- `app/Http/Resources/Api/V1/TemplateResource.php`
-- `app/Http/Resources/Api/V1/MediaResource.php`
+- `app/Http/Requests/Api/V1/Admin/ListPostsRequest.php`
+- `app/Http/Requests/Api/V1/Admin/StorePostRequest.php`
+- `app/Http/Requests/Api/V1/Admin/UpdatePostRequest.php`
 - `app/Http/Resources/Api/V1/PostResource.php`
-- `app/Http/Resources/Api/V1/PostBlockResource.php`
 - `app/Modules/Posts/Repositories/PostRepository.php`
 - `app/Modules/Posts/Repositories/EloquentPostRepository.php`
 - `app/Modules/Posts/Services/CreatePostService.php`
 - `app/Modules/Posts/Services/UpdatePostService.php`
-- `app/Modules/Posts/Services/DeletePostService.php`
-- `app/Modules/Posts/Services/ListAdminPostsService.php`
-- `tests/Feature/TemplateApiTest.php`
-- `tests/Feature/CategoryApiTest.php`
-- `tests/Feature/MediaApiTest.php`
+- `app/Support/ApiErrorResponse.php`
+- `tests/Feature/PostApiTest.php`
 - `tests/Feature/PostCommandServiceTest.php`
+- `tests/Feature/PostRepositoryTest.php`
+- `tests/Feature/MediaUsageApiTest.php`
 
 ## Plan
 
-1. Add post list-filter DTOs and service support so admin listing can filter and sort without pushing query logic into controllers.
-2. Add form requests that validate post payloads and map them into the existing post command DTOs and block payload DTOs.
-3. Add post resources for posts, blocks, and nested related summaries, then wire the admin controller and routes.
-4. Add focused feature coverage for auth, CRUD, validation, filtering, and sorting, then validate with the test suite and quality checks.
+1. Add a small transition DTO, repository transition write path, and a post-state exception for blocked lifecycle changes.
+2. Implement explicit publish, schedule, and unpublish services with narrow transition rules and timestamp handling.
+3. Add admin transition endpoints, request validation for scheduling, and route wiring that returns the standard `PostResource`.
+4. Add focused service and API coverage for valid transitions, invalid transitions, and stored future schedule intent, then run targeted and full test validation.
 
 ## Changed Files
 
 - `.agent/tasks/current-task.md`
 - `app/Http/Controllers/Api/V1/Admin/PostController.php`
-- `app/Http/Requests/Api/V1/Admin/Concerns/InteractsWithPostData.php`
-- `app/Http/Requests/Api/V1/Admin/ListPostsRequest.php`
-- `app/Http/Requests/Api/V1/Admin/StorePostRequest.php`
-- `app/Http/Requests/Api/V1/Admin/UpdatePostRequest.php`
-- `app/Http/Resources/Api/V1/PostBlockResource.php`
-- `app/Http/Resources/Api/V1/PostResource.php`
-- `app/Modules/Posts/Data/PostFiltersData.php`
+- `app/Http/Requests/Api/V1/Admin/PublishPostRequest.php`
+- `app/Http/Requests/Api/V1/Admin/SchedulePostRequest.php`
+- `app/Http/Requests/Api/V1/Admin/UnpublishPostRequest.php`
+- `app/Modules/Posts/Data/PostStateTransitionData.php`
+- `app/Modules/Posts/Data/SchedulePostData.php`
+- `app/Modules/Posts/Exceptions/InvalidPostStateTransitionException.php`
 - `app/Modules/Posts/Repositories/EloquentPostRepository.php`
 - `app/Modules/Posts/Repositories/PostRepository.php`
-- `app/Modules/Posts/Services/ListAdminPostsService.php`
+- `app/Modules/Posts/Services/PublishPostService.php`
+- `app/Modules/Posts/Services/SchedulePostService.php`
+- `app/Modules/Posts/Services/UnpublishPostService.php`
+- `bootstrap/app.php`
 - `routes/api.php`
 - `tests/Feature/PostApiTest.php`
+- `tests/Feature/PostCommandServiceTest.php`
 
 ## Validation
 
-- `php artisan test tests/Feature/PostApiTest.php`
 - `php artisan test tests/Feature/PostCommandServiceTest.php`
+- `php artisan test tests/Feature/PostApiTest.php`
+- `vendor/bin/pint --test`
 - `php artisan test`
-- `./vendor/bin/pint --test`
-- `./vendor/bin/phpstan analyse`
 
 ## Risks Or Follow-Ups
 
-- Public post list/detail endpoints are intentionally deferred, but the list/filter layer should stay reusable for those later APIs.
-- Admin list responses currently return full block and relation payloads for each post to stay contract-complete; if list size grows materially, add pagination and a lighter index resource instead of pushing ad hoc trimming into controllers.
+- The task covers storing schedule intent only; actual background execution of scheduled publishes remains a separate workflow.
 
 ## Completion Notes
 
-- Summary: Added authenticated admin CRUD endpoints for posts, request-to-DTO mapping for structured block payloads, reusable admin list filtering/sorting, API resources for posts and blocks, and feature coverage for auth, CRUD, validation, and list filters.
-- Changed files: post controller, requests, resources, repository filter support, list service, admin routes, and `tests/Feature/PostApiTest.php`.
-- Validation run: post feature tests, post command service tests, full `php artisan test`, Pint, and PHPStan all passed.
-- Risks: public-safe post APIs, pagination, and separate lightweight index/detail resource splits remain deferred by scope.
-- Follow-ups: if the admin consumer needs pagination metadata next, extend the list service/resource contract rather than adding repository-specific controller conditionals.
+- Summary: Added explicit publish, schedule, and unpublish services for posts, wired admin transition endpoints, validated schedule payloads, and mapped invalid lifecycle changes to API `409 CONFLICT` responses.
+- Validation run: targeted post service tests, targeted post API tests, Pint, and full `php artisan test` all passed.
+- Risks: scheduled posts now store future publish intent correctly, but automatic execution of scheduled publishes still needs a separate scheduler or job workflow.

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Media\Exceptions\MediaInUseException;
+use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Support\ApiErrorResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -113,6 +114,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 ],
                 [
                     'usage_count' => $exception->usage->usageCount,
+                ],
+            );
+        });
+
+        $exceptions->render(function (InvalidPostStateTransitionException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->currentStatus],
+                    'action' => [$exception->action],
                 ],
             );
         });

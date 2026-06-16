@@ -12,10 +12,15 @@ use App\Models\TemplateBlock;
 use App\Models\User;
 use App\Modules\Posts\Data\CreatePostCommandData;
 use App\Modules\Posts\Data\PostBlockPayloadData;
+use App\Modules\Posts\Data\SchedulePostData;
 use App\Modules\Posts\Data\UpdatePostCommandData;
 use App\Modules\Posts\Exceptions\InvalidPostBlockPayloadException;
+use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Modules\Posts\Services\CreatePostService;
 use App\Modules\Posts\Services\DeletePostService;
+use App\Modules\Posts\Services\PublishPostService;
+use App\Modules\Posts\Services\SchedulePostService;
+use App\Modules\Posts\Services\UnpublishPostService;
 use App\Modules\Posts\Services\UpdatePostService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -246,6 +251,139 @@ class PostCommandServiceTest extends TestCase
         $this->assertSoftDeleted('posts', ['id' => $post->id]);
         $this->assertDatabaseMissing('post_tags', ['post_id' => $post->id, 'tag_id' => $tag->id]);
         $this->assertDatabaseMissing('post_blocks', ['id' => $blockIds[0]]);
+    }
+
+    public function test_publish_schedule_and_unpublish_services_apply_explicit_state_changes(): void
+    {
+        $createService = app(CreatePostService::class);
+        $publishService = app(PublishPostService::class);
+        $scheduleService = app(SchedulePostService::class);
+        $unpublishService = app(UnpublishPostService::class);
+        $author = User::factory()->create(['is_admin' => true]);
+        $category = $this->createCategory($author, 'AI Agents', 'ai-agents');
+
+        $post = $createService->handle(new CreatePostCommandData(
+            authorUserId: $author->id,
+            categoryId: $category->id,
+            templateId: null,
+            featuredMediaId: null,
+            title: 'Lifecycle Post',
+            slug: '',
+            excerpt: null,
+            status: Post::STATUS_DRAFT,
+            visibility: Post::VISIBILITY_PUBLIC,
+            publishedAt: null,
+            scheduledFor: null,
+            contentVersion: 1,
+            readingTimeMinutes: null,
+            wordCount: null,
+            isFeatured: false,
+            meta: null,
+            tagIds: [],
+            blocks: [
+                new PostBlockPayloadData(
+                    blockType: ContentBlockType::PARAGRAPH->value,
+                    sortOrder: 1,
+                    content: [
+                        'markdown' => 'Lifecycle content',
+                    ],
+                ),
+            ],
+        ));
+
+        $scheduled = $scheduleService->handle($post, new SchedulePostData(
+            scheduledFor: '2026-06-20 09:00:00',
+        ));
+
+        $this->assertSame(Post::STATUS_SCHEDULED, $scheduled->status);
+        $this->assertSame('2026-06-20 09:00:00', $scheduled->scheduled_for?->format('Y-m-d H:i:s'));
+        $this->assertNull($scheduled->published_at);
+
+        $this->travelTo(now()->setDate(2026, 6, 18)->setTime(10, 30, 0));
+
+        $published = $publishService->handle($scheduled);
+
+        $this->assertSame(Post::STATUS_PUBLISHED, $published->status);
+        $this->assertNull($published->scheduled_for);
+        $this->assertSame('2026-06-18 10:30:00', $published->published_at?->format('Y-m-d H:i:s'));
+
+        $unpublished = $unpublishService->handle($published);
+
+        $this->assertSame(Post::STATUS_UNPUBLISHED, $unpublished->status);
+        $this->assertNull($unpublished->published_at);
+        $this->assertNull($unpublished->scheduled_for);
+
+        $this->travelBack();
+    }
+
+    public function test_transition_services_block_invalid_state_changes(): void
+    {
+        $publishService = app(PublishPostService::class);
+        $scheduleService = app(SchedulePostService::class);
+        $unpublishService = app(UnpublishPostService::class);
+        $author = User::factory()->create(['is_admin' => true]);
+        $category = $this->createCategory($author, 'AI Agents', 'ai-agents');
+
+        $archived = Post::query()->create([
+            'author_user_id' => $author->id,
+            'category_id' => $category->id,
+            'template_id' => null,
+            'featured_media_id' => null,
+            'title' => 'Archived Post',
+            'slug' => 'archived-post',
+            'excerpt' => null,
+            'status' => Post::STATUS_ARCHIVED,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
+            'content_version' => 1,
+            'reading_time_minutes' => null,
+            'word_count' => null,
+            'is_featured' => false,
+            'meta' => null,
+        ]);
+
+        try {
+            $publishService->handle($archived);
+            $this->fail('Expected publish transition to be rejected.');
+        } catch (InvalidPostStateTransitionException $exception) {
+            $this->assertSame('publish', $exception->action);
+            $this->assertSame(Post::STATUS_ARCHIVED, $exception->currentStatus);
+        }
+
+        try {
+            $scheduleService->handle($archived, new SchedulePostData(
+                scheduledFor: '2026-06-20 09:00:00',
+            ));
+            $this->fail('Expected schedule transition to be rejected.');
+        } catch (InvalidPostStateTransitionException $exception) {
+            $this->assertSame('schedule', $exception->action);
+            $this->assertSame(Post::STATUS_ARCHIVED, $exception->currentStatus);
+        }
+
+        $draft = Post::query()->create([
+            'author_user_id' => $author->id,
+            'category_id' => $category->id,
+            'template_id' => null,
+            'featured_media_id' => null,
+            'title' => 'Draft Post',
+            'slug' => 'draft-post',
+            'excerpt' => null,
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
+            'content_version' => 1,
+            'reading_time_minutes' => null,
+            'word_count' => null,
+            'is_featured' => false,
+            'meta' => null,
+        ]);
+
+        $this->expectException(InvalidPostStateTransitionException::class);
+        $this->expectExceptionMessage('Post cannot be unpublished from [draft] status.');
+
+        $unpublishService->handle($draft);
     }
 
     public function test_services_reject_invalid_block_payloads(): void

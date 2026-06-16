@@ -58,6 +58,12 @@ Route::prefix('v1')->group(function (): void {
 
             Route::apiResource('posts', AdminPostController::class)
                 ->names('api.v1.admin.posts');
+            Route::post('posts/{post}/publish', [AdminPostController::class, 'publish'])
+                ->name('api.v1.admin.posts.publish');
+            Route::post('posts/{post}/schedule', [AdminPostController::class, 'schedule'])
+                ->name('api.v1.admin.posts.schedule');
+            Route::post('posts/{post}/unpublish', [AdminPostController::class, 'unpublish'])
+                ->name('api.v1.admin.posts.unpublish');
 
             Route::apiResource('tags', AdminTagController::class)
                 ->names('api.v1.admin.tags');

@@ -5,6 +5,7 @@ namespace App\Modules\Posts\Repositories;
 use App\Models\Post;
 use App\Modules\Posts\Data\CreatePostData;
 use App\Modules\Posts\Data\PostFiltersData;
+use App\Modules\Posts\Data\PostStateTransitionData;
 use App\Modules\Posts\Data\UpdatePostData;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -58,6 +59,17 @@ class EloquentPostRepository implements PostRepository
         ]);
 
         $post->tags()->sync(array_values(array_unique($data->tagIds)));
+
+        return $this->refreshWithRelations($post);
+    }
+
+    public function transition(Post $post, PostStateTransitionData $data): Post
+    {
+        $post->update([
+            'status' => $data->status,
+            'published_at' => $data->publishedAt,
+            'scheduled_for' => $data->scheduledFor,
+        ]);
 
         return $this->refreshWithRelations($post);
     }
