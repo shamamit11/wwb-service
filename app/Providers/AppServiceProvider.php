@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\Categories\Repositories\CategoryRepository;
+use App\Modules\Categories\Repositories\EloquentCategoryRepository;
 use App\Modules\Users\Repositories\EloquentUserRepository;
 use App\Modules\Users\Repositories\UserRepository;
 use Illuminate\Support\Facades\Gate;
@@ -15,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(CategoryRepository::class, EloquentCategoryRepository::class);
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
     }
 
