@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CreateUserController;
 use App\Http\Controllers\Api\V1\EchoMessageController;
 use App\Http\Controllers\Api\V1\HealthCheckController;
 use App\Http\Controllers\Api\V1\TestErrorController;
@@ -12,6 +13,9 @@ Route::prefix('v1')->group(function (): void {
 
     Route::post('test/echo', EchoMessageController::class)
         ->name('api.v1.test.echo');
+
+    Route::post('test/users', CreateUserController::class)
+        ->name('api.v1.test.users.store');
 
     Route::get('test/auth', function () {
         return response()->json(['data' => ['authorized' => true]]);

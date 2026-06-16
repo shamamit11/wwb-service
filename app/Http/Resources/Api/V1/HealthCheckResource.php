@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 class HealthCheckResource extends ApiResource
 {
     /**
-     * @param  array{status:string,service:string,version:mixed}  $resource
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

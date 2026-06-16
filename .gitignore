@@ -20,6 +20,7 @@
 /public/storage
 /storage/framework
 /storage/logs
+/storage/phpstan
 /storage/*.key
 /storage/pail
 /vendor
