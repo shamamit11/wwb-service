@@ -4,6 +4,8 @@ namespace App\Modules\Media\Repositories;
 
 use App\Models\Media;
 use App\Modules\Media\Data\CreateMediaData;
+use App\Modules\Media\Data\UpdateMediaMetadataData;
+use Illuminate\Database\Eloquent\Collection;
 
 class EloquentMediaRepository implements MediaRepository
 {
@@ -33,6 +35,20 @@ class EloquentMediaRepository implements MediaRepository
         ]);
     }
 
+    public function updateMetadata(Media $media, UpdateMediaMetadataData $data): Media
+    {
+        $media->update([
+            'alt_text' => $data->altText,
+            'caption' => $data->caption,
+            'source_type' => $data->sourceType,
+            'source_url' => $data->sourceUrl,
+            'attribution_text' => $data->attributionText,
+            'metadata' => $data->metadata,
+        ]);
+
+        return $media->refresh();
+    }
+
     public function findById(int $id): ?Media
     {
         return Media::query()->find($id);
@@ -43,6 +59,16 @@ class EloquentMediaRepository implements MediaRepository
         return Media::query()
             ->where('ulid', $ulid)
             ->first();
+    }
+
+    /**
+     * @return Collection<int, Media>
+     */
+    public function getLatest(): Collection
+    {
+        return Media::query()
+            ->latest()
+            ->get();
     }
 
     public function markArchived(Media $media): Media

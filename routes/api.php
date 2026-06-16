@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedUserController;
@@ -39,6 +40,19 @@ Route::prefix('v1')->group(function (): void {
 
             Route::apiResource('categories', AdminCategoryController::class)
                 ->names('api.v1.admin.categories');
+
+            Route::get('media', [AdminMediaController::class, 'index'])
+                ->name('api.v1.admin.media.index');
+            Route::post('media', [AdminMediaController::class, 'store'])
+                ->name('api.v1.admin.media.store');
+            Route::post('media/batch', [AdminMediaController::class, 'batch'])
+                ->name('api.v1.admin.media.batch');
+            Route::get('media/{media}', [AdminMediaController::class, 'show'])
+                ->name('api.v1.admin.media.show');
+            Route::put('media/{media}', [AdminMediaController::class, 'update'])
+                ->name('api.v1.admin.media.update');
+            Route::delete('media/{media}', [AdminMediaController::class, 'destroy'])
+                ->name('api.v1.admin.media.destroy');
 
             Route::apiResource('tags', AdminTagController::class)
                 ->names('api.v1.admin.tags');
