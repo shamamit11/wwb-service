@@ -16,6 +16,7 @@ class UserResource extends ApiResource
             'id' => $this->resource->id,
             'name' => $this->resource->name,
             'email' => $this->resource->email,
+            'is_admin' => (bool) $this->resource->is_admin,
             'created_at' => $this->resource->created_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
         ];
