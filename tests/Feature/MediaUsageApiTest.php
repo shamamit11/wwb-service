@@ -184,6 +184,7 @@ class MediaUsageApiTest extends TestCase
             ->assertJsonPath('meta.usage_count', 1)
             ->assertJsonPath('errors.usage.0.type', 'featured_post');
     }
+
     private function createFeaturedPost(User $admin, int $mediaId, string $slug): void
     {
         $category = Category::query()->first() ?? Category::query()->create([

@@ -6,19 +6,19 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'template_id',
+    'post_id',
     'block_key',
     'block_type',
     'sort_order',
-    'label',
-    'default_markdown',
+    'content_markdown',
+    'content_html_cache',
+    'plain_text_cache',
     'settings',
-    'is_required',
+    'source_template_block_id',
 ])]
-class TemplateBlock extends Model
+class PostBlock extends Model
 {
     use HasUlids;
 
@@ -36,25 +36,24 @@ class TemplateBlock extends Model
     protected function casts(): array
     {
         return [
-            'settings' => 'array',
-            'is_required' => 'boolean',
             'sort_order' => 'integer',
+            'settings' => 'array',
         ];
     }
 
     /**
-     * @return BelongsTo<Template, $this>
+     * @return BelongsTo<Post, $this>
      */
-    public function template(): BelongsTo
+    public function post(): BelongsTo
     {
-        return $this->belongsTo(Template::class);
+        return $this->belongsTo(Post::class);
     }
 
     /**
-     * @return HasMany<PostBlock, $this>
+     * @return BelongsTo<TemplateBlock, $this>
      */
-    public function sourcedPostBlocks(): HasMany
+    public function sourceTemplateBlock(): BelongsTo
     {
-        return $this->hasMany(PostBlock::class, 'source_template_block_id');
+        return $this->belongsTo(TemplateBlock::class, 'source_template_block_id');
     }
 }

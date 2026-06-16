@@ -2,6 +2,7 @@
 
 namespace App\Modules\Templates\Services;
 
+use App\Enums\ContentBlockType;
 use App\Models\Template;
 use App\Models\TemplateBlock;
 use App\Modules\Templates\Data\TemplatePayloadContextData;
@@ -80,36 +81,36 @@ class TemplatePayloadFactory
         $blockLabel = $block->label ?: $title;
 
         return match ($block->block_type) {
-            TemplateBlock::TYPE_HEADING => [
+            ContentBlockType::HEADING->value => [
                 'text' => $headline !== '' ? $headline : $title,
                 'level' => $settings['level'] ?? $this->markdownHeadingLevel($markdown) ?? 2,
             ],
-            TemplateBlock::TYPE_PARAGRAPH => [
+            ContentBlockType::PARAGRAPH->value => [
                 'markdown' => $markdown ?: "Introduce {$topic} with practical context and expected outcomes.",
             ],
-            TemplateBlock::TYPE_IMAGE => [
+            ContentBlockType::IMAGE->value => [
                 'url' => 'https://example.test/media/'.Str::slug($template->slug.'-'.$blockLabel).'.jpg',
                 'alt_text' => $blockLabel,
                 'caption' => $markdown ?: "Illustration for {$topic}.",
             ],
-            TemplateBlock::TYPE_QUOTE => [
+            ContentBlockType::QUOTE->value => [
                 'quote_markdown' => $markdown ?: "A concise editorial insight about {$topic}.",
                 'attribution' => $settings['attribution'] ?? 'Editorial note',
             ],
-            TemplateBlock::TYPE_LIST => [
+            ContentBlockType::LIST->value => [
                 'items' => $this->buildListItems($markdown, $topic),
             ],
-            TemplateBlock::TYPE_CODE => [
+            ContentBlockType::CODE->value => [
                 'language' => $settings['language'] ?? 'text',
                 'code' => $markdown ?: "// Example snippet for {$topic}\n",
             ],
-            TemplateBlock::TYPE_FAQ => [
+            ContentBlockType::FAQ->value => [
                 'items' => [[
                     'question' => $block->label ?: "What should readers know about {$topic}?",
                     'answer_markdown' => $markdown ?: "Summarize the practical implications of {$topic}.",
                 ]],
             ],
-            TemplateBlock::TYPE_CALLOUT => [
+            ContentBlockType::CALLOUT->value => [
                 'markdown' => $markdown ?: "Important note about {$topic}.",
                 'variant' => $settings['variant'] ?? 'info',
             ],

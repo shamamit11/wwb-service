@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\ContentBlockType;
 use App\Http\Requests\Api\V1\Admin\Concerns\InteractsWithTemplateData;
 use App\Models\Template;
-use App\Models\TemplateBlock;
 use App\Modules\Templates\Data\UpdateTemplateData;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,7 +35,7 @@ class UpdateTemplateRequest extends FormRequest
             'default_excerpt_prompt' => ['nullable', 'string'],
             'default_meta' => ['nullable', 'array'],
             'blocks' => ['required', 'array', 'min:1'],
-            'blocks.*.block_type' => ['required', 'string', Rule::in(TemplateBlock::BLOCK_TYPES)],
+            'blocks.*.block_type' => ['required', 'string', Rule::in(ContentBlockType::values())],
             'blocks.*.sort_order' => ['required', 'integer', 'min:1', 'distinct'],
             'blocks.*.label' => ['nullable', 'string', 'max:160'],
             'blocks.*.default_markdown' => ['nullable', 'string'],
