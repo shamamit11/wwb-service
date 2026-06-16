@@ -3,18 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
+use App\Http\Resources\Api\V1\HealthCheckResource;
 
 class HealthCheckController extends Controller
 {
-    public function __invoke(): JsonResponse
+    public function __invoke(): HealthCheckResource
     {
-        return response()->json([
-            'data' => [
-                'status' => 'ok',
-                'service' => config('app.name'),
-                'version' => config('scramble.info.version'),
-            ],
+        return new HealthCheckResource([
+            'status' => 'ok',
+            'service' => config('app.name'),
+            'version' => config('scramble.info.version'),
         ]);
     }
 }

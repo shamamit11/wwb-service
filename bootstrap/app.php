@@ -1,9 +1,17 @@
 <?php
 
+use App\Support\ApiErrorResponse;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,4 +27,87 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (ValidationException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'VALIDATION_ERROR',
+                $exception->status,
+                $exception->errors()
+            );
+        });
+
+        $exceptions->render(function (AuthenticationException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'UNAUTHORIZED',
+                401
+            );
+        });
+
+        $exceptions->render(function (AccessDeniedHttpException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage() ?: 'This action is unauthorized.',
+                'FORBIDDEN',
+                403
+            );
+        });
+
+        $exceptions->render(function (ModelNotFoundException|NotFoundHttpException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                'Resource not found.',
+                'NOT_FOUND',
+                404
+            );
+        });
+
+        $exceptions->render(function (ThrottleRequestsException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage() ?: 'Too many requests.',
+                'RATE_LIMITED',
+                429
+            );
+        });
+
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            if ($exception instanceof HttpExceptionInterface) {
+                return ApiErrorResponse::make(
+                    $request,
+                    $exception->getMessage() ?: 'Request failed.',
+                    'HTTP_ERROR',
+                    $exception->getStatusCode()
+                );
+            }
+
+            return ApiErrorResponse::fromThrowable($request, $exception);
+        });
     })->create();
