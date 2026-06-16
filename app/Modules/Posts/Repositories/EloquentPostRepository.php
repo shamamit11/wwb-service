@@ -6,72 +6,65 @@ use App\Models\Post;
 use App\Modules\Posts\Data\CreatePostData;
 use App\Modules\Posts\Data\UpdatePostData;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 class EloquentPostRepository implements PostRepository
 {
     public function create(CreatePostData $data): Post
     {
-        return DB::transaction(function () use ($data): Post {
-            $post = Post::query()->create([
-                'author_user_id' => $data->authorUserId,
-                'category_id' => $data->categoryId,
-                'template_id' => $data->templateId,
-                'featured_media_id' => $data->featuredMediaId,
-                'title' => $data->title,
-                'slug' => $data->slug,
-                'excerpt' => $data->excerpt,
-                'status' => $data->status,
-                'visibility' => $data->visibility,
-                'published_at' => $data->publishedAt,
-                'scheduled_for' => $data->scheduledFor,
-                'content_version' => $data->contentVersion,
-                'reading_time_minutes' => $data->readingTimeMinutes,
-                'word_count' => $data->wordCount,
-                'is_featured' => $data->isFeatured,
-                'meta' => $data->meta,
-            ]);
+        $post = Post::query()->create([
+            'author_user_id' => $data->authorUserId,
+            'category_id' => $data->categoryId,
+            'template_id' => $data->templateId,
+            'featured_media_id' => $data->featuredMediaId,
+            'title' => $data->title,
+            'slug' => $data->slug,
+            'excerpt' => $data->excerpt,
+            'status' => $data->status,
+            'visibility' => $data->visibility,
+            'published_at' => $data->publishedAt,
+            'scheduled_for' => $data->scheduledFor,
+            'content_version' => $data->contentVersion,
+            'reading_time_minutes' => $data->readingTimeMinutes,
+            'word_count' => $data->wordCount,
+            'is_featured' => $data->isFeatured,
+            'meta' => $data->meta,
+        ]);
 
-            $post->tags()->sync(array_values(array_unique($data->tagIds)));
+        $post->tags()->sync(array_values(array_unique($data->tagIds)));
 
-            return $this->refreshWithRelations($post);
-        });
+        return $this->refreshWithRelations($post);
     }
 
     public function update(Post $post, UpdatePostData $data): Post
     {
-        return DB::transaction(function () use ($post, $data): Post {
-            $post->update([
-                'author_user_id' => $data->authorUserId,
-                'category_id' => $data->categoryId,
-                'template_id' => $data->templateId,
-                'featured_media_id' => $data->featuredMediaId,
-                'title' => $data->title,
-                'slug' => $data->slug,
-                'excerpt' => $data->excerpt,
-                'status' => $data->status,
-                'visibility' => $data->visibility,
-                'published_at' => $data->publishedAt,
-                'scheduled_for' => $data->scheduledFor,
-                'content_version' => $data->contentVersion,
-                'reading_time_minutes' => $data->readingTimeMinutes,
-                'word_count' => $data->wordCount,
-                'is_featured' => $data->isFeatured,
-                'meta' => $data->meta,
-            ]);
+        $post->update([
+            'author_user_id' => $data->authorUserId,
+            'category_id' => $data->categoryId,
+            'template_id' => $data->templateId,
+            'featured_media_id' => $data->featuredMediaId,
+            'title' => $data->title,
+            'slug' => $data->slug,
+            'excerpt' => $data->excerpt,
+            'status' => $data->status,
+            'visibility' => $data->visibility,
+            'published_at' => $data->publishedAt,
+            'scheduled_for' => $data->scheduledFor,
+            'content_version' => $data->contentVersion,
+            'reading_time_minutes' => $data->readingTimeMinutes,
+            'word_count' => $data->wordCount,
+            'is_featured' => $data->isFeatured,
+            'meta' => $data->meta,
+        ]);
 
-            $post->tags()->sync(array_values(array_unique($data->tagIds)));
+        $post->tags()->sync(array_values(array_unique($data->tagIds)));
 
-            return $this->refreshWithRelations($post);
-        });
+        return $this->refreshWithRelations($post);
     }
 
     public function delete(Post $post): void
     {
-        DB::transaction(function () use ($post): void {
-            $post->tags()->detach();
-            $post->delete();
-        });
+        $post->tags()->detach();
+        $post->delete();
     }
 
     public function findById(int $id): ?Post
@@ -149,6 +142,6 @@ class EloquentPostRepository implements PostRepository
      */
     private function relations(): array
     {
-        return ['author', 'category', 'template', 'featuredMedia', 'tags'];
+        return ['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock'];
     }
 }
