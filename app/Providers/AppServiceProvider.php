@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\User;
 use App\Modules\Categories\Repositories\CategoryRepository;
 use App\Modules\Categories\Repositories\EloquentCategoryRepository;
+use App\Modules\KnowledgeBase\Repositories\EloquentKnowledgeBaseEntryRepository;
+use App\Modules\KnowledgeBase\Repositories\KnowledgeBaseEntryRepository;
 use App\Modules\Media\Repositories\EloquentMediaRepository;
 use App\Modules\Media\Repositories\MediaRepository;
 use App\Modules\Media\Services\Contracts\MediaDeleter;
@@ -36,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(CategoryRepository::class, EloquentCategoryRepository::class);
+        $this->app->bind(KnowledgeBaseEntryRepository::class, EloquentKnowledgeBaseEntryRepository::class);
         $this->app->bind(MediaRepository::class, EloquentMediaRepository::class);
         $this->app->bind(MediaStorage::class, FilesystemMediaStorage::class);
         $this->app->bind(MediaUploader::class, UploadMediaService::class);
