@@ -28,3 +28,4 @@ Thumbs.db
 
 # Optional local agent scratch space if introduced later
 .agent/tmp/
+vendor
