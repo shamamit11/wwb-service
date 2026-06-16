@@ -69,7 +69,7 @@ It does not include:
 
 ---
 
-## WB-SVC-001 — Initialize Laravel 13 service application
+## WB-SVC-001 — Initialize Laravel 13 service application (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `2`  
@@ -157,7 +157,7 @@ Set up Docker and local development for the Laravel service runtime, MySQL, and 
 
 ---
 
-## WB-SVC-003 — Configure environment variables and application config
+## WB-SVC-003 — Configure environment variables and application config (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `3`  
@@ -199,7 +199,7 @@ Configure environment keys and config wiring for database, cache, queue, storage
 
 ---
 
-## WB-SVC-004 — Configure MySQL, Redis, queues, scheduler, and storage disks
+## WB-SVC-004 — Configure MySQL, Redis, queues, scheduler, and storage disks (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `5`  
@@ -247,7 +247,7 @@ Wire the infrastructure features the service layer depends on.
 
 ---
 
-## WB-SVC-005 — Configure Cloudflare R2 disk integration
+## WB-SVC-005 — Configure Cloudflare R2 disk integration (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `5`  
@@ -289,7 +289,7 @@ Add and configure the S3-compatible storage integration for Cloudflare R2.
 
 ---
 
-## WB-SVC-006 — Install and configure Scramble for API documentation
+## WB-SVC-006 — Install and configure Scramble for API documentation (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `3`  
@@ -331,7 +331,7 @@ Install Scramble and configure it as the API documentation generator for the ser
 
 ---
 
-## WB-SVC-007 — Install and configure Spatie Activitylog
+## WB-SVC-007 — Install and configure Spatie Activitylog (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `3`  
@@ -415,7 +415,7 @@ Install role and permission support if policy needs exceed a simple enum-based a
 
 ---
 
-## WB-SVC-009 — Install Pint, Larastan, and Pest
+## WB-SVC-009 — Install Pint, Larastan, and Pest (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `3`  
@@ -459,7 +459,7 @@ Set up formatting, static analysis, and testing tools for the service repository
 
 ---
 
-## WB-SVC-010 — Set up API response format and exception handling
+## WB-SVC-010 — Set up API response format and exception handling (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `5`  
@@ -502,7 +502,7 @@ Define consistent JSON response envelopes and structured exception-to-error mapp
 
 ---
 
-## WB-SVC-011 — Establish controller/request/DTO/service/repository/resource conventions
+## WB-SVC-011 — Establish controller/request/DTO/service/repository/resource conventions (Done)
 
 **Phase:** Phase 0 — Service Foundation  
 **Story Points:** `5`  
@@ -589,7 +589,7 @@ Create CI automation for tests, formatting, and static analysis.
 
 ---
 
-## WB-SVC-013 — Implement auth and admin API support foundation
+## WB-SVC-013 — Implement auth and admin API support foundation (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -636,7 +636,7 @@ Add backend auth support for admin consumers, policy enforcement, and authentica
 
 ---
 
-## WB-SVC-014 — Implement category schema, model, and repository layer
+## WB-SVC-014 — Implement category schema, model, and repository layer (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `3`  
@@ -680,7 +680,7 @@ Create the persistence layer for categories.
 
 ---
 
-## WB-SVC-015 — Implement categories API endpoints and resources
+## WB-SVC-015 — Implement categories API endpoints and resources (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -725,7 +725,7 @@ Expose admin and public-safe categories endpoints.
 
 ---
 
-## WB-SVC-016 — Implement tag schema, model, and repository layer
+## WB-SVC-016 — Implement tag schema, model, and repository layer (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `3`  
@@ -770,7 +770,7 @@ Create persistence support for tags and post tag assignments.
 
 ---
 
-## WB-SVC-017 — Implement tags API endpoints and resources
+## WB-SVC-017 — Implement tags API endpoints and resources (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -811,7 +811,7 @@ Expose backend tag management endpoints.
 
 ---
 
-## WB-SVC-018 — Implement media schema, model, and service abstractions
+## WB-SVC-018 — Implement media schema, model, and service abstractions (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -855,7 +855,7 @@ Create media persistence and the core service abstractions around file storage.
 
 ---
 
-## WB-SVC-019 — Implement media upload, batch upload, and metadata APIs
+## WB-SVC-019 — Implement media upload, batch upload, and metadata APIs (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `8`  
@@ -899,7 +899,7 @@ Build backend endpoints for single and multiple uploads plus metadata editing.
 
 ---
 
-## WB-SVC-020 — Implement media search, delete, and usage tracking APIs
+## WB-SVC-020 — Implement media search, delete, and usage tracking APIs (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `8`  
@@ -942,7 +942,7 @@ Expose media retrieval and safe deletion behavior, including usage awareness.
 
 ---
 
-## WB-SVC-021 — Implement template schema, models, and repository layer
+## WB-SVC-021 — Implement template schema, models, and repository layer (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -987,7 +987,7 @@ Create persistence support for templates and template blocks.
 
 ---
 
-## WB-SVC-022 — Implement template APIs and preview payload generation
+## WB-SVC-022 — Implement template APIs and preview payload generation (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1030,7 +1030,7 @@ Expose template CRUD APIs plus preview and post-seeding payload support.
 
 ---
 
-## WB-SVC-023 — Implement post schema, model, and repository layer
+## WB-SVC-023 — Implement post schema, model, and repository layer (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1076,7 +1076,7 @@ Create post persistence with relationships and publish-state fields.
 
 ---
 
-## WB-SVC-024 — Implement post block schema and block-type support
+## WB-SVC-024 — Implement post block schema and block-type support (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1119,7 +1119,7 @@ Create post block persistence and allowed block type definitions.
 
 ---
 
-## WB-SVC-025 — Implement post command services and DTOs
+## WB-SVC-025 — Implement post command services and DTOs (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `8`  
@@ -1162,7 +1162,7 @@ Build service-layer use cases for creating, updating, and deleting posts and blo
 
 ---
 
-## WB-SVC-026 — Implement posts API endpoints and resources
+## WB-SVC-026 — Implement posts API endpoints and resources (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `8`  
@@ -1207,7 +1207,7 @@ Expose CRUD APIs for posts and structured block payloads.
 
 ---
 
-## WB-SVC-027 — Implement publish, schedule, and unpublish services and endpoints
+## WB-SVC-027 — Implement publish, schedule, and unpublish services and endpoints (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1251,7 +1251,7 @@ Create explicit state transition services and API endpoints for publishing workf
 
 ---
 
-## WB-SVC-028 — Implement knowledge base schema, model, and repository layer
+## WB-SVC-028 — Implement knowledge base schema, model, and repository layer (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `3`  
@@ -1294,7 +1294,7 @@ Create persistence support for knowledge base entries.
 
 ---
 
-## WB-SVC-029 — Implement knowledge base APIs including search and linking primitives
+## WB-SVC-029 — Implement knowledge base APIs including search and linking primitives (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `8`  
@@ -1336,7 +1336,7 @@ Expose CRUD, search, filtering, and future-safe linking endpoints for knowledge 
 
 ---
 
-## WB-SVC-030 — Implement SEO metadata schema, models, and repository layer
+## WB-SVC-030 — Implement SEO metadata schema, models, and repository layer (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1381,7 +1381,7 @@ Create persistence and data access support for SEO metadata across content entit
 
 ---
 
-## WB-SVC-031 — Implement SEO metadata APIs and resource serializers
+## WB-SVC-031 — Implement SEO metadata APIs and resource serializers (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1424,7 +1424,7 @@ Expose backend endpoints for managing SEO metadata.
 
 ---
 
-## WB-SVC-032 — Add Activitylog coverage for content-changing services
+## WB-SVC-032 — Add Activitylog coverage for content-changing services (Done)
 
 **Phase:** Phase 1 — Core APIs  
 **Story Points:** `5`  
@@ -1515,7 +1515,7 @@ Ensure core service endpoints are discoverable and clearly documented through Sc
 
 ---
 
-## WB-SVC-034 — Implement slug generation service
+## WB-SVC-034 — Implement slug generation service (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `3`  
@@ -1558,7 +1558,7 @@ Centralize slug generation and uniqueness behavior for posts, categories, tags, 
 
 ---
 
-## WB-SVC-035 — Implement canonical URL generation service
+## WB-SVC-035 — Implement canonical URL generation service (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `3`  
@@ -1597,7 +1597,7 @@ Create a service that derives or respects canonical URLs for supported content t
 
 ---
 
-## WB-SVC-036 — Implement sitemap data API
+## WB-SVC-036 — Implement sitemap data API (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `5`  
@@ -1639,7 +1639,7 @@ Expose a service-level API or command-oriented data provider for sitemap generat
 
 ---
 
-## WB-SVC-037 — Implement RSS data API
+## WB-SVC-037 — Implement RSS data API (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `3`  
@@ -1679,7 +1679,7 @@ Expose feed-ready published content data for RSS generation.
 
 ---
 
-## WB-SVC-038 — Implement schema data API
+## WB-SVC-038 — Implement schema data API (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `5`  
@@ -1719,7 +1719,7 @@ Create service-side schema payload generation for articles, breadcrumbs, organiz
 
 ---
 
-## WB-SVC-039 — Implement internal linking foundation services
+## WB-SVC-039 — Implement internal linking foundation services (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `5`  
@@ -1759,7 +1759,7 @@ Create the first backend services for content relationship discovery and interna
 
 ---
 
-## WB-SVC-040 — Implement SEO scoring foundation service
+## WB-SVC-040 — Implement SEO scoring foundation service (Done)
 
 **Phase:** Phase 2 — Publishing & SEO Services  
 **Story Points:** `5`  

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\RssFeedController as AdminRssFeedController;
 use App\Http\Controllers\Api\V1\Admin\SchemaController as AdminSchemaController;
 use App\Http\Controllers\Api\V1\Admin\SeoMetadataController as AdminSeoMetadataController;
+use App\Http\Controllers\Api\V1\Admin\SeoScoreController as AdminSeoScoreController;
 use App\Http\Controllers\Api\V1\Admin\SitemapController as AdminSitemapController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\TemplateController as AdminTemplateController;
@@ -80,6 +81,8 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('seo/schema/{seoableType}/{seoableId}', [AdminSchemaController::class, 'show'])
                 ->name('api.v1.admin.seo.schema.show');
+            Route::get('seo/score/{seoableType}/{seoableId}', [AdminSeoScoreController::class, 'show'])
+                ->name('api.v1.admin.seo.score.show');
             Route::get('seo/{seoableType}/{seoableId}', [AdminSeoMetadataController::class, 'show'])
                 ->name('api.v1.admin.seo.show');
             Route::put('seo/{seoableType}/{seoableId}', [AdminSeoMetadataController::class, 'update'])
