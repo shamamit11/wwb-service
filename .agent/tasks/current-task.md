@@ -2,74 +2,65 @@
 
 ## Task Summary
 
-Create an MVP scope definition document for the first production release of Wide Web Blog.
+Create the technical architecture reference document for Wide Web Blog.
 
 ## Requested Outcome
 
-- create `docs/MVP_SCOPE.md`
-- define the Phase 1 production release scope
-- specify module boundaries, inclusions, exclusions, dependencies, and launch criteria
+- create `docs/ARCHITECTURE.md`
+- define the service-oriented system architecture for the MVP and near-future platform
+- ensure the design supports future AI agents without major rewrites
 
 ## Scope Boundaries
 
-- In scope: MVP product scope documentation inside this repository
-- Out of scope: application code changes, sibling repositories, implementation tickets, or detailed delivery sequencing beyond MVP phase boundaries
+- In scope: architecture documentation inside this repository
+- Out of scope: implementation code, sibling repositories, infrastructure-as-code, or low-level deployment runbooks
 
 ## Context Files Loaded
 
 - attached task request
 - `.agent/INDEX.md`
 - `.agent/tasks/current-task.md`
-- `.agent/agents/SHARED-INSTRUCTIONS.md`
-- `.agent/agents/CODEX.md`
-- `.agent/TASK-WORKFLOW.md`
 - `.agent/PROJECT-CONTEXT.md`
-- `.agent/knowledge-base/product.md`
-- `.agent/knowledge-base/seo.md`
+- `.agent/ARCHITECTURE.md`
 - `docs/PRODUCT_VISION.md`
+- `docs/MVP_SCOPE.md`
 
 ## Repository Files Inspected
 
-- `.agent/INDEX.md`
 - `.agent/tasks/current-task.md`
-- `.agent/tasks/completed/2026-06-16-agent-environment-setup.md`
-- `.agent/TASK-WORKFLOW.md`
-- `.agent/agents/SHARED-INSTRUCTIONS.md`
-- `.agent/agents/CODEX.md`
 - `.agent/PROJECT-CONTEXT.md`
-- `.agent/knowledge-base/product.md`
-- `.agent/knowledge-base/seo.md`
+- `.agent/ARCHITECTURE.md`
 - `docs/PRODUCT_VISION.md`
+- `docs/MVP_SCOPE.md`
 
 ## Plan
 
-1. Define the MVP release strategy around fast launch, SEO authority, and minimal launch-blocking AI complexity.
-2. Draft `docs/MVP_SCOPE.md` with module-by-module scope, dependencies, inclusions, exclusions, and release criteria.
-3. Record validation, risks, and completion notes in this task file.
+1. Define the target architecture around Laravel 13, Livewire clients, MySQL, Redis, queues, and R2-backed media.
+2. Draft `docs/ARCHITECTURE.md` with component boundaries, request flows, layering guidance, diagrams, and future AI-agent extension points.
+3. Review the document for consistency with the product vision and MVP scope, then record validation and residual risks.
 
 ## Changed Files
 
-- `.agent/tasks/completed/2026-06-16-product-vision.md`
 - `.agent/tasks/current-task.md`
-- `docs/MVP_SCOPE.md`
+- `docs/ARCHITECTURE.md`
 
 ## Validation
 
-- Confirmed `docs/MVP_SCOPE.md` was created in the repository.
-- Confirmed each required module includes purpose, features, included functionality, excluded functionality, and dependencies.
-- Confirmed the document includes `In Scope`, `Out Of Scope`, `MVP Success Criteria`, and `Release Readiness Checklist`.
-- Confirmed the Phase 1 boundary is explicit and prioritizes launch speed, SEO authority, and minimal AI dependency.
-- Confirmed the scope aligns with `docs/PRODUCT_VISION.md` and the repository product constraints for human editorial control.
+- Confirmed `docs/ARCHITECTURE.md` was created in the repository.
+- Confirmed the document includes the requested sections: high-level architecture, system components, request flows, module boundaries, folder structure recommendations, service layer design, repository layer design, DTO strategy, event and job strategy, queue architecture, media architecture, template architecture, SEO architecture, and future AI architecture.
+- Confirmed the document includes diagrams and concrete examples for major flows and layers.
+- Confirmed the architecture preserves human review boundaries for AI-generated outputs and avoids direct provider coupling.
+- Confirmed the structure aligns with `docs/PRODUCT_VISION.md`, `docs/MVP_SCOPE.md`, and the existing service-layer guidance in `.agent/ARCHITECTURE.md`.
 
 ## Risks Or Follow-Ups
 
-- The document defines product scope, not implementation sequence, so it should be followed by an execution roadmap or milestone breakdown before delivery planning starts.
-- Some module details, especially post authoring and template behavior, may need refinement once the exact Laravel and Livewire implementation approach is chosen.
+- The document is intentionally reference-level and does not yet define the actual database schema, exact module namespaces, or deployment topology in operational detail.
+- Once the real Laravel codebase exists, the recommended folder structure and module naming should be reconciled with the actual application layout rather than enforced mechanically.
 
 ## Completion Notes
 
-- Summary: Added an MVP scope document that defines the first production release of Wide Web Blog, including Phase 1 boundaries, module scope, exclusions, dependencies, success criteria, and release readiness checks.
-- Changed files: Added the MVP scope document, archived the previous completed task note, and updated the current task tracker.
-- Validation run: File creation and manual content review against the requested sections and phase-boundary requirements.
-- Risks: Execution planning and implementation decomposition still need separate follow-up documentation.
-- Follow-ups: Create a phased roadmap or delivery plan that translates this MVP scope into milestones, epics, and implementation order.
+- Summary: Added a technical architecture reference for Wide Web Blog that defines the service-oriented Laravel architecture, module boundaries, async strategy, storage model, and provider-agnostic AI extension design.
+- Changed files: Updated the task tracker and created `docs/ARCHITECTURE.md`.
+- Validation run: File creation and manual review against the requested architecture sections and future-agent requirements.
+- Risks: Concrete implementation details such as migrations, namespace conventions, and worker topology remain to be defined during build-out.
+- Follow-ups: Create a data model document or implementation roadmap that translates this architecture into concrete Laravel modules, tables, and delivery phases.
