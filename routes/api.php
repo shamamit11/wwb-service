@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryControl
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Api\V1\Admin\RssFeedController as AdminRssFeedController;
 use App\Http\Controllers\Api\V1\Admin\SeoMetadataController as AdminSeoMetadataController;
 use App\Http\Controllers\Api\V1\Admin\SitemapController as AdminSitemapController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
@@ -82,6 +83,8 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.seo.update');
             Route::get('seo/sitemap', AdminSitemapController::class)
                 ->name('api.v1.admin.seo.sitemap');
+            Route::get('feeds/rss', AdminRssFeedController::class)
+                ->name('api.v1.admin.feeds.rss');
 
             Route::apiResource('tags', AdminTagController::class)
                 ->names('api.v1.admin.tags');
