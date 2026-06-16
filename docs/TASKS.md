@@ -1,50 +1,55 @@
-# Tasks: Wide Web Blog
+# Service Tasks: Wide Web Blog
 
 ## Document Purpose
 
-This document defines the implementation backlog for the Wide Web Blog platform as a single Laravel application. It translates the product vision, MVP scope, architecture, database design, content strategy, SEO strategy, and roadmap into coding-agent-executable tasks.
+This document defines the implementation backlog for the `service` repository only.
 
-This backlog covers:
+It covers:
 
-- Laravel foundation
-- admin CMS
-- public blog website
+- backend APIs
+- business logic
+- database work
 - media service
-- SEO features
-- knowledge base
-- AI publishing
-- advanced publishing capabilities
+- SEO metadata APIs
+- knowledge base APIs
+- template APIs
+- topic APIs
+- future AI content engine
+- API documentation via Scramble
+- audit logging via Spatie Activitylog
 
-It does not split work into separate backend, admin, or frontend applications. Everything belongs to the same Laravel codebase.
+It does not include:
 
-## Execution Principles
+- Livewire tasks
+- Blade tasks
+- admin UI tasks
+- public frontend tasks
 
-- tasks must be small and focused
-- dependencies must be explicit
-- acceptance criteria must be concrete
-- validation must be runnable by coding agents
-- backlog order should favor incremental delivery
-- Phase 1 must optimize for launch speed and SEO quality
-- AI features must never bypass human approval
+## Service Scope Principles
 
-## Technology Baseline
+- API and service logic only
+- thin controllers, validated requests, DTOs, services, repositories, resources
+- task size should remain agent-friendly
+- public read safety must respect published content boundaries
+- AI outputs must never publish directly
+
+## Stack
 
 - Laravel 13
 - PHP 8.4
-- Livewire
 - MySQL
 - Redis
 - Laravel Queue
 - Laravel Scheduler
-- Cloudflare R2
-- Docker
+- Scramble
+- Spatie Activitylog
+- optional Spatie Permission if API roles are needed
+- Cloudflare R2 integration
 - Laravel Pint
 - Larastan
 - Pest
 
 ## Story Point Scale
-
-Use Fibonacci story points:
 
 - `1`
 - `2`
@@ -54,52 +59,31 @@ Use Fibonacci story points:
 - `13`
 - `21`
 
-## Package Plan
-
-The following package plan should be treated as the starting point for implementation.
-
-| Package / Tool | Why It Is Needed | Requirement | Installation Task | Configuration Task |
-|---|---|---|---|---|
-| `livewire/livewire` | admin CMS and interactive publishing UI | MVP | `WB-005` | `WB-005` |
-| `laravel/breeze` with Livewire stack | fast, maintainable auth bootstrap | MVP | `WB-006` | `WB-006` |
-| `league/flysystem-aws-s3-v3` | Cloudflare R2-compatible storage driver | MVP | `WB-007` | `WB-007` |
-| `cviebrock/eloquent-sluggable` or equivalent | reliable slug generation and overrides | MVP | `WB-008` | `WB-008` |
-| `spatie/laravel-sitemap` or equivalent | sitemap generation from publish state | MVP | `WB-008` | `WB-043` |
-| Custom SEO module preferred over generic SEO package | tighter control over metadata, schema, canonicals | MVP | `WB-037` | `WB-038` |
-| `pestphp/pest` | testing framework | MVP | `WB-009` | `WB-009` |
-| `larastan/larastan` | static analysis and type quality | MVP | `WB-009` | `WB-009` |
-| `laravel/pint` | code style enforcement | MVP | `WB-009` | `WB-009` |
-| `nunomaduro/collision` | local debugging and CLI feedback | MVP | `WB-009` | `WB-009` |
-| Laravel Scout optional, defer by default | search abstraction if MySQL full-text becomes limiting | Future | `WB-041` if adopted | `WB-041` if adopted |
-
 ## Phase Summary
 
-- Phase 0: Foundation & Agent Environment
-- Phase 1: MVP Blog Platform
-- Phase 2: AI-Assisted Publishing
-- Phase 3: Advanced Publishing
+- Phase 0 — Service Foundation
+- Phase 1 — Core APIs
+- Phase 2 — Publishing & SEO Services
+- Phase 3 — AI Content Engine
+- Phase 4 — Advanced Services
 
 ---
 
-## WB-001
+## WB-SVC-001 — Initialize Laravel 13 service application
 
-### Title
-
-Initialize Laravel 13 application
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `2`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the base Laravel application structure for the single-codebase platform and verify the runtime baseline.
+Initialize the Laravel 13 codebase for the service repository and confirm the PHP 8.4 runtime baseline.
 
 ### Deliverables
 
-- Laravel 13 project initialized
-- PHP 8.4 compatibility confirmed
-- baseline app bootstraps locally
+- Laravel application skeleton
+- runtime baseline verified
 
 ### Dependencies
 
@@ -108,8 +92,7 @@ Create the base Laravel application structure for the single-codebase platform a
 ### Acceptance Criteria
 
 - `php artisan about` runs successfully
-- base app boots without fatal errors
-- repository contains standard Laravel app structure
+- service app boots without fatal errors
 
 ### Suggested Files / Areas
 
@@ -123,47 +106,41 @@ Create the base Laravel application structure for the single-codebase platform a
 - `php artisan --version`
 - `php artisan about`
 
-### Story Points
+### Notes
 
-`2`
+- keep this repo service-only; no UI scaffolding
 
 ---
 
-## WB-002
+## WB-SVC-002 — Configure Docker and local service environment
 
-### Title
-
-Configure Docker development environment
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create a reproducible local development environment for app runtime, MySQL, Redis, and supporting services.
+Set up Docker and local development for the Laravel service runtime, MySQL, and Redis.
 
 ### Deliverables
 
-- Docker configuration
-- app service
-- MySQL service
-- Redis service
-- local startup instructions
+- Docker config
+- local startup flow
+- containerized app, MySQL, Redis
 
 ### Dependencies
 
-- `WB-001`
+- `WB-SVC-001`
 
 ### Acceptance Criteria
 
-- app containers start successfully
-- Laravel app can connect to MySQL and Redis in Docker
-- basic local workflow is documented
+- containers start successfully
+- app can connect to MySQL and Redis locally
 
 ### Suggested Files / Areas
 
-- `docker-compose.yml` or equivalent
+- `docker-compose.yml`
 - `Dockerfile`
 - `.env.example`
 - `README.md`
@@ -174,42 +151,37 @@ Create a reproducible local development environment for app runtime, MySQL, Redi
 - `docker compose ps`
 - `php artisan about`
 
-### Story Points
+### Notes
 
-`5`
+- keep services minimal and repo-specific
 
 ---
 
-## WB-003
+## WB-SVC-003 — Configure environment variables and application config
 
-### Title
-
-Configure environment variables and application configuration
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Define environment variable conventions and Laravel config wiring for local, test, and production-ready operation.
+Configure environment keys and config wiring for database, cache, queue, storage, app URL, and logging.
 
 ### Deliverables
 
-- `.env.example` updated
-- app config defaults reviewed
-- queue, cache, mail, app URL, and storage config wired
+- updated `.env.example`
+- config defaults reviewed
 
 ### Dependencies
 
-- `WB-001`
-- `WB-002`
+- `WB-SVC-001`
+- `WB-SVC-002`
 
 ### Acceptance Criteria
 
-- required environment keys are present in `.env.example`
-- app boots using documented config values
-- no hardcoded local-only secrets or paths remain
+- required keys are present in `.env.example`
+- app boots with documented configuration values
 
 ### Suggested Files / Areas
 
@@ -221,45 +193,40 @@ Define environment variable conventions and Laravel config wiring for local, tes
 - `php artisan config:clear`
 - `php artisan about`
 
-### Story Points
+### Notes
 
-`3`
+- no UI-only environment variables
 
 ---
 
-## WB-004
+## WB-SVC-004 — Configure MySQL, Redis, queues, scheduler, and storage disks
 
-### Title
-
-Configure MySQL, Redis, queues, scheduler, and storage foundations
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Wire the core infrastructure features the application depends on before domain work begins.
+Wire the infrastructure features the service layer depends on.
 
 ### Deliverables
 
-- MySQL connection configured
-- Redis configured for cache and queue
-- queue driver configured
-- scheduler enabled in runtime assumptions
-- storage disk scaffolding configured
+- MySQL connection
+- Redis cache and queue config
+- scheduler baseline
+- storage disk scaffolding
 
 ### Dependencies
 
-- `WB-002`
-- `WB-003`
+- `WB-SVC-002`
+- `WB-SVC-003`
 
 ### Acceptance Criteria
 
-- app connects to MySQL
-- queue connection is configured and testable
-- cache uses Redis
-- scheduler can be listed with at least a placeholder command
+- migrations can run against MySQL
+- queue worker can run once
+- scheduler can list commands
 
 ### Suggested Files / Areas
 
@@ -267,7 +234,6 @@ Wire the core infrastructure features the application depends on before domain w
 - `config/queue.php`
 - `config/cache.php`
 - `routes/console.php`
-- `app/Console/Kernel.php` if applicable
 
 ### Validation
 
@@ -275,139 +241,37 @@ Wire the core infrastructure features the application depends on before domain w
 - `php artisan queue:work --once`
 - `php artisan schedule:list`
 
-### Story Points
+### Notes
 
-`5`
-
----
-
-## WB-005
-
-### Title
-
-Install and configure Livewire
-
-### Phase
-
-Phase 0
-
-### Description
-
-Add Livewire as the foundation for interactive admin and selected public UI.
-
-### Deliverables
-
-- Livewire installed
-- Livewire assets and config integrated
-- base component workflow verified
-
-### Dependencies
-
-- `WB-001`
-
-### Acceptance Criteria
-
-- a sample Livewire component renders correctly
-- Livewire is available for admin and frontend usage
-
-### Suggested Files / Areas
-
-- `composer.json`
-- `config/livewire.php`
-- `app/Livewire/`
-- `resources/views/`
-
-### Validation
-
-- `php artisan livewire:make TestComponent`
-- manual browser validation
-
-### Story Points
-
-`2`
+- scheduler should support future SEO and AI jobs
 
 ---
 
-## WB-006
+## WB-SVC-005 — Configure Cloudflare R2 disk integration
 
-### Title
-
-Install and configure authentication starter with Livewire support
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Add a maintainable authentication foundation for the admin CMS, favoring a Laravel-native starter with Livewire compatibility.
+Add and configure the S3-compatible storage integration for Cloudflare R2.
 
 ### Deliverables
 
-- authentication package installed
-- login/logout/password flow scaffolded
-- admin-only route protection baseline
+- Flysystem S3 driver
+- R2 disk config
+- environment-driven credentials
 
 ### Dependencies
 
-- `WB-001`
-- `WB-005`
+- `WB-SVC-003`
+- `WB-SVC-004`
 
 ### Acceptance Criteria
 
-- users can authenticate locally
-- protected routes redirect unauthenticated users
-- auth scaffolding is compatible with planned admin UX
-
-### Suggested Files / Areas
-
-- `composer.json`
-- `routes/web.php`
-- `app/Http/Controllers/` or `app/Livewire/`
-- `resources/views/auth/`
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-- manual auth flow validation
-
-### Story Points
-
-`3`
-
----
-
-## WB-007
-
-### Title
-
-Install Flysystem S3 driver and configure Cloudflare R2
-
-### Phase
-
-Phase 0
-
-### Description
-
-Add and configure the storage driver needed for Cloudflare R2-backed media management.
-
-### Deliverables
-
-- S3-compatible Flysystem driver installed
-- R2 disk configured
-- upload/read/delete connectivity verified
-
-### Dependencies
-
-- `WB-003`
-- `WB-004`
-
-### Acceptance Criteria
-
-- Laravel can write to the R2 disk
-- Laravel can read from and delete from the R2 disk
-- disk config is environment-driven
+- service can write, read, and delete files on the R2 disk
 
 ### Suggested Files / Areas
 
@@ -418,92 +282,163 @@ Add and configure the storage driver needed for Cloudflare R2-backed media manag
 ### Validation
 
 - `php artisan tinker` storage smoke test
-- manual validation against R2 bucket
 
-### Story Points
+### Notes
 
-`5`
+- this is required for media and future AI image flows
 
 ---
 
-## WB-008
+## WB-SVC-006 — Install and configure Scramble for API documentation
 
-### Title
-
-Install and configure foundational support packages
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Install the minimum package layer for slugs and sitemap support, and document any intentionally deferred packages.
+Install Scramble and configure it as the API documentation generator for the service repository.
 
 ### Deliverables
 
-- slugging package installed and configured
-- sitemap package installed and configured
-- deferred package decisions documented
+- Scramble installed
+- base config
+- docs route or generation workflow
 
 ### Dependencies
 
-- `WB-001`
+- `WB-SVC-001`
 
 ### Acceptance Criteria
 
-- slug package is usable in Eloquent models
-- sitemap package can be invoked in a test route, command, or service
-- search and SEO package decisions are documented
+- API docs can be generated or browsed locally
+- service endpoints can be documented through code annotations or route reflection
 
 ### Suggested Files / Areas
 
 - `composer.json`
-- `config/`
-- `app/Providers/`
-- `docs/`
+- `config/scramble.php`
+- routes
+
+### Validation
+
+- Scramble docs generation or route smoke test
+
+### Notes
+
+- keep docs generation aligned with service-only routes
+
+---
+
+## WB-SVC-007 — Install and configure Spatie Activitylog
+
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Install audit logging and configure base activity log behavior for critical service-side content operations.
+
+### Deliverables
+
+- Activitylog installed
+- config published
+- baseline activity model wiring
+
+### Dependencies
+
+- `WB-SVC-001`
+
+### Acceptance Criteria
+
+- activity log migration exists
+- service can record audit events for a sample model
+
+### Suggested Files / Areas
+
+- `composer.json`
+- `config/activitylog.php`
+- migrations
+- models
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- prioritize auditable editorial state changes
+
+---
+
+## WB-SVC-008 — Install Spatie Permission if API roles are required
+
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `3`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Install role and permission support if policy needs exceed a simple enum-based admin-only model.
+
+### Deliverables
+
+- package installation decision
+- implementation if needed
+
+### Dependencies
+
+- `WB-SVC-001`
+
+### Acceptance Criteria
+
+- package is either installed and configured or explicitly deferred with documented reasoning
+
+### Suggested Files / Areas
+
+- `composer.json`
+- auth config
+- permissions migrations
 
 ### Validation
 
 - `php artisan test`
-- manual package smoke test
 
-### Story Points
+### Notes
 
-`3`
+- defer if enum roles are sufficient for MVP
 
 ---
 
-## WB-009
+## WB-SVC-009 — Install Pint, Larastan, and Pest
 
-### Title
-
-Install and configure code quality and testing tools
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Set up Pint, Larastan, Pest, and supporting developer tooling for consistent quality enforcement.
+Set up formatting, static analysis, and testing tools for the service repository.
 
 ### Deliverables
 
-- Pest installed
-- Pint configured
-- Larastan configured
-- baseline test and analysis commands documented
+- Pint
+- Larastan
+- Pest
 
 ### Dependencies
 
-- `WB-001`
+- `WB-SVC-001`
 
 ### Acceptance Criteria
 
-- `php artisan test` runs
-- `./vendor/bin/pint --test` runs
-- `./vendor/bin/phpstan analyse` runs with an initial config
+- formatting, static analysis, and test commands run locally
 
 ### Suggested Files / Areas
 
@@ -518,631 +453,373 @@ Set up Pint, Larastan, Pest, and supporting developer tooling for consistent qua
 - `./vendor/bin/pint --test`
 - `./vendor/bin/phpstan analyse`
 
-### Story Points
+### Notes
 
-`3`
+- keep configs service-repo specific
 
 ---
 
-## WB-010
+## WB-SVC-010 — Set up API response format and exception handling
 
-### Title
-
-Set up CI validation workflow
-
-### Phase
-
-Phase 0
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create an automated validation workflow for style, static analysis, and tests.
+Define consistent JSON response envelopes and structured exception-to-error mapping.
 
 ### Deliverables
 
-- CI configuration
-- quality gates for Pint, Larastan, Pest
-- environment bootstrap for CI
+- success response conventions
+- error response conventions
+- centralized exception rendering
 
 ### Dependencies
 
-- `WB-009`
+- `WB-SVC-001`
 
 ### Acceptance Criteria
 
-- CI runs on pull requests or equivalent workflow events
-- failing style or test checks block green status
+- validation, auth, and not-found errors return consistent JSON shapes
+- internal errors do not leak sensitive details
 
 ### Suggested Files / Areas
 
-- `.github/workflows/` or equivalent
+- `app/Exceptions/`
+- `app/Http/Resources/`
+- bootstrap exception handling
+
+### Validation
+
+- `php artisan test`
+- request-level feature tests
+
+### Notes
+
+- align with `docs/OPENAPI_SPEC.md`
+
+---
+
+## WB-SVC-011 — Establish controller/request/DTO/service/repository/resource conventions
+
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create the baseline service-layer conventions and base abstractions for backend features.
+
+### Deliverables
+
+- directory structure
+- base DTO conventions
+- repository conventions
+- API resource conventions
+
+### Dependencies
+
+- `WB-SVC-001`
+
+### Acceptance Criteria
+
+- new service features can follow a documented layered pattern
+- at least one sample flow proves the structure is usable
+
+### Suggested Files / Areas
+
+- `app/Modules/`
+- `app/Http/Requests/`
+- `app/Http/Resources/`
+- `app/Support/`
+
+### Validation
+
+- manual architecture review
+- `php artisan test`
+
+### Notes
+
+- must match service-only architecture guidance
+
+---
+
+## WB-SVC-012 — Configure CI validation for the service repository
+
+**Phase:** Phase 0 — Service Foundation  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create CI automation for tests, formatting, and static analysis.
+
+### Deliverables
+
+- CI workflow
+- app bootstrap for CI
+- quality gates
+
+### Dependencies
+
+- `WB-SVC-009`
+
+### Acceptance Criteria
+
+- CI runs Pint, Larastan, and Pest
+- failing checks block green status
+
+### Suggested Files / Areas
+
+- `.github/workflows/`
 - `composer.json`
 
 ### Validation
 
-- CI dry run where supported
-- push or local simulation if available
+- CI run
+- local workflow smoke test if possible
 
-### Story Points
+### Notes
 
-`5`
+- no frontend build steps required
 
 ---
 
-## WB-011
+## WB-SVC-013 — Implement auth and admin API support foundation
 
-### Title
-
-Create `.agent` structure and core agent documents
-
-### Phase
-
-Phase 0
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the repository-scoped agent operating system for task execution, context loading, and reusable knowledge.
+Add backend auth support for admin consumers, policy enforcement, and authenticated API entry points.
 
 ### Deliverables
 
-- `.agent/INDEX.md`
-- `.agent/MEMORY.md`
-- `.agent/AGENT-HANDOVER.md`
-- `.agent/TASK-WORKFLOW.md`
-- `.agent/tasks/`
+- auth endpoint support
+- admin route protection
+- user role checks or permissions
 
 ### Dependencies
 
-- none
+- `WB-SVC-006`
+- `WB-SVC-010`
+- `WB-SVC-011`
 
 ### Acceptance Criteria
 
-- agents can locate startup instructions and task workflow
-- task archive path exists
-- reusable memory location exists
+- protected service endpoints require auth
+- unauthorized requests receive consistent JSON errors
 
 ### Suggested Files / Areas
 
-- `.agent/`
+- `routes/api.php`
+- auth controllers
+- policies
+- user model
 
 ### Validation
 
-- manual repository review
+- `php artisan test`
+- auth feature tests
 
-### Story Points
+### Notes
 
-`3`
-
----
-
-## WB-012
-
-### Title
-
-Create shared instructions, task templates, and agent handover workflow
-
-### Phase
-
-Phase 0
-
-### Description
-
-Define shared operating rules for task execution and continuation across agent sessions.
-
-### Deliverables
-
-- shared instructions
-- current task template
-- completed task pattern
-- handover expectations
-
-### Dependencies
-
-- `WB-011`
-
-### Acceptance Criteria
-
-- task workflow is explicit
-- task fields are standardized
-- incomplete work has a defined handover path
-
-### Suggested Files / Areas
-
-- `.agent/agents/`
-- `.agent/tasks/task-template.md`
-- `.agent/AGENT-HANDOVER.md`
-
-### Validation
-
-- manual review against agent workflow rules
-
-### Story Points
-
-`2`
+- support admin/API consumers, not admin UI screens
 
 ---
 
-## WB-013
+## WB-SVC-014 — Implement category schema, model, and repository layer
 
-### Title
-
-Create agent memory, knowledge base, and skill scaffolding
-
-### Phase
-
-Phase 0
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create durable documentation for product, architecture, SEO, AI-content, testing, and Laravel workflow guidance.
+Create the persistence layer for categories.
 
 ### Deliverables
 
-- memory conventions
-- knowledge base files
-- skill files for Laravel, SEO, testing, media, and AI content
+- migration
+- model
+- repository
 
 ### Dependencies
 
-- `WB-011`
-- `WB-012`
+- `WB-SVC-004`
+- `WB-SVC-011`
 
 ### Acceptance Criteria
 
-- stable knowledge is separated from task-specific notes
-- skill files exist for key work categories
-- context loading remains scoped and intentional
+- categories table matches design
+- repository supports core reads and writes
 
 ### Suggested Files / Areas
 
-- `.agent/MEMORY.md`
-- `.agent/knowledge-base/`
-- `.agent/skills/`
-
-### Validation
-
-- manual review of agent docs
-
-### Story Points
-
-`3`
-
----
-
-## WB-014
-
-### Title
-
-Create AGENTS.md, CLAUDE.md, and Copilot instructions
-
-### Phase
-
-Phase 0
-
-### Description
-
-Define editor and repository instructions for multiple coding-agent surfaces.
-
-### Deliverables
-
-- `AGENTS.md`
-- Claude instruction file
-- Copilot instruction file
-
-### Dependencies
-
-- `WB-011`
-
-### Acceptance Criteria
-
-- each supported agent surface has clear repository instructions
-- instructions align with `.agent` workflow
-
-### Suggested Files / Areas
-
-- `AGENTS.md`
-- `.agent/agents/CLAUDE.md`
-- `.agent/agents/COPILOT.md`
-
-### Validation
-
-- manual review
-
-### Story Points
-
-`2`
-
----
-
-## WB-015
-
-### Title
-
-Prepare production configuration and deployment baseline
-
-### Phase
-
-Phase 0
-
-### Description
-
-Define the minimum configuration needed for production deployment, scheduler, queue workers, and storage wiring.
-
-### Deliverables
-
-- production env checklist
-- queue worker assumptions
-- scheduler assumptions
-- storage and cache deployment notes
-
-### Dependencies
-
-- `WB-004`
-- `WB-007`
-
-### Acceptance Criteria
-
-- production-critical config is documented
-- no major infrastructure dependency is undefined for MVP launch
-
-### Suggested Files / Areas
-
-- `docs/`
-- `.env.example`
-- deployment notes if present
-
-### Validation
-
-- manual review
-
-### Story Points
-
-`3`
-
----
-
-## WB-016
-
-### Title
-
-Implement roles and permissions foundation
-
-### Phase
-
-Phase 1
-
-### Description
-
-Add the minimal role and permission model required for secure admin access and future expansion.
-
-### Deliverables
-
-- user role model
-- permission checks or policies
-- admin-only access enforcement
-
-### Dependencies
-
-- `WB-006`
-- `WB-011`
-
-### Acceptance Criteria
-
-- unauthorized users cannot access admin routes
-- role checks are centralized and testable
-
-### Suggested Files / Areas
-
-- `app/Models/User.php`
-- `app/Policies/`
-- `app/Providers/AuthServiceProvider.php`
 - migrations
-
-### Validation
-
-- `php artisan test`
-- manual authorization validation
-
-### Story Points
-
-`3`
-
----
-
-## WB-017
-
-### Title
-
-Build admin layout, navigation, and shell
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the shared admin CMS layout used by dashboard and all management screens.
-
-### Deliverables
-
-- admin layout
-- navigation
-- common page shell
-- auth-protected admin route group
-
-### Dependencies
-
-- `WB-005`
-- `WB-006`
-- `WB-016`
-
-### Acceptance Criteria
-
-- admin pages share a consistent layout
-- navigation is extensible for future modules
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/`
-- `resources/views/`
-- `routes/web.php`
-
-### Validation
-
-- manual browser validation
-
-### Story Points
-
-`5`
-
----
-
-## WB-018
-
-### Title
-
-Build admin dashboard and settings foundation
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the initial dashboard and application settings area for operational visibility and configuration.
-
-### Deliverables
-
-- dashboard screen
-- settings model or config persistence strategy
-- basic site settings UI
-
-### Dependencies
-
-- `WB-017`
-
-### Acceptance Criteria
-
-- dashboard route exists
-- settings can be stored and retrieved
-- settings design allows future expansion
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Dashboard*`
-- `app/Livewire/Admin/Settings*`
-- config/services
-
-### Validation
-
-- `php artisan test`
-- manual dashboard validation
-
-### Story Points
-
-`5`
-
----
-
-## WB-019
-
-### Title
-
-Implement category database schema and model layer
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create migrations, Eloquent models, and repository or service scaffolding for categories.
-
-### Deliverables
-
-- `categories` migration
-- category model
-- factory and tests scaffold
-
-### Dependencies
-
-- `WB-004`
-- `WB-016`
-
-### Acceptance Criteria
-
-- categories table matches design requirements
-- model supports slug, visibility, and ordering
-
-### Suggested Files / Areas
-
-- `database/migrations/`
 - `app/Models/Category.php`
-- `database/factories/`
+- `app/Modules/Categories/Repositories/`
 
 ### Validation
 
 - `php artisan migrate`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`3`
+- include slug and active state support
 
 ---
 
-## WB-020
+## WB-SVC-015 — Implement categories API endpoints and resources
 
-### Title
-
-Build category CRUD and Livewire management screens
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create category create, list, edit, delete, and validation workflows in the admin CMS.
+Expose admin and public-safe categories endpoints.
 
 ### Deliverables
 
-- category index screen
-- create/edit forms
-- validation rules
-- feature tests
+- controllers
+- requests
+- resources
+- route definitions
 
 ### Dependencies
 
-- `WB-017`
-- `WB-019`
+- `WB-SVC-013`
+- `WB-SVC-014`
 
 ### Acceptance Criteria
 
-- admin can manage categories end to end
-- slug uniqueness and validation are enforced
+- admin CRUD endpoints function
+- public list endpoints expose only active categories
 
 ### Suggested Files / Areas
 
-- `app/Livewire/Admin/Categories/`
-- `app/Http/Requests/` or Livewire validation
-- tests
+- `routes/api.php`
+- `app/Modules/Categories/Http/`
+- `app/Http/Resources/`
 
 ### Validation
 
 - `php artisan test`
-- manual CRUD validation
+- API feature tests
 
-### Story Points
+### Notes
 
-`5`
+- ensure Scramble can document endpoints cleanly
 
 ---
 
-## WB-021
+## WB-SVC-016 — Implement tag schema, model, and repository layer
 
-### Title
-
-Implement tag database schema and model layer
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create migrations, models, and relationships for tags and post tagging support.
+Create persistence support for tags and post tag assignments.
 
 ### Deliverables
 
 - `tags` migration
-- `post_tags` pivot migration
+- `post_tags` migration
 - tag model
+- repository
 
 ### Dependencies
 
-- `WB-004`
+- `WB-SVC-004`
+- `WB-SVC-011`
 
 ### Acceptance Criteria
 
 - tags and pivot tables migrate successfully
-- tag relationships are available from posts and tags
+- repository supports CRUD and lookups
 
 ### Suggested Files / Areas
 
-- `database/migrations/`
+- migrations
 - `app/Models/Tag.php`
+- `app/Modules/Tags/Repositories/`
 
 ### Validation
 
 - `php artisan migrate`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`3`
+- tag logic stays service-side only
 
 ---
 
-## WB-022
+## WB-SVC-017 — Implement tags API endpoints and resources
 
-### Title
-
-Build tag CRUD and admin assignment workflow
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create tag management screens and prepare post editing flows to assign tags cleanly.
+Expose backend tag management endpoints.
 
 ### Deliverables
 
-- tag management UI
-- validation rules
-- tag selection component or workflow
+- tag controllers
+- requests
+- resources
 
 ### Dependencies
 
-- `WB-017`
-- `WB-021`
+- `WB-SVC-013`
+- `WB-SVC-016`
 
 ### Acceptance Criteria
 
-- admin can create and manage tags
-- tags can be selected in a reusable way for posts
+- tags can be created, updated, listed, and deleted through API
 
 ### Suggested Files / Areas
 
-- `app/Livewire/Admin/Tags/`
-- tests
+- `app/Modules/Tags/Http/`
+- `routes/api.php`
 
 ### Validation
 
 - `php artisan test`
-- manual tag management validation
 
-### Story Points
+### Notes
 
-`3`
+- public tag APIs can remain deferred unless truly needed
 
 ---
 
-## WB-023
+## WB-SVC-018 — Implement media schema, model, and service abstractions
 
-### Title
-
-Implement media database schema and service foundation
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the `media` table, model, and storage-aware service abstractions for uploaded assets.
+Create media persistence and the core service abstractions around file storage.
 
 ### Deliverables
 
@@ -1152,1398 +829,1179 @@ Create the `media` table, model, and storage-aware service abstractions for uplo
 
 ### Dependencies
 
-- `WB-007`
+- `WB-SVC-005`
+- `WB-SVC-011`
 
 ### Acceptance Criteria
 
-- media metadata can be stored in MySQL
-- media service abstraction exists for upload/read/delete operations
+- media metadata persists in MySQL
+- service abstractions exist for upload/read/delete
 
 ### Suggested Files / Areas
 
-- `database/migrations/`
+- migrations
 - `app/Models/Media.php`
-- `app/Services/Media/`
+- `app/Modules/Media/Services/`
 
 ### Validation
 
 - `php artisan migrate`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`5`
-
----
-
-## WB-024
-
-### Title
-
-Implement media upload pipeline with Cloudflare R2
-
-### Phase
-
-Phase 1
-
-### Description
-
-Build upload handling from admin UI through storage adapter and metadata persistence.
-
-### Deliverables
-
-- single upload flow
-- multiple upload support
-- R2 upload integration
-- metadata persistence
-
-### Dependencies
-
-- `WB-017`
-- `WB-023`
-
-### Acceptance Criteria
-
-- admin can upload one or many assets
-- uploaded files are persisted to R2 and tracked in the database
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Media/`
-- `app/Services/Media/`
-- `config/filesystems.php`
-
-### Validation
-
-- manual upload validation
-- `php artisan test`
-
-### Story Points
-
-`8`
+- align with `docs/MEDIA_SERVICE.md`
 
 ---
 
-## WB-025
+## WB-SVC-019 — Implement media upload, batch upload, and metadata APIs
 
-### Title
-
-Build media library, search, delete, and usage tracking
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the admin media browser and operational workflows around retrieval, searching, deletion, and usage awareness.
+Build backend endpoints for single and multiple uploads plus metadata editing.
 
 ### Deliverables
 
-- media library screen
-- media search
-- delete workflow
-- usage tracking fields or checks
+- upload endpoint
+- batch upload endpoint
+- metadata update endpoint
 
 ### Dependencies
 
-- `WB-024`
+- `WB-SVC-013`
+- `WB-SVC-018`
 
 ### Acceptance Criteria
 
-- admin can browse and search media
-- deletions are safe and respect asset usage rules
-- usage state is visible enough to avoid accidental broken references
+- files can be uploaded to R2 through API
+- metadata persists and is editable
 
 ### Suggested Files / Areas
 
-- `app/Livewire/Admin/Media/`
-- `app/Models/Media.php`
-- tests
+- `app/Modules/Media/Http/`
+- storage services
+- requests and resources
 
 ### Validation
 
 - `php artisan test`
-- manual media library validation
+- storage integration tests
 
-### Story Points
+### Notes
 
-`8`
+- no media library UI in this repo backlog
 
 ---
 
-## WB-026
+## WB-SVC-020 — Implement media search, delete, and usage tracking APIs
 
-### Title
-
-Implement template database schema and model layer
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the schema and models for templates and template blocks.
+Expose media retrieval and safe deletion behavior, including usage awareness.
 
 ### Deliverables
 
-- `templates` migration
-- `template_blocks` migration
-- template models and relationships
+- media listing endpoint
+- filtering and search
+- delete endpoint
+- usage lookup support
 
 ### Dependencies
 
-- `WB-004`
+- `WB-SVC-019`
 
 ### Acceptance Criteria
 
-- templates and template blocks migrate successfully
-- relationships support ordered template structure
+- API can list and filter media
+- delete is blocked when usage rules forbid it
 
 ### Suggested Files / Areas
 
-- `database/migrations/`
+- media controllers
+- query services
+- usage services
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- usage logic must account for featured media and SEO images
+
+---
+
+## WB-SVC-021 — Implement template schema, models, and repository layer
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create persistence support for templates and template blocks.
+
+### Deliverables
+
+- template migrations
+- models
+- repositories
+
+### Dependencies
+
+- `WB-SVC-004`
+- `WB-SVC-011`
+
+### Acceptance Criteria
+
+- templates and template blocks persist correctly
+- repositories support ordered block retrieval
+
+### Suggested Files / Areas
+
+- migrations
 - `app/Models/Template.php`
 - `app/Models/TemplateBlock.php`
+- template repositories
 
 ### Validation
 
 - `php artisan migrate`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`5`
+- no visual designer scope
 
 ---
 
-## WB-027
+## WB-SVC-022 — Implement template APIs and preview payload generation
 
-### Title
-
-Build template CRUD and configuration screens
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create admin workflows for managing templates and their editorial metadata.
+Expose template CRUD APIs plus preview and post-seeding payload support.
 
 ### Deliverables
 
-- template list/create/edit screens
-- template metadata management
-- validation rules
+- template CRUD endpoints
+- preview endpoint
+- seed-post payload endpoint
 
 ### Dependencies
 
-- `WB-017`
-- `WB-026`
+- `WB-SVC-013`
+- `WB-SVC-021`
 
 ### Acceptance Criteria
 
-- admin can manage templates end to end
-- template status and type can be controlled
+- templates can be managed via API
+- preview payload reflects template blocks and config
 
 ### Suggested Files / Areas
 
-- `app/Livewire/Admin/Templates/`
-- tests
+- template controllers
+- resources
+- services
 
 ### Validation
 
 - `php artisan test`
-- manual template CRUD validation
 
-### Story Points
+### Notes
 
-`5`
-
----
-
-## WB-028
-
-### Title
-
-Build template renderer and preview workflow
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the logic that converts template definitions into seeded post structures and previewable template output.
-
-### Deliverables
-
-- template renderer service
-- template preview screen
-- draft seeding flow
-
-### Dependencies
-
-- `WB-026`
-- `WB-027`
-
-### Acceptance Criteria
-
-- a template can be previewed before use
-- a template can seed a new draft structure predictably
-
-### Suggested Files / Areas
-
-- `app/Services/Templates/`
-- `app/Livewire/Admin/Templates/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual preview validation
-
-### Story Points
-
-`8`
+- align with `docs/TEMPLATE_ENGINE.md`
 
 ---
 
-## WB-029
+## WB-SVC-023 — Implement post schema, model, and repository layer
 
-### Title
-
-Implement post database schema and model layer
-
-### Phase
-
-Phase 1
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the `posts` table, relationships, publish-state fields, and supporting model behavior.
+Create post persistence with relationships and publish-state fields.
 
 ### Deliverables
 
 - posts migration
 - post model
-- relationships to categories, templates, media, and tags
+- repositories
 
 ### Dependencies
 
-- `WB-019`
-- `WB-021`
-- `WB-023`
-- `WB-026`
+- `WB-SVC-014`
+- `WB-SVC-016`
+- `WB-SVC-018`
+- `WB-SVC-021`
 
 ### Acceptance Criteria
 
-- posts schema matches the documented design
-- publish-state fields support draft, scheduled, and published workflows
-
-### Suggested Files / Areas
-
-- `database/migrations/`
-- `app/Models/Post.php`
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-
-### Story Points
-
-`5`
-
----
-
-## WB-030
-
-### Title
-
-Implement post block schema, models, and block type definitions
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the schema and model layer for structured post blocks and supported block types.
-
-### Deliverables
-
-- `post_blocks` migration
-- block model
-- block type enum or equivalent definitions
-
-### Dependencies
-
-- `WB-026`
-- `WB-029`
-
-### Acceptance Criteria
-
-- supported block types are defined
-- post blocks can be stored with deterministic ordering
-
-### Suggested Files / Areas
-
-- `database/migrations/`
-- `app/Models/PostBlock.php`
-- `app/Enums/`
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-
-### Story Points
-
-`5`
-
----
-
-## WB-031
-
-### Title
-
-Build post editor foundation in Livewire
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the main Livewire-driven post editing experience for titles, metadata, and block management.
-
-### Deliverables
-
-- post create screen
-- post edit screen
-- form state handling
-- draft persistence
-
-### Dependencies
-
-- `WB-017`
-- `WB-029`
-- `WB-030`
-
-### Acceptance Criteria
-
-- admin can create and edit draft posts
-- editor state persists cleanly
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Posts/`
-- `resources/views/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual post editor validation
-
-### Story Points
-
-`8`
-
----
-
-## WB-032
-
-### Title
-
-Implement text-oriented content block editors
-
-### Phase
-
-Phase 1
-
-### Description
-
-Add support for heading, paragraph, quote, list, and callout blocks.
-
-### Deliverables
-
-- block editors for text-oriented blocks
-- serialization and validation rules
-- rendering contracts
-
-### Dependencies
-
-- `WB-030`
-- `WB-031`
-
-### Acceptance Criteria
-
-- supported text blocks can be created, edited, ordered, and saved
-- invalid block payloads are rejected
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Posts/Blocks/`
-- `app/Services/Posts/Blocks/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual block editor validation
-
-### Story Points
-
-`8`
-
----
-
-## WB-033
-
-### Title
-
-Implement image, code, and FAQ block editors
-
-### Phase
-
-Phase 1
-
-### Description
-
-Add support for image, code, and FAQ blocks with validation and storage-aware relationships where needed.
-
-### Deliverables
-
-- image block editor
-- code block editor
-- FAQ block editor
-
-### Dependencies
-
-- `WB-024`
-- `WB-030`
-- `WB-031`
-
-### Acceptance Criteria
-
-- image blocks can reference uploaded media
-- code blocks preserve content safely
-- FAQ blocks can capture structured question-answer pairs
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Posts/Blocks/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual block editor validation
-
-### Story Points
-
-`8`
-
----
-
-## WB-034
-
-### Title
-
-Implement draft workflow, scheduling, and publishing transitions
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the state transition logic for draft, scheduled, published, and unpublished content.
-
-### Deliverables
-
-- publish service
-- schedule workflow
-- unpublish workflow
-- transition validation
-
-### Dependencies
-
-- `WB-029`
-- `WB-031`
-
-### Acceptance Criteria
-
-- invalid publish transitions are blocked
-- scheduled posts store future publish intent correctly
-- only published posts are visible publicly
-
-### Suggested Files / Areas
-
-- `app/Services/Posts/`
-- `app/Actions/Posts/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual publish flow validation
-
-### Story Points
-
-`5`
-
----
-
-## WB-035
-
-### Title
-
-Implement post classification and featured image assignment
-
-### Phase
-
-Phase 1
-
-### Description
-
-Add category, tag, and featured image selection workflows to the post editor.
-
-### Deliverables
-
-- category assignment
-- tag assignment
-- featured image selection
-
-### Dependencies
-
-- `WB-020`
-- `WB-022`
-- `WB-025`
-- `WB-031`
-
-### Acceptance Criteria
-
-- post editor supports selecting and updating classifications
-- featured image can be set and changed safely
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Posts/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual post assignment validation
-
-### Story Points
-
-`3`
-
----
-
-## WB-036
-
-### Title
-
-Implement knowledge base schema and model layer
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the database and model foundation for internal knowledge base entries.
-
-### Deliverables
-
-- knowledge base migration
-- knowledge entry model
-- relationships to media and SEO metadata
-
-### Dependencies
-
-- `WB-023`
-
-### Acceptance Criteria
-
-- knowledge entries can be persisted with status and type
-- schema supports internal editorial reference material
-
-### Suggested Files / Areas
-
-- `database/migrations/`
-- `app/Models/KnowledgeBaseEntry.php`
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-
-### Story Points
-
-`3`
-
----
-
-## WB-037
-
-### Title
-
-Build knowledge base CRUD, search, tagging, and categorization
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create admin workflows for managing and retrieving knowledge base content.
-
-### Deliverables
-
-- CRUD screens
-- search
-- tags or categories for knowledge entries
-- validation
-
-### Dependencies
-
-- `WB-017`
-- `WB-036`
-
-### Acceptance Criteria
-
-- admin can manage knowledge entries end to end
-- entries can be searched and organized
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/KnowledgeBase/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual knowledge base validation
-
-### Story Points
-
-`5`
-
----
-
-## WB-038
-
-### Title
-
-Implement SEO metadata schema and SEO domain services
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the `seo_metadata` table, models, and service layer for title, description, canonical, and robots management.
-
-### Deliverables
-
-- SEO metadata migration
-- model and relationships
-- SEO save/read services
-
-### Dependencies
-
-- `WB-019`
-- `WB-029`
-- `WB-036`
-
-### Acceptance Criteria
-
-- SEO metadata can be attached to posts and categories
-- canonical and robots fields are supported
-
-### Suggested Files / Areas
-
-- `database/migrations/`
-- `app/Models/SeoMetadata.php`
-- `app/Services/Seo/`
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-
-### Story Points
-
-`5`
-
----
-
-## WB-039
-
-### Title
-
-Implement Open Graph, Twitter, canonical, and structured data rendering
-
-### Phase
-
-Phase 1
-
-### Description
-
-Build the runtime output layer for social metadata, canonicals, and schema generation.
-
-### Deliverables
-
-- OG tag output
-- Twitter card output
-- canonical output
-- article and breadcrumb schema
-
-### Dependencies
-
-- `WB-038`
-- `WB-029`
-- `WB-023`
-
-### Acceptance Criteria
-
-- published pages output consistent SEO tags
-- schema is derived from content and metadata, not manually duplicated
-
-### Suggested Files / Areas
-
-- `app/Services/Seo/`
-- `resources/views/`
-- public layout templates
-
-### Validation
-
-- manual source inspection
-- `php artisan test`
-
-### Story Points
-
-`5`
-
----
-
-## WB-040
-
-### Title
-
-Build public website shell and static public pages
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the public-facing site layout and foundational pages such as homepage, about, contact, and shared navigation.
-
-### Deliverables
-
-- public layout
-- homepage
-- about page
-- contact page
-
-### Dependencies
-
-- `WB-017`
-
-### Acceptance Criteria
-
-- public site has consistent layout and navigation
-- static pages render correctly and are SEO-ready
-
-### Suggested Files / Areas
-
-- `app/Livewire/Frontend/`
-- `resources/views/`
-- `routes/web.php`
-
-### Validation
-
-- manual browser validation
-
-### Story Points
-
-`5`
-
----
-
-## WB-041
-
-### Title
-
-Build category, post, and author public pages
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the primary public read paths for articles, categories, and the primary author.
-
-### Deliverables
-
-- category archive page
-- post detail page
-- author page for Amit Kumar Sharma
-
-### Dependencies
-
-- `WB-020`
-- `WB-029`
-- `WB-034`
-- `WB-039`
-- `WB-040`
-
-### Acceptance Criteria
-
-- only published posts are publicly visible
-- category pages list published content
-- author page displays author profile and article list
-
-### Suggested Files / Areas
-
-- `app/Livewire/Frontend/`
-- query services
-- views
-
-### Validation
-
-- manual browser validation
-- `php artisan test`
-
-### Story Points
-
-`8`
-
----
-
-## WB-042
-
-### Title
-
-Implement search indexing and query service
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the application-side search foundation for posts, media, or knowledge content, defaulting to MySQL-native search unless stronger tooling is needed.
-
-### Deliverables
-
-- search query service
-- indexing strategy
-- search relevance assumptions documented
-
-### Dependencies
-
-- `WB-029`
-- `WB-036`
-
-### Acceptance Criteria
-
-- published posts can be searched
-- search implementation is simple and maintainable for MVP
-
-### Suggested Files / Areas
-
-- `app/Services/Search/`
-- models
-- migrations if full-text indexes are added
-
-### Validation
-
-- `php artisan test`
-- manual search smoke test
-
-### Story Points
-
-`5`
-
----
-
-## WB-043
-
-### Title
-
-Build public search UI and results page
-
-### Phase
-
-Phase 1
-
-### Description
-
-Create the public search interface and render search results using the query service.
-
-### Deliverables
-
-- search input UI
-- search results page
-- empty and no-result states
-
-### Dependencies
-
-- `WB-040`
-- `WB-042`
-
-### Acceptance Criteria
-
-- public users can search and view results
-- search results only expose public content
-
-### Suggested Files / Areas
-
-- `app/Livewire/Frontend/Search*`
-- views
-
-### Validation
-
-- manual browser validation
-- `php artisan test`
-
-### Story Points
-
-`3`
-
----
-
-## WB-044
-
-### Title
-
-Implement technical SEO outputs: sitemap, RSS, robots.txt, and breadcrumbs
-
-### Phase
-
-Phase 1
-
-### Description
-
-Build the remaining public SEO infrastructure required for launch readiness.
-
-### Deliverables
-
-- sitemap generation
-- RSS feed
-- robots.txt route or file strategy
-- breadcrumb rendering and schema support
-
-### Dependencies
-
-- `WB-008`
-- `WB-039`
-- `WB-041`
-
-### Acceptance Criteria
-
-- sitemap contains published content only
-- RSS exposes the intended article feed
-- robots policy matches public/admin boundaries
-- breadcrumbs render consistently on public pages
-
-### Suggested Files / Areas
-
-- `app/Console/Commands/`
-- `routes/web.php`
-- `resources/views/`
-- `app/Services/Seo/`
-
-### Validation
-
-- manual source inspection
-- `php artisan test`
-
-### Story Points
-
-`5`
-
----
-
-## WB-045
-
-### Title
-
-Add MVP end-to-end validation and launch hardening
-
-### Phase
-
-Phase 1
-
-### Description
-
-Add the minimum cross-module tests and validation workflows required to launch the MVP blog platform confidently.
-
-### Deliverables
-
-- critical feature tests
-- publish-flow validation
-- public rendering smoke tests
-- launch checklist inputs
-
-### Dependencies
-
-- `WB-020`
-- `WB-025`
-- `WB-028`
-- `WB-034`
-- `WB-041`
-- `WB-044`
-
-### Acceptance Criteria
-
-- core publish flows are covered by tests
-- MVP launch-critical regressions are detectable
-
-### Suggested Files / Areas
-
-- `tests/Feature/`
-- `tests/Unit/`
-- launch checklist docs
-
-### Validation
-
-- `php artisan test`
-- `./vendor/bin/pint --test`
-- `./vendor/bin/phpstan analyse`
-
-### Story Points
-
-`8`
-
----
-
-## WB-046
-
-### Title
-
-Implement AI provider abstraction layer
-
-### Phase
-
-Phase 2
-
-### Description
-
-Create the core contracts and service boundaries for provider-agnostic AI execution.
-
-### Deliverables
-
-- provider contracts
-- orchestration entry point
-- normalized result shape
-
-### Dependencies
-
-- `WB-004`
-- `WB-029`
-- `WB-038`
-
-### Acceptance Criteria
-
-- the app can call AI providers through abstractions rather than direct vendor coupling
-- text generation use cases can target a stable internal contract
-
-### Suggested Files / Areas
-
-- `app/Infrastructure/Ai/`
-- `app/Services/Ai/`
-
-### Validation
-
-- `php artisan test`
-- contract-level unit tests
-
-### Story Points
-
-`8`
-
----
-
-## WB-047
-
-### Title
-
-Implement OpenAI provider integration
-
-### Phase
-
-Phase 2
-
-### Description
-
-Add the first concrete AI provider implementation for text-oriented workflows.
-
-### Deliverables
-
-- OpenAI gateway
-- config and environment keys
-- testable provider adapter
-
-### Dependencies
-
-- `WB-046`
-
-### Acceptance Criteria
-
-- app can execute provider calls through the abstraction layer
-- provider-specific details do not leak into domain services
-
-### Suggested Files / Areas
-
-- `app/Infrastructure/Ai/Providers/OpenAi/`
-- config/services
-
-### Validation
-
-- `php artisan test`
-- integration smoke test where feasible
-
-### Story Points
-
-`5`
-
----
-
-## WB-048
-
-### Title
-
-Implement Anthropic and Gemini provider integrations
-
-### Phase
-
-Phase 2
-
-### Description
-
-Add secondary provider implementations to prove multi-provider architecture and future flexibility.
-
-### Deliverables
-
-- Anthropic gateway
-- Gemini gateway
-- provider config wiring
-
-### Dependencies
-
-- `WB-046`
-
-### Acceptance Criteria
-
-- providers can be selected or swapped through the shared abstraction
-- provider-specific configs are isolated cleanly
-
-### Suggested Files / Areas
-
-- `app/Infrastructure/Ai/Providers/Anthropic/`
-- `app/Infrastructure/Ai/Providers/Gemini/`
-
-### Validation
-
-- `php artisan test`
-- adapter-level integration smoke tests where feasible
-
-### Story Points
-
-`8`
-
----
-
-## WB-049
-
-### Title
-
-Implement prompt management schema and admin workflows
-
-### Phase
-
-Phase 2
-
-### Description
-
-Create storage and management for prompt templates, versions, and categories.
-
-### Deliverables
-
-- prompt template schema
-- prompt versioning strategy
-- admin management screens
-
-### Dependencies
-
-- `WB-017`
-- `WB-046`
-
-### Acceptance Criteria
-
-- prompts can be stored, categorized, and versioned
-- prompt changes are not hidden in code-only locations
+- posts schema matches design
+- repositories support admin and public-safe query patterns
 
 ### Suggested Files / Areas
 
 - migrations
-- `app/Models/`
-- `app/Livewire/Admin/Prompts/`
+- `app/Models/Post.php`
+- `app/Modules/Posts/Repositories/`
 
 ### Validation
 
 - `php artisan migrate`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`5`
+- include relationships to category, tags, template, media
 
 ---
 
-## WB-050
+## WB-SVC-024 — Implement post block schema and block-type support
 
-### Title
-
-Implement topic management schema and approval workflow
-
-### Phase
-
-Phase 2
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create topic records, statuses, and the admin approval lifecycle for suggested topics.
+Create post block persistence and allowed block type definitions.
+
+### Deliverables
+
+- post blocks migration
+- model
+- block type enum or value object
+
+### Dependencies
+
+- `WB-SVC-021`
+- `WB-SVC-023`
+
+### Acceptance Criteria
+
+- supported block types are persisted with deterministic ordering
+
+### Suggested Files / Areas
+
+- migrations
+- `app/Models/PostBlock.php`
+- `app/Enums/` or support classes
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- support heading, paragraph, image, quote, list, code, FAQ, callout
+
+---
+
+## WB-SVC-025 — Implement post command services and DTOs
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Build service-layer use cases for creating, updating, and deleting posts and blocks.
+
+### Deliverables
+
+- create/update/delete services
+- DTOs
+- transaction handling
+
+### Dependencies
+
+- `WB-SVC-011`
+- `WB-SVC-023`
+- `WB-SVC-024`
+
+### Acceptance Criteria
+
+- post mutations happen through services, not controllers
+- block payload validation and persistence are consistent
+
+### Suggested Files / Areas
+
+- `app/Modules/Posts/DTOs/`
+- `app/Modules/Posts/Services/`
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- prepare for template seeding and AI draft generation later
+
+---
+
+## WB-SVC-026 — Implement posts API endpoints and resources
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Expose CRUD APIs for posts and structured block payloads.
+
+### Deliverables
+
+- controllers
+- requests
+- resources
+- filtering and sorting support
+
+### Dependencies
+
+- `WB-SVC-013`
+- `WB-SVC-025`
+
+### Acceptance Criteria
+
+- admin API supports create, list, view, update, delete
+- public-safe list and detail patterns are possible later without rewriting domain logic
+
+### Suggested Files / Areas
+
+- post controllers
+- requests
+- resources
+- routes
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- match `docs/OPENAPI_SPEC.md`
+
+---
+
+## WB-SVC-027 — Implement publish, schedule, and unpublish services and endpoints
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create explicit state transition services and API endpoints for publishing workflows.
+
+### Deliverables
+
+- publish service
+- schedule service
+- unpublish service
+- endpoints
+
+### Dependencies
+
+- `WB-SVC-025`
+- `WB-SVC-026`
+
+### Acceptance Criteria
+
+- invalid state transitions are blocked
+- scheduled state stores future publish intent
+
+### Suggested Files / Areas
+
+- post services
+- controllers
+- requests
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- published state drives public SEO-safe data exposure
+
+---
+
+## WB-SVC-028 — Implement knowledge base schema, model, and repository layer
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create persistence support for knowledge base entries.
+
+### Deliverables
+
+- migration
+- model
+- repository
+
+### Dependencies
+
+- `WB-SVC-004`
+- `WB-SVC-011`
+
+### Acceptance Criteria
+
+- knowledge base entries persist with type and status
+
+### Suggested Files / Areas
+
+- migrations
+- `app/Models/KnowledgeBaseEntry.php`
+- repositories
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- align with `docs/KNOWLEDGE_BASE.md`
+
+---
+
+## WB-SVC-029 — Implement knowledge base APIs including search and linking primitives
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Expose CRUD, search, filtering, and future-safe linking endpoints for knowledge entries.
+
+### Deliverables
+
+- CRUD endpoints
+- search/filter support
+- post/topic linking endpoints or service hooks
+
+### Dependencies
+
+- `WB-SVC-013`
+- `WB-SVC-028`
+
+### Acceptance Criteria
+
+- entries can be created, updated, archived, searched, and filtered via API
+
+### Suggested Files / Areas
+
+- knowledge base controllers
+- query services
+- routes
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- relationships may evolve, but API shape should anticipate them
+
+---
+
+## WB-SVC-030 — Implement SEO metadata schema, models, and repository layer
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create persistence and data access support for SEO metadata across content entities.
+
+### Deliverables
+
+- migration
+- model
+- repository
+
+### Dependencies
+
+- `WB-SVC-014`
+- `WB-SVC-023`
+- `WB-SVC-028`
+
+### Acceptance Criteria
+
+- SEO metadata can be stored for posts and categories
+- polymorphic one-to-one logic works
+
+### Suggested Files / Areas
+
+- migrations
+- `app/Models/SeoMetadata.php`
+- SEO repositories
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- keep schema extensible for future entities
+
+---
+
+## WB-SVC-031 — Implement SEO metadata APIs and resource serializers
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Expose backend endpoints for managing SEO metadata.
+
+### Deliverables
+
+- SEO controllers
+- requests
+- resources
+
+### Dependencies
+
+- `WB-SVC-013`
+- `WB-SVC-030`
+
+### Acceptance Criteria
+
+- SEO metadata is readable and writable through API
+- canonical, robots, OG, and schema-type fields are supported
+
+### Suggested Files / Areas
+
+- SEO controllers
+- requests
+- resources
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- scoring endpoint can come later in Phase 2
+
+---
+
+## WB-SVC-032 — Add Activitylog coverage for content-changing services
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `5`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Instrument key mutations so post, category, media, template, and SEO changes are auditable.
+
+### Deliverables
+
+- activity events on mutations
+- audit payload conventions
+
+### Dependencies
+
+- `WB-SVC-007`
+- `WB-SVC-025`
+- `WB-SVC-029`
+- `WB-SVC-031`
+
+### Acceptance Criteria
+
+- important content mutations produce auditable entries
+
+### Suggested Files / Areas
+
+- models
+- services
+- activity config
+
+### Validation
+
+- `php artisan test`
+- activity assertions in feature tests
+
+### Notes
+
+- prioritize editorially sensitive operations
+
+---
+
+## WB-SVC-033 — Generate Scramble docs coverage for core APIs
+
+**Phase:** Phase 1 — Core APIs  
+**Story Points:** `3`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Ensure core service endpoints are discoverable and clearly documented through Scramble.
+
+### Deliverables
+
+- route docs coverage
+- schema inference validation
+- examples where needed
+
+### Dependencies
+
+- `WB-SVC-015`
+- `WB-SVC-017`
+- `WB-SVC-019`
+- `WB-SVC-022`
+- `WB-SVC-026`
+- `WB-SVC-029`
+- `WB-SVC-031`
+
+### Acceptance Criteria
+
+- core endpoints appear correctly in generated docs
+
+### Suggested Files / Areas
+
+- routes
+- request classes
+- resources
+
+### Validation
+
+- Scramble generation or docs route review
+
+### Notes
+
+- docs should stay in sync with implementation patterns
+
+---
+
+## WB-SVC-034 — Implement slug generation service
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Centralize slug generation and uniqueness behavior for posts, categories, tags, templates, and knowledge entries.
+
+### Deliverables
+
+- slug service
+- unique suffix strategy
+
+### Dependencies
+
+- `WB-SVC-014`
+- `WB-SVC-016`
+- `WB-SVC-021`
+- `WB-SVC-023`
+- `WB-SVC-028`
+
+### Acceptance Criteria
+
+- slugs are deterministic and unique
+
+### Suggested Files / Areas
+
+- support services
+- model hooks or service-layer usage
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- prefer service-level control over magic-only behavior
+
+---
+
+## WB-SVC-035 — Implement canonical URL generation service
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `3`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create a service that derives or respects canonical URLs for supported content types.
+
+### Deliverables
+
+- canonical generation service
+- content-type aware URL derivation
+
+### Dependencies
+
+- `WB-SVC-031`
+- `WB-SVC-034`
+
+### Acceptance Criteria
+
+- canonical values are available for published content payloads
+
+### Suggested Files / Areas
+
+- `app/Modules/Seo/Services/`
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- should support override and default behavior
+
+---
+
+## WB-SVC-036 — Implement sitemap data API
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Expose a service-level API or command-oriented data provider for sitemap generation from published content.
+
+### Deliverables
+
+- sitemap query service
+- sitemap endpoint or command payload
+
+### Dependencies
+
+- `WB-SVC-026`
+- `WB-SVC-027`
+- `WB-SVC-035`
+
+### Acceptance Criteria
+
+- sitemap data includes published content only
+
+### Suggested Files / Areas
+
+- SEO services
+- console commands
+- routes if endpoint-based
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- can be consumed by internal generators rather than public UI
+
+---
+
+## WB-SVC-037 — Implement RSS data API
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `3`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Expose feed-ready published content data for RSS generation.
+
+### Deliverables
+
+- RSS query service
+- feed serialization support
+
+### Dependencies
+
+- `WB-SVC-026`
+- `WB-SVC-027`
+
+### Acceptance Criteria
+
+- latest published articles can be returned in feed-friendly order
+
+### Suggested Files / Areas
+
+- feed services
+- resources
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- keep separate from frontend rendering
+
+---
+
+## WB-SVC-038 — Implement schema data API
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create service-side schema payload generation for articles, breadcrumbs, organization, website, and FAQ content.
+
+### Deliverables
+
+- schema builders
+- payload serializers
+
+### Dependencies
+
+- `WB-SVC-030`
+- `WB-SVC-031`
+- `WB-SVC-026`
+
+### Acceptance Criteria
+
+- schema payloads can be generated from service data without UI logic
+
+### Suggested Files / Areas
+
+- `app/Modules/Seo/Schema/`
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- aligns with SEO strategy and implementation specs
+
+---
+
+## WB-SVC-039 — Implement internal linking foundation services
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `5`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Create the first backend services for content relationship discovery and internal link suggestion inputs.
+
+### Deliverables
+
+- related-content query service
+- internal link suggestion service baseline
+
+### Dependencies
+
+- `WB-SVC-026`
+- `WB-SVC-029`
+
+### Acceptance Criteria
+
+- service can return candidate related content for a post or draft context
+
+### Suggested Files / Areas
+
+- SEO/internal-linking services
+- query services
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- no UI recommendation panel in this repo backlog
+
+---
+
+## WB-SVC-040 — Implement SEO scoring foundation service
+
+**Phase:** Phase 2 — Publishing & SEO Services  
+**Story Points:** `5`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Create a backend scoring service that evaluates content quality signals for editorial use.
+
+### Deliverables
+
+- scoring service
+- scoring breakdown structure
+- endpoint or internal API support
+
+### Dependencies
+
+- `WB-SVC-031`
+- `WB-SVC-038`
+- `WB-SVC-039`
+
+### Acceptance Criteria
+
+- a post can receive a structured SEO score with subscores
+
+### Suggested Files / Areas
+
+- `app/Modules/Seo/Scoring/`
+- controllers or internal services
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- treat as advisory, not publish gate by default
+
+---
+
+## WB-SVC-041 — Implement AI provider abstraction and core orchestration contracts
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create the provider-agnostic contracts and orchestration entry points for AI operations.
+
+### Deliverables
+
+- provider contracts
+- normalized result objects
+- orchestration service interfaces
+
+### Dependencies
+
+- `WB-SVC-004`
+- `WB-SVC-011`
+
+### Acceptance Criteria
+
+- domain services can call AI through abstractions, not vendor-specific classes
+
+### Suggested Files / Areas
+
+- `app/Infrastructure/Ai/`
+- `app/Modules/Ai/Services/`
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- must support OpenAI, Anthropic, Gemini
+
+---
+
+## WB-SVC-042 — Implement prompt management schema and APIs
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create storage and service APIs for prompt templates, categories, and versions.
+
+### Deliverables
+
+- prompt template schema
+- prompt APIs
+- versioning support
+
+### Dependencies
+
+- `WB-SVC-041`
+
+### Acceptance Criteria
+
+- prompts can be stored, categorized, versioned, and retrieved through API
+
+### Suggested Files / Areas
+
+- migrations
+- prompt models
+- controllers
+- services
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- prompts should not be code-only constants
+
+---
+
+## WB-SVC-043 — Implement topic schema, repository, and APIs
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Create topic persistence and APIs for topic queue behavior.
 
 ### Deliverables
 
 - `topics` migration
-- topic statuses: suggested, approved, rejected, used
-- topic queue screens
+- topic model and repository
+- CRUD and status transition endpoints
 
 ### Dependencies
 
-- `WB-017`
-- `WB-049`
+- `WB-SVC-011`
+- `WB-SVC-042`
 
 ### Acceptance Criteria
 
-- topics can be suggested, reviewed, approved, rejected, and marked used
-- topics can map to categories or clusters
+- topics support suggested, approved, rejected, and used states
 
 ### Suggested Files / Areas
 
-- `database/migrations/`
+- migrations
 - `app/Models/Topic.php`
-- `app/Livewire/Admin/Topics/`
+- topic controllers
 
 ### Validation
 
 - `php artisan migrate`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`5`
+- topic queue UI is out of scope; API only
 
 ---
 
-## WB-051
+## WB-SVC-044 — Implement topic discovery services and scheduled job
 
-### Title
-
-Build topic discovery agent workflow
-
-### Phase
-
-Phase 2
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the first AI-assisted workflow for generating topic suggestions and mapping them into the topic queue.
+Create the AI-assisted topic suggestion workflow and a schedulable discovery job.
 
 ### Deliverables
 
-- discovery service
-- topic suggestion job
-- category or cluster mapping logic
+- topic discovery service
+- scheduled job
+- category mapping baseline
 
 ### Dependencies
 
-- `WB-046`
-- `WB-047`
-- `WB-050`
+- `WB-SVC-041`
+- `WB-SVC-042`
+- `WB-SVC-043`
 
 ### Acceptance Criteria
 
-- discovery output creates topic suggestions, not published content
-- suggestions are reviewable before use
+- discovery creates topic suggestions only
+- scheduled discovery can run through queue and scheduler
 
 ### Suggested Files / Areas
 
-- `app/Services/Ai/Discovery/`
+- AI discovery services
 - jobs
-- topic admin flows
+- scheduler config
 
 ### Validation
 
 - `php artisan test`
-- manual workflow validation
+- `php artisan schedule:list`
 
-### Story Points
+### Notes
 
-`8`
+- no auto-approval behavior
 
 ---
 
-## WB-052
+## WB-SVC-045 — Implement content blueprint service
 
-### Title
-
-Build content blueprint engine
-
-### Phase
-
-Phase 2
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the service that converts approved topics into structured blueprints using templates, knowledge base inputs, and prompt context.
+Create the service that turns approved topics into structured article blueprints.
 
 ### Deliverables
 
+- blueprint DTOs
 - blueprint generation service
-- structure definition rules
-- template mapping logic
+- template mapping support
 
 ### Dependencies
 
-- `WB-028`
-- `WB-037`
-- `WB-050`
+- `WB-SVC-022`
+- `WB-SVC-029`
+- `WB-SVC-043`
 
 ### Acceptance Criteria
 
-- an approved topic can produce a structured blueprint
-- blueprint output can inform draft generation cleanly
+- approved topics can generate structured blueprints using templates and knowledge context
 
 ### Suggested Files / Areas
 
-- `app/Services/Ai/Blueprints/`
+- AI blueprint services
 - DTOs
 - tests
 
@@ -2551,617 +2009,462 @@ Create the service that converts approved topics into structured blueprints usin
 
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`8`
+- blueprint output should map to content blocks, not HTML
 
 ---
 
-## WB-053
+## WB-SVC-046 — Implement draft generation service and APIs
 
-### Title
-
-Build content generation agent for outlines and article drafts
-
-### Phase
-
-Phase 2
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `13`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Create the content generation workflow that produces outlines and article draft content using approved topics and blueprints.
+Create the AI-assisted draft generation workflow that produces draft posts and post blocks.
 
 ### Deliverables
 
-- outline generation
-- article draft generation
-- draft persistence into posts and post blocks
+- generation service
+- draft persistence support
+- generation endpoint
 
 ### Dependencies
 
-- `WB-046`
-- `WB-047`
-- `WB-052`
-- `WB-029`
-- `WB-030`
+- `WB-SVC-025`
+- `WB-SVC-041`
+- `WB-SVC-045`
 
 ### Acceptance Criteria
 
-- generated output is stored as draft content only
-- output is structured enough for editor review and revision
+- generated output is stored only as draft content
+- no publish state bypass is possible
 
 ### Suggested Files / Areas
 
-- `app/Services/Ai/Generation/`
-- jobs
+- AI generation services
 - post services
+- controllers
+- jobs
 
 ### Validation
 
 - `php artisan test`
-- manual draft generation validation
 
-### Story Points
+### Notes
 
-`13`
+- raw generated HTML must not be primary source content
 
 ---
 
-## WB-054
+## WB-SVC-047 — Implement SEO and FAQ generation services
 
-### Title
-
-Add FAQ, SEO, and tag generation support to AI content workflows
-
-### Phase
-
-Phase 2
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `8`  
+**Priority:** Should Have  
+**Status:** Backlog
 
 ### Description
 
-Extend generation workflows so AI can propose FAQ blocks, metadata, and tags as draft suggestions.
+Add AI-assisted generation of metadata and structured FAQ suggestions.
 
 ### Deliverables
 
-- FAQ generation
-- SEO suggestion generation
-- tag suggestion generation
+- SEO suggestion service
+- FAQ suggestion service
+- optional tag suggestion support
 
 ### Dependencies
 
-- `WB-038`
-- `WB-053`
+- `WB-SVC-030`
+- `WB-SVC-038`
+- `WB-SVC-046`
 
 ### Acceptance Criteria
 
-- AI-generated SEO and tag suggestions are reviewable and editable
-- FAQ output can map to supported block structures
+- metadata and FAQ suggestions are stored as editable suggestions, not silently applied output
 
 ### Suggested Files / Areas
 
-- `app/Services/Ai/Generation/`
-- `app/Services/Seo/`
+- AI generation services
+- SEO services
 - block services
 
 ### Validation
 
 - `php artisan test`
-- manual suggestion review validation
 
-### Story Points
+### Notes
 
-`8`
+- use structured FAQ payloads
 
 ---
 
-## WB-055
+## WB-SVC-048 — Implement AI job tracking schema and APIs
 
-### Title
-
-Integrate draft approval gates and scheduled AI workflows
-
-### Phase
-
-Phase 2
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `8`  
+**Priority:** Must Have  
+**Status:** Backlog
 
 ### Description
 
-Connect AI outputs to draft workflows, scheduler jobs, and explicit approval gates without enabling direct publish behavior.
+Create persistent AI job tracking for status, retries, inputs, and outputs.
 
 ### Deliverables
 
-- scheduled topic discovery
-- scheduled content generation hooks
-- draft approval gate enforcement
+- `ai_jobs` migration
+- model and repository
+- read/retry APIs
 
 ### Dependencies
 
-- `WB-004`
-- `WB-051`
-- `WB-053`
+- `WB-SVC-041`
 
 ### Acceptance Criteria
 
-- scheduled AI tasks run through queues and scheduler
-- generated content never skips review state
+- AI jobs persist state transitions and are queryable via API
 
 ### Suggested Files / Areas
 
-- `app/Console/`
+- migrations
+- models
+- controllers
+- repositories
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- align with `docs/AI_CONTENT_ENGINE.md`
+
+---
+
+## WB-SVC-049 — Implement token and cost tracking schema and services
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Capture AI usage metrics and cost data per call and per job.
+
+### Deliverables
+
+- `ai_job_costs` migration
+- usage recording service
+- reporting query support
+
+### Dependencies
+
+- `WB-SVC-048`
+
+### Acceptance Criteria
+
+- token and cost data can be persisted and queried by provider, model, or job
+
+### Suggested Files / Areas
+
+- migrations
+- models
+- usage services
+
+### Validation
+
+- `php artisan migrate`
+- `php artisan test`
+
+### Notes
+
+- support estimated and actual cost fields
+
+---
+
+## WB-SVC-050 — Implement scheduled AI orchestration and retry-safe queue flow
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `5`  
+**Priority:** Must Have  
+**Status:** Backlog
+
+### Description
+
+Wire AI workflows into queue and scheduler infrastructure with retry-safe handling.
+
+### Deliverables
+
+- scheduled jobs
+- queue dispatch policy
+- retry safeguards
+
+### Dependencies
+
+- `WB-SVC-044`
+- `WB-SVC-046`
+- `WB-SVC-048`
+
+### Acceptance Criteria
+
+- AI workflows can run asynchronously
+- retries do not duplicate draft creation or corrupt state
+
+### Suggested Files / Areas
+
 - jobs
-- services
+- scheduler
+- AI orchestration services
 
 ### Validation
 
 - `php artisan schedule:list`
 - `php artisan test`
 
-### Story Points
+### Notes
 
-`5`
-
----
-
-## WB-056
-
-### Title
-
-Implement AI job tracking and retry handling
-
-### Phase
-
-Phase 2
-
-### Description
-
-Create persistent tracking for AI jobs, statuses, attempts, and retry-safe execution.
-
-### Deliverables
-
-- `ai_jobs` schema
-- status tracking
-- retry handling
-- job admin visibility
-
-### Dependencies
-
-- `WB-046`
-- `WB-053`
-
-### Acceptance Criteria
-
-- AI jobs are persisted with state changes
-- failed jobs can be retried safely
-- job history is inspectable
-
-### Suggested Files / Areas
-
-- migrations
-- `app/Models/AiJob.php`
-- jobs
-- admin screens
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-
-### Story Points
-
-`8`
+- keep queue names explicit, especially `ai`
 
 ---
 
-## WB-057
+## WB-SVC-051 — Implement AI image generation service
 
-### Title
-
-Implement AI cost tracking and reporting
-
-### Phase
-
-Phase 2
+**Phase:** Phase 4 — Advanced Services  
+**Story Points:** `8`  
+**Priority:** Should Have  
+**Status:** Backlog
 
 ### Description
 
-Capture model usage, token counts, and cost data for AI workflows.
-
-### Deliverables
-
-- `ai_job_costs` schema
-- token usage capture
-- cost calculation or storage
-- basic reporting view
-
-### Dependencies
-
-- `WB-048`
-- `WB-056`
-
-### Acceptance Criteria
-
-- AI calls can store usage and cost data
-- cost data can be queried by job or provider
-
-### Suggested Files / Areas
-
-- migrations
-- `app/Models/AiJobCost.php`
-- services
-- admin views
-
-### Validation
-
-- `php artisan migrate`
-- `php artisan test`
-
-### Story Points
-
-`5`
-
----
-
-## WB-058
-
-### Title
-
-Implement AI image generation pipeline
-
-### Phase
-
-Phase 3
-
-### Description
-
-Create the workflow for generating image candidates, storing them in R2, and attaching them as reviewable media.
+Create backend support for AI-generated image workflows and media persistence.
 
 ### Deliverables
 
 - image generation service
-- prompt capture
-- media persistence for generated images
+- media persistence integration
+- AI job linkage
 
 ### Dependencies
 
-- `WB-024`
-- `WB-046`
-- `WB-056`
+- `WB-SVC-018`
+- `WB-SVC-041`
+- `WB-SVC-048`
 
 ### Acceptance Criteria
 
-- generated images are stored as media records
-- generated assets require human selection before use on published posts
+- generated images are persisted as media records with `ai_generated` source type
 
 ### Suggested Files / Areas
 
-- `app/Services/Ai/Images/`
-- jobs
+- AI image services
 - media services
+- jobs
 
 ### Validation
 
 - `php artisan test`
-- manual image flow validation
 
-### Story Points
+### Notes
 
-`8`
+- no UI selection flow in this backlog
 
 ---
 
-## WB-059
+## WB-SVC-052 — Implement stock image provider abstraction and attribution support
 
-### Title
-
-Implement stock image integrations and attribution tracking
-
-### Phase
-
-Phase 3
+**Phase:** Phase 4 — Advanced Services  
+**Story Points:** `8`  
+**Priority:** Could Have  
+**Status:** Backlog
 
 ### Description
 
-Add stock image sourcing workflows for Pexels, Unsplash, or equivalent providers and track usage and attribution.
+Create backend support for stock image provider integration and attribution data handling.
 
 ### Deliverables
 
-- provider integration service
-- search and select flow
-- attribution persistence
+- provider abstraction
+- attribution persistence rules
+- import service
 
 ### Dependencies
 
-- `WB-023`
-- `WB-025`
+- `WB-SVC-018`
+- `WB-SVC-020`
 
 ### Acceptance Criteria
 
-- admin can search and import stock images
-- attribution data is stored when required
+- stock assets can be imported into the media service with source and attribution metadata
 
 ### Suggested Files / Areas
 
-- `app/Services/Media/Stock/`
-- admin UI
-- migrations if needed
+- media stock services
+- migrations if additional fields are needed
 
 ### Validation
 
 - `php artisan test`
-- manual stock import validation
 
-### Story Points
+### Notes
 
-`8`
-
----
-
-## WB-060
-
-### Title
-
-Implement analytics data collection foundation
-
-### Phase
-
-Phase 3
-
-### Description
-
-Create the tracking model and event capture needed for content, author, and traffic reporting.
-
-### Deliverables
-
-- analytics event model or storage strategy
-- content performance capture
-- author-level reporting inputs
-
-### Dependencies
-
-- `WB-041`
-
-### Acceptance Criteria
-
-- content interaction metrics can be captured or ingested
-- data model supports future dashboards
-
-### Suggested Files / Areas
-
-- migrations
-- `app/Models/`
-- services
-
-### Validation
-
-- `php artisan test`
-- manual instrumentation review
-
-### Story Points
-
-`5`
+- keep provider-specific logic isolated
 
 ---
 
-## WB-061
+## WB-SVC-053 — Implement analytics data ingestion and reporting APIs
 
-### Title
-
-Build analytics dashboards for content and authors
-
-### Phase
-
-Phase 3
+**Phase:** Phase 4 — Advanced Services  
+**Story Points:** `8`  
+**Priority:** Could Have  
+**Status:** Backlog
 
 ### Description
 
-Create admin-facing dashboards for content analytics, author analytics, and traffic reporting.
+Create backend APIs for analytics data ingestion or reporting around content and author performance.
 
 ### Deliverables
 
-- content analytics dashboard
-- author analytics dashboard
-- reporting views
-
-### Dependencies
-
-- `WB-060`
-
-### Acceptance Criteria
-
-- dashboards display useful, non-empty metrics
-- data is grouped in a way editors can act on
-
-### Suggested Files / Areas
-
-- `app/Livewire/Admin/Analytics/`
+- analytics data model
+- reporting endpoints
 - query services
-- views
-
-### Validation
-
-- `php artisan test`
-- manual dashboard validation
-
-### Story Points
-
-`8`
-
----
-
-## WB-062
-
-### Title
-
-Build SEO dashboard and scoring engine
-
-### Phase
-
-Phase 3
-
-### Description
-
-Implement the editorial SEO scoring system and admin dashboard described in the SEO strategy.
-
-### Deliverables
-
-- SEO score service
-- SEO dashboard
-- missing metadata detection
-- recommendations display
 
 ### Dependencies
 
-- `WB-038`
-- `WB-039`
-- `WB-044`
+- `WB-SVC-026`
 
 ### Acceptance Criteria
 
-- articles receive a transparent SEO score
-- missing or weak SEO elements are surfaced in admin
+- content performance metrics can be stored or exposed through API
 
 ### Suggested Files / Areas
 
-- `app/Services/Seo/Scoring/`
-- `app/Livewire/Admin/Seo/`
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual score validation
-
-### Story Points
-
-`8`
-
----
-
-## WB-063
-
-### Title
-
-Build internal linking engine and recommendations
-
-### Phase
-
-Phase 3
-
-### Description
-
-Create the content relationship analysis and recommendation system for internal links.
-
-### Deliverables
-
-- related content suggestion service
-- link recommendation workflow
-- orphan detection baseline
-
-### Dependencies
-
-- `WB-037`
-- `WB-042`
-- `WB-062`
-
-### Acceptance Criteria
-
-- the system can recommend relevant internal links for drafts or refreshes
-- orphaned or weakly connected pages can be identified
-
-### Suggested Files / Areas
-
-- `app/Services/Seo/InternalLinking/`
-- admin UI
-- tests
-
-### Validation
-
-- `php artisan test`
-- manual recommendation review
-
-### Story Points
-
-`8`
-
----
-
-## WB-064
-
-### Title
-
-Build content refresh engine
-
-### Phase
-
-Phase 3
-
-### Description
-
-Create the workflow for detecting stale content and recommending refresh actions based on age, performance, and cluster needs.
-
-### Deliverables
-
-- stale content detection
-- refresh recommendation logic
-- admin refresh queue or view
-
-### Dependencies
-
-- `WB-060`
-- `WB-062`
-- `WB-063`
-
-### Acceptance Criteria
-
-- aging or underperforming content can be flagged for review
-- refresh suggestions are actionable enough for editors
-
-### Suggested Files / Areas
-
-- `app/Services/ContentRefresh/`
-- admin UI
+- analytics models
+- controllers
 - query services
 
 ### Validation
 
 - `php artisan test`
-- manual refresh workflow validation
 
-### Story Points
+### Notes
 
-`8`
+- reporting UI is out of scope here
 
 ---
 
-## Recommended Backlog Usage
+## WB-SVC-054 — Implement SEO recommendation APIs
 
-- execute tasks roughly in ID order unless dependency analysis justifies a change
-- do not parallelize tasks that touch the same core migration or editor flow unless coordination is explicit
-- convert each task into one working session or one pull request when practical
-- preserve task IDs in branches, commits, or PR descriptions where useful
+**Phase:** Phase 4 — Advanced Services  
+**Story Points:** `8`  
+**Priority:** Should Have  
+**Status:** Backlog
 
-## Suggested Initial Milestone Cuts
+### Description
 
-### Milestone A: Foundation Ready
+Expose recommendation-oriented APIs for SEO improvements, missing metadata, and score breakdowns.
 
-- `WB-001` to `WB-015`
+### Deliverables
 
-### Milestone B: MVP CMS Ready
+- recommendation service
+- recommendation endpoints
+- structured recommendation payloads
 
-- `WB-016` to `WB-039`
+### Dependencies
 
-### Milestone C: Public Launch Ready
+- `WB-SVC-039`
+- `WB-SVC-040`
+- `WB-SVC-047`
 
-- `WB-040` to `WB-045`
+### Acceptance Criteria
 
-### Milestone D: AI Editorial Foundation
+- a post can return actionable SEO recommendations via API
 
-- `WB-046` to `WB-057`
+### Suggested Files / Areas
 
-### Milestone E: Advanced Publishing Intelligence
+- SEO recommendation services
+- controllers
+- resources
 
-- `WB-058` to `WB-064`
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- recommendations should be explainable, not opaque
+
+---
+
+## WB-SVC-055 — Implement content refresh recommendation APIs
+
+**Phase:** Phase 4 — Advanced Services  
+**Story Points:** `8`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Create backend services that identify stale content and expose refresh-oriented recommendations.
+
+### Deliverables
+
+- stale content detection service
+- refresh recommendation endpoint
+
+### Dependencies
+
+- `WB-SVC-040`
+- `WB-SVC-053`
+- `WB-SVC-054`
+
+### Acceptance Criteria
+
+- backend can identify content likely needing refresh based on age, metadata, or performance inputs
+
+### Suggested Files / Areas
+
+- content refresh services
+- query services
+- controllers
+
+### Validation
+
+- `php artisan test`
+
+### Notes
+
+- keep recommendation logic additive and inspectable
+
+---
+
+## Recommended Milestone Cuts
+
+### Service Milestone A — Foundation
+
+- `WB-SVC-001` to `WB-SVC-012`
+
+### Service Milestone B — Core Domain APIs
+
+- `WB-SVC-013` to `WB-SVC-033`
+
+### Service Milestone C — Publishing And SEO Services
+
+- `WB-SVC-034` to `WB-SVC-040`
+
+### Service Milestone D — AI Engine Foundations
+
+- `WB-SVC-041` to `WB-SVC-050`
+
+### Service Milestone E — Advanced Services
+
+- `WB-SVC-051` to `WB-SVC-055`
 
 ## Summary
 
-This backlog is designed to take Wide Web Blog from Laravel foundation setup through MVP launch, AI-assisted publishing, and advanced editorial capabilities. The ordering intentionally favors a fast, trustworthy launch with strong SEO and content operations before deeper automation and intelligence features are layered in.
+This backlog keeps the `service` repository focused on backend responsibilities only: APIs, business logic, persistence, storage integration, documentation, audit logging, SEO services, and future AI orchestration. It deliberately excludes Livewire, Blade, admin screens, and public frontend work while preserving a phased path from service foundation through advanced backend intelligence services.
