@@ -103,6 +103,7 @@ class EloquentPostRepository implements PostRepository
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('visibility', Post::VISIBILITY_PUBLIC)
             ->whereNotNull('published_at')
+            ->whereHas('category', fn ($query) => $query->where('is_active', true))
             ->first();
     }
 
@@ -161,8 +162,9 @@ class EloquentPostRepository implements PostRepository
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('visibility', Post::VISIBILITY_PUBLIC)
             ->whereNotNull('published_at')
+            ->whereHas('category', fn ($query) => $query->where('is_active', true))
             ->when($categorySlug, function ($query, string $categorySlug): void {
-                $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('slug', $categorySlug));
+                $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('slug', $categorySlug)->where('is_active', true));
             })
             ->when($featuredOnly, fn ($query) => $query->where('is_featured', true))
             ->orderByDesc('published_at')

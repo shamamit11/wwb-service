@@ -19,6 +19,13 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CreateUserController;
 use App\Http\Controllers\Api\V1\EchoMessageController;
 use App\Http\Controllers\Api\V1\HealthCheckController;
+use App\Http\Controllers\Api\V1\Public\CategoryController as PublicCategoryController;
+use App\Http\Controllers\Api\V1\Public\HomeController as PublicHomeController;
+use App\Http\Controllers\Api\V1\Public\PostController as PublicPostController;
+use App\Http\Controllers\Api\V1\Public\RssController as PublicRssController;
+use App\Http\Controllers\Api\V1\Public\SearchController as PublicSearchController;
+use App\Http\Controllers\Api\V1\Public\SitemapController as PublicSitemapController;
+use App\Http\Controllers\Api\V1\Public\TagController as PublicTagController;
 use App\Http\Controllers\Api\V1\TestErrorController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -108,6 +115,29 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('categories/{slug}', [CategoryController::class, 'show'])
         ->name('api.v1.categories.show');
+
+    Route::prefix('public')->group(function (): void {
+        Route::get('categories', [PublicCategoryController::class, 'index'])
+            ->name('api.v1.public.categories.index');
+        Route::get('categories/{slug}', [PublicCategoryController::class, 'show'])
+            ->name('api.v1.public.categories.show');
+        Route::get('tags', [PublicTagController::class, 'index'])
+            ->name('api.v1.public.tags.index');
+        Route::get('tags/{slug}', [PublicTagController::class, 'show'])
+            ->name('api.v1.public.tags.show');
+        Route::get('posts', [PublicPostController::class, 'index'])
+            ->name('api.v1.public.posts.index');
+        Route::get('posts/{slug}', [PublicPostController::class, 'show'])
+            ->name('api.v1.public.posts.show');
+        Route::get('home', PublicHomeController::class)
+            ->name('api.v1.public.home');
+        Route::get('search', PublicSearchController::class)
+            ->name('api.v1.public.search');
+        Route::get('sitemap', PublicSitemapController::class)
+            ->name('api.v1.public.sitemap');
+        Route::get('rss', PublicRssController::class)
+            ->name('api.v1.public.rss');
+    });
 
     Route::post('test/echo', EchoMessageController::class)
         ->name('api.v1.test.echo');
