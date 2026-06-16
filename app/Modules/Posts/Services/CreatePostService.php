@@ -7,6 +7,7 @@ use App\Modules\Posts\Data\CreatePostCommandData;
 use App\Modules\Posts\Data\CreatePostData;
 use App\Modules\Posts\Repositories\PostBlockRepository;
 use App\Modules\Posts\Repositories\PostRepository;
+use App\Support\AuditActivityLogger;
 use Illuminate\Support\Facades\DB;
 
 class CreatePostService
@@ -17,6 +18,7 @@ class CreatePostService
         private readonly PostSlugResolver $slugResolver,
         private readonly PostBlockPayloadMapper $blockPayloadMapper,
         private readonly PostBlockPayloadValidator $blockPayloadValidator,
+        private readonly AuditActivityLogger $audit,
     ) {}
 
     public function handle(CreatePostCommandData $data): Post
@@ -46,7 +48,26 @@ class CreatePostService
 
             $this->blocks->replaceForPost($post, $this->blockPayloadMapper->mapMany($data->blocks));
 
-            return $post->refresh()->load(['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock']);
+            $created = $post->refresh()->load(['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock']);
+
+            $this->audit->log(
+                logName: 'content',
+                description: 'post.created',
+                event: 'created',
+                subject: $created,
+                attributes: [
+                    'title' => $created->title,
+                    'slug' => $created->slug,
+                    'status' => $created->status,
+                    'visibility' => $created->visibility,
+                    'tag_ids' => $created->tags->modelKeys(),
+                ],
+                context: [
+                    'block_count' => $created->blocks->count(),
+                ],
+            );
+
+            return $created;
         });
     }
 }

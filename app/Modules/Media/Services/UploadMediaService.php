@@ -8,6 +8,7 @@ use App\Modules\Media\Data\UploadMediaData;
 use App\Modules\Media\Repositories\MediaRepository;
 use App\Modules\Media\Services\Contracts\MediaStorage;
 use App\Modules\Media\Services\Contracts\MediaUploader;
+use App\Support\AuditActivityLogger;
 use Illuminate\Support\Str;
 
 class UploadMediaService implements MediaUploader
@@ -15,6 +16,7 @@ class UploadMediaService implements MediaUploader
     public function __construct(
         private readonly MediaRepository $media,
         private readonly MediaStorage $storage,
+        private readonly AuditActivityLogger $audit,
     ) {}
 
     public function upload(UploadMediaData $data): Media
@@ -30,7 +32,7 @@ class UploadMediaService implements MediaUploader
             'ContentType' => $data->mimeType,
         ]);
 
-        return $this->media->create(new CreateMediaData(
+        $media = $this->media->create(new CreateMediaData(
             ulid: $ulid,
             uploadedByUserId: $data->uploadedByUserId,
             generatedByAiJobId: $data->generatedByAiJobId,
@@ -52,6 +54,21 @@ class UploadMediaService implements MediaUploader
             status: 'ready',
             metadata: $data->metadata,
         ));
+
+        $this->audit->log(
+            logName: 'content',
+            description: 'media.created',
+            event: 'created',
+            subject: $media,
+            attributes: [
+                'original_filename' => $media->original_filename,
+                'mime_type' => $media->mime_type,
+                'source_type' => $media->source_type,
+                'status' => $media->status,
+            ],
+        );
+
+        return $media;
     }
 
     private function objectKey(string $ulid, string $originalFilename, ?string $extension): string

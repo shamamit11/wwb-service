@@ -7,6 +7,7 @@ use App\Modules\Posts\Data\UpdatePostCommandData;
 use App\Modules\Posts\Data\UpdatePostData;
 use App\Modules\Posts\Repositories\PostBlockRepository;
 use App\Modules\Posts\Repositories\PostRepository;
+use App\Support\AuditActivityLogger;
 use Illuminate\Support\Facades\DB;
 
 class UpdatePostService
@@ -17,6 +18,7 @@ class UpdatePostService
         private readonly PostSlugResolver $slugResolver,
         private readonly PostBlockPayloadMapper $blockPayloadMapper,
         private readonly PostBlockPayloadValidator $blockPayloadValidator,
+        private readonly AuditActivityLogger $audit,
     ) {}
 
     public function handle(Post $post, UpdatePostCommandData $data): Post
@@ -24,6 +26,14 @@ class UpdatePostService
         $this->blockPayloadValidator->validate($data->blocks);
 
         return DB::transaction(function () use ($post, $data): Post {
+            $old = [
+                'title' => $post->title,
+                'slug' => $post->slug,
+                'status' => $post->status,
+                'visibility' => $post->visibility,
+                'tag_ids' => $post->tags()->pluck('tags.id')->all(),
+            ];
+
             $updated = $this->posts->update($post, new UpdatePostData(
                 authorUserId: $data->authorUserId,
                 categoryId: $data->categoryId,
@@ -46,7 +56,27 @@ class UpdatePostService
 
             $this->blocks->replaceForPost($updated, $this->blockPayloadMapper->mapMany($data->blocks));
 
-            return $updated->refresh()->load(['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock']);
+            $result = $updated->refresh()->load(['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock']);
+
+            $this->audit->log(
+                logName: 'content',
+                description: 'post.updated',
+                event: 'updated',
+                subject: $result,
+                attributes: [
+                    'title' => $result->title,
+                    'slug' => $result->slug,
+                    'status' => $result->status,
+                    'visibility' => $result->visibility,
+                    'tag_ids' => $result->tags->modelKeys(),
+                ],
+                old: $old,
+                context: [
+                    'block_count' => $result->blocks->count(),
+                ],
+            );
+
+            return $result;
         });
     }
 }

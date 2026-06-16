@@ -7,11 +7,13 @@ use App\Modules\Posts\Data\PostStateTransitionData;
 use App\Modules\Posts\Data\SchedulePostData;
 use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Modules\Posts\Repositories\PostRepository;
+use App\Support\AuditActivityLogger;
 
 class SchedulePostService
 {
     public function __construct(
         private readonly PostRepository $posts,
+        private readonly AuditActivityLogger $audit,
     ) {}
 
     public function handle(Post $post, SchedulePostData $data): Post
@@ -28,10 +30,30 @@ class SchedulePostService
             );
         }
 
-        return $this->posts->transition($post, new PostStateTransitionData(
+        $old = [
+            'status' => $post->status,
+            'scheduled_for' => $post->scheduled_for?->toISOString(),
+            'published_at' => $post->published_at?->toISOString(),
+        ];
+
+        $updated = $this->posts->transition($post, new PostStateTransitionData(
             status: Post::STATUS_SCHEDULED,
             publishedAt: null,
             scheduledFor: $data->scheduledFor,
         ));
+
+        $this->audit->log(
+            logName: 'content',
+            description: 'post.scheduled',
+            event: 'scheduled',
+            subject: $updated,
+            attributes: [
+                'status' => $updated->status,
+                'scheduled_for' => $updated->scheduled_for?->toISOString(),
+            ],
+            old: $old,
+        );
+
+        return $updated;
     }
 }
