@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
+use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CreateUserController;
 use App\Http\Controllers\Api\V1\EchoMessageController;
 use App\Http\Controllers\Api\V1\HealthCheckController;
@@ -33,7 +35,16 @@ Route::prefix('v1')->group(function (): void {
         ->group(function (): void {
             Route::get('me', AdminStatusController::class)
                 ->name('api.v1.admin.me');
+
+            Route::apiResource('categories', AdminCategoryController::class)
+                ->names('api.v1.admin.categories');
         });
+
+    Route::get('categories', [CategoryController::class, 'index'])
+        ->name('api.v1.categories.index');
+
+    Route::get('categories/{slug}', [CategoryController::class, 'show'])
+        ->name('api.v1.categories.show');
 
     Route::post('test/echo', EchoMessageController::class)
         ->name('api.v1.test.echo');

@@ -38,6 +38,11 @@ class EloquentCategoryRepository implements CategoryRepository
         return $category->refresh();
     }
 
+    public function delete(Category $category): void
+    {
+        $category->delete();
+    }
+
     public function findById(int $id): ?Category
     {
         return Category::query()->find($id);
@@ -48,6 +53,33 @@ class EloquentCategoryRepository implements CategoryRepository
         return Category::query()
             ->where('slug', $slug)
             ->first();
+    }
+
+    public function findActiveBySlug(string $slug): ?Category
+    {
+        return Category::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->first();
+    }
+
+    public function existsBySlug(string $slug, ?int $ignoreId = null): bool
+    {
+        return Category::query()
+            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists();
+    }
+
+    /**
+     * @return Collection<int, Category>
+     */
+    public function getAllOrdered(): Collection
+    {
+        return Category::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     /**

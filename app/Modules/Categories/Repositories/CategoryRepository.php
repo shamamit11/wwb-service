@@ -13,9 +13,20 @@ interface CategoryRepository
 
     public function update(Category $category, UpdateCategoryData $data): Category;
 
+    public function delete(Category $category): void;
+
     public function findById(int $id): ?Category;
 
     public function findBySlug(string $slug): ?Category;
+
+    public function findActiveBySlug(string $slug): ?Category;
+
+    public function existsBySlug(string $slug, ?int $ignoreId = null): bool;
+
+    /**
+     * @return Collection<int, Category>
+     */
+    public function getAllOrdered(): Collection;
 
     /**
      * @return Collection<int, Category>
