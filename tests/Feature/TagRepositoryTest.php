@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
+use App\Models\Post;
+use App\Models\User;
 use App\Modules\Tags\Data\CreateTagData;
 use App\Modules\Tags\Data\UpdateTagData;
 use App\Modules\Tags\Repositories\TagRepository;
@@ -77,6 +80,34 @@ class TagRepositoryTest extends TestCase
     public function test_repository_supports_service_side_post_tag_assignments(): void
     {
         $repository = app(TagRepository::class);
+        $author = User::factory()->create(['is_admin' => true]);
+        $category = Category::query()->create([
+            'created_by_user_id' => $author->id,
+            'updated_by_user_id' => $author->id,
+            'name' => 'Tag Fixtures',
+            'slug' => 'tag-fixtures',
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+        $post = Post::query()->create([
+            'author_user_id' => $author->id,
+            'category_id' => $category->id,
+            'template_id' => null,
+            'featured_media_id' => null,
+            'title' => 'Tagged Post',
+            'slug' => 'tagged-post',
+            'excerpt' => null,
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
+            'content_version' => 1,
+            'reading_time_minutes' => null,
+            'word_count' => null,
+            'is_featured' => false,
+            'meta' => null,
+        ]);
 
         $firstTag = $repository->create(new CreateTagData(
             name: 'Memory',
@@ -99,12 +130,12 @@ class TagRepositoryTest extends TestCase
             isActive: false,
         ));
 
-        $repository->syncPostTags(42, [$firstTag->id, $secondTag->id, $secondTag->id]);
+        $repository->syncPostTags($post->id, [$firstTag->id, $secondTag->id, $secondTag->id]);
 
-        $this->assertSame([$firstTag->id, $secondTag->id], $repository->getTagIdsForPost(42));
+        $this->assertSame([$firstTag->id, $secondTag->id], $repository->getTagIdsForPost($post->id));
 
-        $repository->syncPostTags(42, [$thirdTag->id]);
+        $repository->syncPostTags($post->id, [$thirdTag->id]);
 
-        $this->assertSame([$thirdTag->id], $repository->getTagIdsForPost(42));
+        $this->assertSame([$thirdTag->id], $repository->getTagIdsForPost($post->id));
     }
 }

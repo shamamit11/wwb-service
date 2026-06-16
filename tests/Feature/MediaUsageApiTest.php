@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Media;
+use App\Models\Post;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -113,11 +115,7 @@ class MediaUsageApiTest extends TestCase
             'status' => 'ready',
         ]);
 
-        DB::table('posts')->insert([
-            'featured_media_id' => $usedMedia->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $this->createFeaturedPost($admin, $usedMedia->id, 'used-post');
 
         $this->withToken($token)->getJson('/api/v1/admin/media?used=1')
             ->assertOk()
@@ -178,16 +176,43 @@ class MediaUsageApiTest extends TestCase
             'status' => 'ready',
         ]);
 
-        DB::table('posts')->insert([
-            'featured_media_id' => $media->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $this->createFeaturedPost($admin, $media->id, 'featured-post');
 
         $this->withToken($token)->deleteJson("/api/v1/admin/media/{$media->id}")
             ->assertStatus(409)
             ->assertJsonPath('error_code', 'CONFLICT')
             ->assertJsonPath('meta.usage_count', 1)
             ->assertJsonPath('errors.usage.0.type', 'featured_post');
+    }
+    private function createFeaturedPost(User $admin, int $mediaId, string $slug): void
+    {
+        $category = Category::query()->first() ?? Category::query()->create([
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'name' => 'Media Fixtures',
+            'slug' => 'media-fixtures',
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        Post::query()->create([
+            'author_user_id' => $admin->id,
+            'category_id' => $category->id,
+            'template_id' => null,
+            'featured_media_id' => $mediaId,
+            'title' => ucfirst(str_replace('-', ' ', $slug)),
+            'slug' => $slug,
+            'excerpt' => null,
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
+            'content_version' => 1,
+            'reading_time_minutes' => null,
+            'word_count' => null,
+            'is_featured' => false,
+            'meta' => null,
+        ]);
     }
 }

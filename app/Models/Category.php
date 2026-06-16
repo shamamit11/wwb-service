@@ -61,4 +61,12 @@ class Category extends Model
     {
         return $this->belongsTo(User::class, 'updated_by_user_id');
     }
+
+    /**
+     * @return HasMany<Post, $this>
+     */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'category_id');
+    }
 }

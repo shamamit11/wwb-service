@@ -93,4 +93,12 @@ class Template extends Model
         return $this->hasMany(TemplateBlock::class)
             ->orderBy('sort_order');
     }
+
+    /**
+     * @return HasMany<Post, $this>
+     */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'template_id');
+    }
 }
