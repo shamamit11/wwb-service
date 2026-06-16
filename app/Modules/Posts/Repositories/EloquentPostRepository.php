@@ -4,6 +4,7 @@ namespace App\Modules\Posts\Repositories;
 
 use App\Models\Post;
 use App\Modules\Posts\Data\CreatePostData;
+use App\Modules\Posts\Data\PostFiltersData;
 use App\Modules\Posts\Data\UpdatePostData;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -106,9 +107,34 @@ class EloquentPostRepository implements PostRepository
      */
     public function getAdminOrdered(): Collection
     {
+        return $this->searchAdmin(new PostFiltersData);
+    }
+
+    /**
+     * @return Collection<int, Post>
+     */
+    public function searchAdmin(PostFiltersData $filters): Collection
+    {
+        [$sortColumn, $descending] = $this->normalizeSort($filters->sort);
+
         return Post::query()
             ->with($this->relations())
-            ->orderByDesc('updated_at')
+            ->when($filters->search, function ($query, string $search): void {
+                $query->where(function ($innerQuery) use ($search): void {
+                    $innerQuery
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhere('excerpt', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters->status, fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters->visibility, fn ($query, string $visibility) => $query->where('visibility', $visibility))
+            ->when($filters->categorySlug, function ($query, string $categorySlug): void {
+                $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('slug', $categorySlug));
+            })
+            ->when($filters->isFeatured !== null, fn ($query) => $query->where('is_featured', $filters->isFeatured))
+            ->when($filters->authorUserId, fn ($query, int $authorUserId) => $query->where('author_user_id', $authorUserId))
+            ->orderBy($sortColumn, $descending ? 'desc' : 'asc')
             ->orderByDesc('id')
             ->get();
     }
@@ -135,6 +161,22 @@ class EloquentPostRepository implements PostRepository
     private function refreshWithRelations(Post $post): Post
     {
         return $post->refresh()->load($this->relations());
+    }
+
+    /**
+     * @return array{0: string, 1: bool}
+     */
+    private function normalizeSort(string $sort): array
+    {
+        $descending = str_starts_with($sort, '-');
+        $field = ltrim($sort, '-');
+        $allowed = ['created_at', 'updated_at', 'published_at', 'title'];
+
+        if (! in_array($field, $allowed, true)) {
+            return ['updated_at', true];
+        }
+
+        return [$field, $descending];
     }
 
     /**

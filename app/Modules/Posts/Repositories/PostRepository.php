@@ -4,6 +4,7 @@ namespace App\Modules\Posts\Repositories;
 
 use App\Models\Post;
 use App\Modules\Posts\Data\CreatePostData;
+use App\Modules\Posts\Data\PostFiltersData;
 use App\Modules\Posts\Data\UpdatePostData;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -27,6 +28,11 @@ interface PostRepository
      * @return Collection<int, Post>
      */
     public function getAdminOrdered(): Collection;
+
+    /**
+     * @return Collection<int, Post>
+     */
+    public function searchAdmin(PostFiltersData $filters): Collection;
 
     /**
      * @return Collection<int, Post>

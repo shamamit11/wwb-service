@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
+use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\TemplateController as AdminTemplateController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
@@ -54,6 +55,9 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.media.update');
             Route::delete('media/{media}', [AdminMediaController::class, 'destroy'])
                 ->name('api.v1.admin.media.destroy');
+
+            Route::apiResource('posts', AdminPostController::class)
+                ->names('api.v1.admin.posts');
 
             Route::apiResource('tags', AdminTagController::class)
                 ->names('api.v1.admin.tags');
