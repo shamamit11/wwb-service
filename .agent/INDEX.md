@@ -51,6 +51,7 @@ For Laravel API or backend feature work:
 - `.agent/COMMANDS.md`
 - `.agent/TESTING.md`
 - `.agent/skills/laravel-api.md`
+- `.agent/skills/api-contracts.md` for endpoint shape work
 - `.agent/skills/database.md`
 
 For database, migrations, models, or repositories:
@@ -59,26 +60,57 @@ For database, migrations, models, or repositories:
 - `.agent/TESTING.md`
 - `.agent/skills/database.md`
 
+For API contract, resource, filtering, pagination, or docs work:
+- `.agent/knowledge-base/api-standards.md`
+- `.agent/knowledge-base/module-map.md`
+- `.agent/skills/api-contracts.md`
+- `.agent/skills/scramble-docs.md` when docs are affected
+
 For AI content generation pipeline work:
-- `.agent/PROJECT-CONTEXT.md`
 - `.agent/ARCHITECTURE.md`
+- `.agent/knowledge-base/content-lifecycle.md`
+- `.agent/knowledge-base/module-map.md`
+- `.agent/knowledge-base/queue-conventions.md`
 - `.agent/knowledge-base/product.md`
 - `.agent/knowledge-base/ai-content.md`
-- `.agent/skills/ai-content-engine.md`
+- `.agent/skills/ai-orchestration.md`
+- `.agent/skills/ai-content-engine.md` for broader AI product rules
 
 For SEO metadata, slugs, sitemap, or structured data:
 - `.agent/PROJECT-CONTEXT.md`
+- `.agent/knowledge-base/module-map.md`
 - `.agent/knowledge-base/seo.md`
 - `.agent/skills/seo.md`
 
 For media, image, or storage pipeline work:
 - `.agent/PROJECT-CONTEXT.md`
 - `.agent/ARCHITECTURE.md`
+- `.agent/knowledge-base/module-map.md`
 - `.agent/skills/media-service.md`
+
+For templates, post blocks, or rendering structure work:
+- `.agent/knowledge-base/content-lifecycle.md`
+- `.agent/knowledge-base/module-map.md`
+- `.agent/skills/template-engine.md`
+
+For knowledge base, topic support, or originality-supporting content workflows:
+- `.agent/knowledge-base/content-lifecycle.md`
+- `.agent/knowledge-base/module-map.md`
+- `.agent/skills/knowledge-base.md`
+
+For queue, scheduler, async workflow, or long-running processing work:
+- `.agent/knowledge-base/queue-conventions.md`
+- `.agent/knowledge-base/content-lifecycle.md` when content states are involved
+- `.agent/skills/queue-scheduler.md`
+
+For audit logging or approval-trace work:
+- `.agent/knowledge-base/activitylog-policy.md`
+- `.agent/skills/activitylog-audit.md`
 
 For admin-impacting API changes:
 - `.agent/PROJECT-CONTEXT.md`
 - `.agent/ARCHITECTURE.md`
+- `.agent/knowledge-base/api-standards.md`
 - `.agent/skills/laravel-api.md`
 
 Then, only if available and necessary:
@@ -91,6 +123,7 @@ Do not scan the full `../admin` project unless explicitly required by the task.
 For public frontend-impacting API changes:
 - `.agent/PROJECT-CONTEXT.md`
 - `.agent/ARCHITECTURE.md`
+- `.agent/knowledge-base/api-standards.md`
 - `.agent/skills/laravel-api.md`
 - `.agent/skills/seo.md`
 
@@ -105,11 +138,14 @@ For testing, debugging, or release validation:
 - `.agent/TESTING.md`
 - `.agent/COMMANDS.md`
 - `.agent/skills/testing.md`
+- `.agent/skills/service-testing-matrix.md`
 
 For architecture or cross-cutting service changes:
 - `.agent/PROJECT-CONTEXT.md`
 - `.agent/ARCHITECTURE.md`
 - `.agent/knowledge-base/architecture-decisions.md`
+- `.agent/knowledge-base/module-map.md`
+- `.agent/knowledge-base/doc-map.md` when strategy docs are needed
 - `.agent/MEMORY.md`
 
 ## Cross-Repository References
@@ -144,13 +180,27 @@ When sibling context is needed:
 - `.agent/AGENT-HANDOVER.md`: active handover state for unfinished work
 - `.agent/MEMORY.md`: stable reusable service knowledge
 - `.agent/agents/`: shared and agent-specific operating instructions
+- `.agent/knowledge-base/api-standards.md`: request, response, filter, pagination, and contract conventions
+- `.agent/knowledge-base/queue-conventions.md`: queue, retry, failure, and scheduler rules
+- `.agent/knowledge-base/content-lifecycle.md`: topic-to-publish lifecycle and draft-first policy
+- `.agent/knowledge-base/activitylog-policy.md`: activity logging scope and guardrails
+- `.agent/knowledge-base/module-map.md`: service module ownership and boundaries
+- `.agent/knowledge-base/doc-map.md`: routing map for large planning and specification docs
 - `.agent/skills/laravel-api.md`: primary backend/API implementation guidance
+- `.agent/skills/api-contracts.md`: endpoint shape, resources, filters, pagination, and docs-safe changes
+- `.agent/skills/activitylog-audit.md`: audit logging and Spatie Activitylog guidance
 - `.agent/skills/database.md`: migrations, models, repositories, and query guidance
+- `.agent/skills/queue-scheduler.md`: jobs, retries, queues, and scheduled workflow guidance
+- `.agent/skills/template-engine.md`: template and post-block structure guidance
+- `.agent/skills/knowledge-base.md`: knowledge item and originality-support workflow guidance
+- `.agent/skills/ai-orchestration.md`: provider abstraction, AI jobs, and cost-tracking workflow guidance
 - `.agent/skills/livewire-admin.md`: service-local or cross-reference admin guidance only when relevant
 - `.agent/skills/livewire-frontend.md`: service-local or cross-reference frontend guidance only when relevant
 - `.agent/skills/media-service.md`: service-side media storage and retrieval guidance
+- `.agent/skills/scramble-docs.md`: API documentation guidance for Scramble-backed docs
 - `.agent/skills/seo.md`: SEO-related service and metadata guidance
 - `.agent/skills/testing.md`: validation scope and testing discipline
+- `.agent/skills/service-testing-matrix.md`: minimal effective validation selection by change type
 - `.agent/tasks/`: current task plus template and completed task records
 - `.agent/knowledge-base/`: durable product and domain references
 
