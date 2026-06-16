@@ -3,26 +3,22 @@
 namespace App\Modules\Posts\Services;
 
 use App\Modules\Posts\Repositories\PostRepository;
-use Illuminate\Support\Str;
+use App\Support\SlugGenerator;
 
 class PostSlugResolver
 {
     public function __construct(
         private readonly PostRepository $posts,
+        private readonly SlugGenerator $slugGenerator,
     ) {}
 
     public function resolve(string $title, ?string $slug = null, ?int $ignoreId = null): string
     {
-        $baseSlug = Str::slug($slug ?: $title);
-        $baseSlug = $baseSlug !== '' ? $baseSlug : Str::lower(Str::ulid()->toBase32());
-        $candidate = $baseSlug;
-        $suffix = 2;
-
-        while ($this->posts->existsBySlug($candidate, $ignoreId)) {
-            $candidate = "{$baseSlug}-{$suffix}";
-            $suffix++;
-        }
-
-        return $candidate;
+        return $this->slugGenerator->resolve(
+            source: $title,
+            preferredSlug: $slug,
+            ignoreId: $ignoreId,
+            slugExists: fn (string $candidate, ?int $ignoredId): bool => $this->posts->existsBySlug($candidate, $ignoredId),
+        );
     }
 }
