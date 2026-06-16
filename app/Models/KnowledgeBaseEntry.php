@@ -25,6 +25,8 @@ class KnowledgeBaseEntry extends Model
 {
     use HasUlids, SoftDeletes;
 
+    public const LINK_HOOKS_KEY = 'link_hooks';
+
     public const TYPE_NOTE = 'note';
 
     public const TYPE_RESEARCH = 'research';
@@ -101,5 +103,39 @@ class KnowledgeBaseEntry extends Model
     public function featuredMedia(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'featured_media_id')->withTrashed();
+    }
+
+    /**
+     * @return list<array{id:int,title:string,slug:string}>
+     */
+    public function linkedPosts(): array
+    {
+        $hooks = $this->metadata[self::LINK_HOOKS_KEY]['posts'] ?? [];
+
+        if (! is_array($hooks)) {
+            return [];
+        }
+
+        return array_values(array_filter($hooks, fn ($hook): bool => is_array($hook)
+            && isset($hook['id'], $hook['title'], $hook['slug'])
+            && is_int($hook['id'])
+            && is_string($hook['title'])
+            && is_string($hook['slug'])));
+    }
+
+    /**
+     * @return list<array{id:int}>
+     */
+    public function linkedTopics(): array
+    {
+        $hooks = $this->metadata[self::LINK_HOOKS_KEY]['topics'] ?? [];
+
+        if (! is_array($hooks)) {
+            return [];
+        }
+
+        return array_values(array_filter($hooks, fn ($hook): bool => is_array($hook)
+            && isset($hook['id'])
+            && is_int($hook['id'])));
     }
 }

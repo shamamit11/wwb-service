@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
@@ -55,6 +56,14 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.media.update');
             Route::delete('media/{media}', [AdminMediaController::class, 'destroy'])
                 ->name('api.v1.admin.media.destroy');
+
+            Route::apiResource('knowledge-base', AdminKnowledgeBaseEntryController::class)
+                ->parameters(['knowledge-base' => 'knowledgeBase'])
+                ->names('api.v1.admin.knowledge-base');
+            Route::post('knowledge-base/{knowledgeBase}/link-post', [AdminKnowledgeBaseEntryController::class, 'linkPost'])
+                ->name('api.v1.admin.knowledge-base.link-post');
+            Route::post('knowledge-base/{knowledgeBase}/link-topic', [AdminKnowledgeBaseEntryController::class, 'linkTopic'])
+                ->name('api.v1.admin.knowledge-base.link-topic');
 
             Route::apiResource('posts', AdminPostController::class)
                 ->names('api.v1.admin.posts');
