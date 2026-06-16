@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -38,6 +39,9 @@ Route::prefix('v1')->group(function (): void {
 
             Route::apiResource('categories', AdminCategoryController::class)
                 ->names('api.v1.admin.categories');
+
+            Route::apiResource('tags', AdminTagController::class)
+                ->names('api.v1.admin.tags');
         });
 
     Route::get('categories', [CategoryController::class, 'index'])
