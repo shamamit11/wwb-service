@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -68,5 +69,13 @@ class Category extends Model
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class, 'category_id');
+    }
+
+    /**
+     * @return MorphOne<SeoMetadata, $this>
+     */
+    public function seo(): MorphOne
+    {
+        return $this->morphOne(SeoMetadata::class, 'seoable');
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -137,5 +138,13 @@ class KnowledgeBaseEntry extends Model
         return array_values(array_filter($hooks, fn ($hook): bool => is_array($hook)
             && isset($hook['id'])
             && is_int($hook['id'])));
+    }
+
+    /**
+     * @return MorphOne<SeoMetadata, $this>
+     */
+    public function seo(): MorphOne
+    {
+        return $this->morphOne(SeoMetadata::class, 'seoable');
     }
 }

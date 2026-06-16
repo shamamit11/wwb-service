@@ -147,6 +147,8 @@ class MediaUsageApiTest extends TestCase
         ]);
 
         DB::table('seo_metadata')->insert([
+            'seoable_type' => Post::class,
+            'seoable_id' => 999,
             'og_image_media_id' => $media->id,
             'created_at' => now(),
             'updated_at' => now(),
