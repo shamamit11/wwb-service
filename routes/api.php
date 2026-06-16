@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowl
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\RssFeedController as AdminRssFeedController;
+use App\Http\Controllers\Api\V1\Admin\SchemaController as AdminSchemaController;
 use App\Http\Controllers\Api\V1\Admin\SeoMetadataController as AdminSeoMetadataController;
 use App\Http\Controllers\Api\V1\Admin\SitemapController as AdminSitemapController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
@@ -77,6 +78,8 @@ Route::prefix('v1')->group(function (): void {
             Route::post('posts/{post}/unpublish', [AdminPostController::class, 'unpublish'])
                 ->name('api.v1.admin.posts.unpublish');
 
+            Route::get('seo/schema/{seoableType}/{seoableId}', [AdminSchemaController::class, 'show'])
+                ->name('api.v1.admin.seo.schema.show');
             Route::get('seo/{seoableType}/{seoableId}', [AdminSeoMetadataController::class, 'show'])
                 ->name('api.v1.admin.seo.show');
             Route::put('seo/{seoableType}/{seoableId}', [AdminSeoMetadataController::class, 'update'])
