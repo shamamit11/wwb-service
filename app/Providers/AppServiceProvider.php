@@ -17,6 +17,8 @@ use App\Modules\Media\Services\ReadMediaService;
 use App\Modules\Media\Services\UploadMediaService;
 use App\Modules\Tags\Repositories\EloquentTagRepository;
 use App\Modules\Tags\Repositories\TagRepository;
+use App\Modules\Templates\Repositories\EloquentTemplateRepository;
+use App\Modules\Templates\Repositories\TemplateRepository;
 use App\Modules\Users\Repositories\EloquentUserRepository;
 use App\Modules\Users\Repositories\UserRepository;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MediaUploader::class, UploadMediaService::class);
         $this->app->bind(MediaReader::class, ReadMediaService::class);
         $this->app->bind(MediaDeleter::class, DeleteMediaService::class);
+        $this->app->bind(TemplateRepository::class, EloquentTemplateRepository::class);
         $this->app->bind(TagRepository::class, EloquentTagRepository::class);
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
     }
