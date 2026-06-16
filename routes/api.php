@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Api\V1\Admin\TemplateController as AdminTemplateController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -56,6 +57,13 @@ Route::prefix('v1')->group(function (): void {
 
             Route::apiResource('tags', AdminTagController::class)
                 ->names('api.v1.admin.tags');
+
+            Route::apiResource('templates', AdminTemplateController::class)
+                ->names('api.v1.admin.templates');
+            Route::post('templates/{template}/preview', [AdminTemplateController::class, 'preview'])
+                ->name('api.v1.admin.templates.preview');
+            Route::post('templates/{template}/seed-post', [AdminTemplateController::class, 'seedPost'])
+                ->name('api.v1.admin.templates.seed-post');
         });
 
     Route::get('categories', [CategoryController::class, 'index'])

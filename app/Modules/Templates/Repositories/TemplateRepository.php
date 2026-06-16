@@ -20,6 +20,13 @@ interface TemplateRepository
 
     public function findBySlug(string $slug): ?Template;
 
+    public function existsBySlug(string $slug, ?int $ignoreId = null): bool;
+
+    /**
+     * @return Collection<int, Template>
+     */
+    public function getAllOrdered(): Collection;
+
     /**
      * @return Collection<int, TemplateBlock>
      */

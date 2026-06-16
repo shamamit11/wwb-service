@@ -21,6 +21,33 @@ class TemplateBlock extends Model
 {
     use HasUlids;
 
+    public const TYPE_HEADING = 'heading';
+
+    public const TYPE_PARAGRAPH = 'paragraph';
+
+    public const TYPE_IMAGE = 'image';
+
+    public const TYPE_QUOTE = 'quote';
+
+    public const TYPE_LIST = 'list';
+
+    public const TYPE_CODE = 'code';
+
+    public const TYPE_FAQ = 'faq';
+
+    public const TYPE_CALLOUT = 'callout';
+
+    public const BLOCK_TYPES = [
+        self::TYPE_HEADING,
+        self::TYPE_PARAGRAPH,
+        self::TYPE_IMAGE,
+        self::TYPE_QUOTE,
+        self::TYPE_LIST,
+        self::TYPE_CODE,
+        self::TYPE_FAQ,
+        self::TYPE_CALLOUT,
+    ];
+
     /**
      * @return list<string>
      */
@@ -41,6 +68,9 @@ class TemplateBlock extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Template, $this>
+     */
     public function template(): BelongsTo
     {
         return $this->belongsTo(Template::class);

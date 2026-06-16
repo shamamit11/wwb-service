@@ -76,6 +76,26 @@ class EloquentTemplateRepository implements TemplateRepository
             ->first();
     }
 
+    public function existsBySlug(string $slug, ?int $ignoreId = null): bool
+    {
+        return Template::query()
+            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists();
+    }
+
+    /**
+     * @return Collection<int, Template>
+     */
+    public function getAllOrdered(): Collection
+    {
+        return Template::query()
+            ->with('blocks')
+            ->orderBy('template_type')
+            ->orderBy('name')
+            ->get();
+    }
+
     /**
      * @return Collection<int, TemplateBlock>
      */

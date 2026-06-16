@@ -24,6 +24,36 @@ class Template extends Model
 {
     use HasUlids, SoftDeletes;
 
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_ARCHIVED = 'archived';
+
+    public const TYPE_STANDARD = 'standard';
+
+    public const TYPE_TUTORIAL = 'tutorial';
+
+    public const TYPE_LISTICLE = 'listicle';
+
+    public const TYPE_COMPARISON = 'comparison';
+
+    public const TYPE_NEWS = 'news';
+
+    public const STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_ACTIVE,
+        self::STATUS_ARCHIVED,
+    ];
+
+    public const TEMPLATE_TYPES = [
+        self::TYPE_STANDARD,
+        self::TYPE_TUTORIAL,
+        self::TYPE_LISTICLE,
+        self::TYPE_COMPARISON,
+        self::TYPE_NEWS,
+    ];
+
     /**
      * @return list<string>
      */
@@ -47,11 +77,17 @@ class Template extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by_user_id');
     }
 
+    /**
+     * @return HasMany<TemplateBlock, $this>
+     */
     public function blocks(): HasMany
     {
         return $this->hasMany(TemplateBlock::class)
