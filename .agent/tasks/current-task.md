@@ -32,11 +32,11 @@ No active task. Waiting for the next request.
 ## Changed Files
 
 - `.agent/tasks/current-task.md`
-- `.agent/tasks/completed/2026-06-16-implementation-specs.md`
+- `.agent/tasks/completed/2026-06-16-service-tasks.md`
 
 ## Validation
 
-- Confirmed the completed implementation-specification task was archived under `.agent/tasks/completed/`.
+- Confirmed the completed service backlog task was archived under `.agent/tasks/completed/`.
 - Confirmed `current-task.md` now reflects an idle waiting state.
 
 ## Risks Or Follow-Ups
@@ -45,4 +45,4 @@ No active task. Waiting for the next request.
 
 ## Completion Notes
 
-- Summary: Archived the implementation-specification task and reset the task tracker for the next request.
+- Summary: Archived the service backlog task and reset the task tracker for the next request.
