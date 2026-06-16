@@ -32,11 +32,11 @@ No active task. Waiting for the next request.
 ## Changed Files
 
 - `.agent/tasks/current-task.md`
-- `.agent/tasks/completed/2026-06-16-database-design.md`
+- `.agent/tasks/completed/2026-06-16-content-strategy.md`
 
 ## Validation
 
-- Confirmed the completed database design task was archived under `.agent/tasks/completed/`.
+- Confirmed the completed content strategy task was archived under `.agent/tasks/completed/`.
 - Confirmed `current-task.md` now reflects an idle waiting state.
 
 ## Risks Or Follow-Ups
@@ -45,4 +45,4 @@ No active task. Waiting for the next request.
 
 ## Completion Notes
 
-- Summary: Archived the database design task and reset the task tracker for the next request.
+- Summary: Archived the content strategy task and reset the task tracker for the next request.
