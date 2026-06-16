@@ -4,6 +4,7 @@ namespace App\Modules\Media\Repositories;
 
 use App\Models\Media;
 use App\Modules\Media\Data\CreateMediaData;
+use App\Modules\Media\Data\MediaFiltersData;
 use App\Modules\Media\Data\UpdateMediaMetadataData;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -67,6 +68,37 @@ class EloquentMediaRepository implements MediaRepository
     public function getLatest(): Collection
     {
         return Media::query()
+            ->latest()
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Media>
+     */
+    public function search(MediaFiltersData $filters): Collection
+    {
+        return Media::query()
+            ->when($filters->search, function ($query, string $search): void {
+                $query->where(function ($innerQuery) use ($search): void {
+                    $innerQuery
+                        ->where('original_filename', 'like', "%{$search}%")
+                        ->orWhere('alt_text', 'like', "%{$search}%")
+                        ->orWhere('caption', 'like', "%{$search}%")
+                        ->orWhere('mime_type', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters->sourceType, fn ($query, string $sourceType) => $query->where('source_type', $sourceType))
+            ->when($filters->mimeType, fn ($query, string $mimeType) => $query->where('mime_type', $mimeType))
+            ->when($filters->status, fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters->isImage !== null, function ($query) use ($filters): void {
+                if ($filters->isImage) {
+                    $query->whereNotNull('width')->whereNotNull('height');
+                } else {
+                    $query->where(function ($innerQuery): void {
+                        $innerQuery->whereNull('width')->orWhereNull('height');
+                    });
+                }
+            })
             ->latest()
             ->get();
     }

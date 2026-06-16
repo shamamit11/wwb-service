@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Http\Resources\Api\ApiResource;
 use App\Modules\Media\Services\Contracts\MediaReader;
+use App\Modules\Media\Services\MediaUsageService;
 use Illuminate\Http\Request;
 
 class MediaResource extends ApiResource
@@ -15,10 +16,14 @@ class MediaResource extends ApiResource
     {
         /** @var MediaReader $reader */
         $reader = app(MediaReader::class);
+        /** @var MediaUsageService $usage */
+        $usage = app(MediaUsageService::class);
+        $usageData = $usage->usageFor($this->resource);
 
         return [
             'id' => $this->resource->id,
             'ulid' => $this->resource->ulid,
+            'original_filename' => $this->resource->original_filename,
             'source_type' => $this->resource->source_type,
             'source_url' => $this->resource->source_url,
             'attribution_text' => $this->resource->attribution_text,
@@ -30,7 +35,11 @@ class MediaResource extends ApiResource
             'caption' => $this->resource->caption,
             'url' => $reader->url($this->resource),
             'status' => $this->resource->status,
-            'usage_count' => 0,
+            'usage_count' => $usageData->usageCount,
+            'usage' => array_map(
+                static fn ($reference): array => $reference->toArray(),
+                $usageData->references,
+            ),
             'created_at' => $this->resource->created_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
         ];

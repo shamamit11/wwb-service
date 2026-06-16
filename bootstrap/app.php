@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Media\Exceptions\MediaInUseException;
 use App\Support\ApiErrorResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -91,6 +92,28 @@ return Application::configure(basePath: dirname(__DIR__))
                 $exception->getMessage() ?: 'Too many requests.',
                 'RATE_LIMITED',
                 429
+            );
+        });
+
+        $exceptions->render(function (MediaInUseException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'usage' => array_map(
+                        static fn ($reference): array => $reference->toArray(),
+                        $exception->usage->references,
+                    ),
+                ],
+                [
+                    'usage_count' => $exception->usage->usageCount,
+                ],
             );
         });
 

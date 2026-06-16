@@ -4,6 +4,7 @@ namespace App\Modules\Media\Repositories;
 
 use App\Models\Media;
 use App\Modules\Media\Data\CreateMediaData;
+use App\Modules\Media\Data\MediaFiltersData;
 use App\Modules\Media\Data\UpdateMediaMetadataData;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -21,6 +22,11 @@ interface MediaRepository
      * @return Collection<int, Media>
      */
     public function getLatest(): Collection;
+
+    /**
+     * @return Collection<int, Media>
+     */
+    public function search(MediaFiltersData $filters): Collection;
 
     public function markArchived(Media $media): Media;
 }

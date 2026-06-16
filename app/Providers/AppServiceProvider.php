@@ -44,6 +44,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (! is_dir(storage_path('framework/views'))) {
+            mkdir(storage_path('framework/views'), 0755, true);
+        }
+
         Gate::define('access-admin-api', fn (User $user): bool => $user->is_admin);
     }
 }
