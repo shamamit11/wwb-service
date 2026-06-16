@@ -45,6 +45,7 @@ class SeoMetadataApiTest extends TestCase
             ->assertJsonPath('data.id', null)
             ->assertJsonPath('data.seoable_type', 'post')
             ->assertJsonPath('data.seoable_id', $post->id)
+            ->assertJsonPath('data.canonical_url', null)
             ->assertJsonPath('data.robots_index', true)
             ->assertJsonPath('data.robots_follow', true)
             ->assertJsonPath('data.schema_payload', []);
@@ -93,6 +94,19 @@ class SeoMetadataApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.meta_title', 'AI Agents Category')
             ->assertJsonPath('data.robots_index', true);
+    }
+
+    public function test_admin_seo_read_derives_default_canonical_when_override_is_missing(): void
+    {
+        config()->set('app.url', 'https://widewebblog.test');
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+
+        $this->withToken($token)->getJson("/api/v1/admin/seo/category/{$category->id}")
+            ->assertOk()
+            ->assertJsonPath('data.canonical_url', 'https://widewebblog.test/categories/ai-agents/');
     }
 
     public function test_admin_seo_validation_errors_use_consistent_json_shape(): void

@@ -10,6 +10,7 @@ class ReadSeoMetadataService
     public function __construct(
         private readonly SeoMetadataRepository $metadata,
         private readonly ResolveSeoableTargetService $resolver,
+        private readonly CanonicalUrlService $canonicalUrls,
     ) {}
 
     public function handle(string $seoableType, int $seoableId): SeoMetadata
@@ -18,6 +19,10 @@ class ReadSeoMetadataService
         $existing = $this->metadata->findFor($seoable);
 
         if ($existing !== null) {
+            if (($existing->canonical_url === null || $existing->canonical_url === '') && $existing->seoable !== null) {
+                $existing->setAttribute('canonical_url', $this->canonicalUrls->for($existing->seoable));
+            }
+
             return $existing;
         }
 
@@ -28,6 +33,7 @@ class ReadSeoMetadataService
         $draft->setRelation('seoable', $seoable);
         $draft->setAttribute('seoable_type', $normalizedType);
         $draft->setAttribute('seoable_id', $seoable->getKey());
+        $draft->setAttribute('canonical_url', $this->canonicalUrls->for($seoable));
 
         return $draft;
     }

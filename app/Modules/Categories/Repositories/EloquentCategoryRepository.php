@@ -45,12 +45,13 @@ class EloquentCategoryRepository implements CategoryRepository
 
     public function findById(int $id): ?Category
     {
-        return Category::query()->find($id);
+        return Category::query()->with('seo')->find($id);
     }
 
     public function findBySlug(string $slug): ?Category
     {
         return Category::query()
+            ->with('seo')
             ->where('slug', $slug)
             ->first();
     }
@@ -58,6 +59,7 @@ class EloquentCategoryRepository implements CategoryRepository
     public function findActiveBySlug(string $slug): ?Category
     {
         return Category::query()
+            ->with('seo')
             ->where('slug', $slug)
             ->where('is_active', true)
             ->first();
@@ -77,6 +79,7 @@ class EloquentCategoryRepository implements CategoryRepository
     public function getAllOrdered(): Collection
     {
         return Category::query()
+            ->with('seo')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -88,6 +91,7 @@ class EloquentCategoryRepository implements CategoryRepository
     public function getActiveOrdered(): Collection
     {
         return Category::query()
+            ->with('seo')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')

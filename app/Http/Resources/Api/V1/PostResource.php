@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Http\Resources\Api\ApiResource;
 use App\Modules\Media\Services\Contracts\MediaReader;
+use App\Modules\Seo\Services\CanonicalUrlService;
 use Illuminate\Http\Request;
 
 class PostResource extends ApiResource
@@ -15,6 +16,8 @@ class PostResource extends ApiResource
     {
         /** @var MediaReader $reader */
         $reader = app(MediaReader::class);
+        /** @var CanonicalUrlService $canonicalUrls */
+        $canonicalUrls = app(CanonicalUrlService::class);
 
         return [
             'id' => $this->resource->id,
@@ -26,6 +29,7 @@ class PostResource extends ApiResource
             'visibility' => $this->resource->visibility,
             'published_at' => $this->resource->published_at?->toISOString(),
             'scheduled_for' => $this->resource->scheduled_for?->toISOString(),
+            'canonical_url' => $canonicalUrls->for($this->resource),
             'content_version' => $this->resource->content_version,
             'reading_time_minutes' => $this->resource->reading_time_minutes,
             'word_count' => $this->resource->word_count,

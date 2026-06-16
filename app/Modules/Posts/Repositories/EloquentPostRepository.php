@@ -196,6 +196,6 @@ class EloquentPostRepository implements PostRepository
      */
     private function relations(): array
     {
-        return ['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock'];
+        return ['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock', 'seo'];
     }
 }
