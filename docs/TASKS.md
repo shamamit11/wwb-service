@@ -605,6 +605,7 @@ Add backend auth support for admin consumers, policy enforcement, and authentica
 - auth endpoint support
 - admin route protection
 - user role checks or permissions
+- use sanctum
 
 ### Dependencies
 

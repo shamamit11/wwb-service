@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_STORE', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -100,7 +100,7 @@ return [
         'failover' => [
             'driver' => 'failover',
             'stores' => [
-                'database',
+                'redis',
                 'array',
             ],
         ],
@@ -118,7 +118,7 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'widewebblog-service')).'-cache-'),
 
     /*
     |--------------------------------------------------------------------------
