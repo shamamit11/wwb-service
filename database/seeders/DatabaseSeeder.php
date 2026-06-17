@@ -16,6 +16,18 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminUserSeeder::class,
+            CategorySeeder::class,
+            TagSeeder::class,
+            MediaSeeder::class,
+            TemplateSeeder::class,
+            TemplateBlockSeeder::class,
+            PostSeeder::class,
+            PostTagSeeder::class,
+            PostBlockSeeder::class,
+            KnowledgeBaseEntrySeeder::class,
+            SeoMetadataSeeder::class,
+            PersonalAccessTokenSeeder::class,
+            ActivityLogSeeder::class,
         ]);
     }
 }
