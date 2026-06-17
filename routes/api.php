@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
@@ -53,6 +54,11 @@ Route::prefix('v1')->group(function (): void {
         ->group(function (): void {
             Route::get('me', AdminStatusController::class)
                 ->name('api.v1.admin.me');
+
+            Route::get('homepage', [AdminHomepageController::class, 'show'])
+                ->name('api.v1.admin.homepage.show');
+            Route::put('homepage', [AdminHomepageController::class, 'update'])
+                ->name('api.v1.admin.homepage.update');
 
             Route::apiResource('categories', AdminCategoryController::class)
                 ->names('api.v1.admin.categories');

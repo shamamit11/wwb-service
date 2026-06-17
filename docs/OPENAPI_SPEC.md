@@ -121,6 +121,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - Categories
 - Posts
 - Pages
+- Homepage
 - Media
 - Templates
 - Knowledge Base
@@ -377,6 +378,190 @@ This is a reference specification, not a generated OpenAPI JSON file.
   - `GET /admin/api/v1/seo/page/{id}`
   - `PUT /admin/api/v1/seo/page/{id}`
 - This keeps canonical URLs and metadata in the shared SEO model instead of duplicating those fields in the pages table.
+
+---
+
+## Homepage
+
+### Endpoint List
+
+- `GET /admin/api/v1/homepage`
+- `PUT /admin/api/v1/homepage`
+
+### Update Request Example
+
+```json
+{
+  "hero": {
+    "eyebrow": "Start here",
+    "title": "Build better internet systems",
+    "description": "Editorially curated homepage content.",
+    "primary_cta_label": "Read featured stories",
+    "primary_cta_url": "https://widewebblog.com/featured",
+    "secondary_cta_label": "Browse resources",
+    "secondary_cta_url": "https://widewebblog.com/resources",
+    "media_url": "https://cdn.widewebblog.com/home/hero.png",
+    "media_alt": "Homepage hero artwork"
+  },
+  "featured_editorial": {
+    "title": "Featured editorial",
+    "description": "Hand-picked editorial cards.",
+    "mode": "manual",
+    "post_ids": [34, 21, 13],
+    "category_ids": null,
+    "limit": null
+  },
+  "guide_section": {
+    "title": "Guides and resources",
+    "description": "Automatically selected guides.",
+    "mode": "automatic",
+    "post_ids": [],
+    "category_ids": [8, 2],
+    "limit": 6
+  },
+  "topic_section": {
+    "title": "Browse topics",
+    "description": "Explore the editorial taxonomy.",
+    "category_ids": [8, 2, 5]
+  },
+  "promo_section": {
+    "enabled": true,
+    "eyebrow": "Resource pack",
+    "title": "Download the operator kit",
+    "description": "Promotional support section for a featured resource.",
+    "bullet_points": ["Checklists", "Benchmarks", "Field notes"],
+    "primary_cta_label": "Get the kit",
+    "primary_cta_url": "https://widewebblog.com/kit",
+    "stats": [
+      {"label": "Templates", "value": "12"},
+      {"label": "Playbooks", "value": "8"}
+    ]
+  },
+  "newsletter_section": {
+    "enabled": true,
+    "title": "Get weekly dispatches",
+    "description": "Editorial updates and new resources."
+  },
+  "seo": {
+    "meta_title": "Wide Web Blog | Homepage",
+    "meta_description": "Homepage metadata for discovery and click-through."
+  }
+}
+```
+
+### Validation Rules
+
+- `hero`: required|array
+- `hero.eyebrow`: nullable|string|max 120
+- `hero.title`: nullable|string|max 255
+- `hero.description`: nullable|string|max 2000
+- `hero.primary_cta_label`: nullable|string|max 120
+- `hero.primary_cta_url`: nullable|url|max 500
+- `hero.secondary_cta_label`: nullable|string|max 120
+- `hero.secondary_cta_url`: nullable|url|max 500
+- `hero.media_url`: nullable|url|max 500
+- `hero.media_alt`: nullable|string|max 255
+- `featured_editorial.mode`: required|in:manual,automatic
+- `featured_editorial.post_ids`: present|nullable|array
+- `featured_editorial.post_ids.*`: integer|exists:posts,id
+- `featured_editorial.category_ids`: present|nullable|array
+- `featured_editorial.category_ids.*`: integer|exists:categories,id
+- `featured_editorial.limit`: present|nullable|integer|min:1|max:24
+- `guide_section.mode`: required|in:manual,automatic
+- `guide_section.post_ids`: present|nullable|array
+- `guide_section.post_ids.*`: integer|exists:posts,id
+- `guide_section.category_ids`: present|nullable|array
+- `guide_section.category_ids.*`: integer|exists:categories,id
+- `guide_section.limit`: present|nullable|integer|min:1|max:24
+- `topic_section.category_ids`: required|array
+- `topic_section.category_ids.*`: integer|exists:categories,id
+- `promo_section.enabled`: required|boolean
+- `promo_section.bullet_points`: required|array
+- `promo_section.bullet_points.*`: string|max 255
+- `promo_section.primary_cta_url`: nullable|url|max 500
+- `promo_section.stats`: required|array
+- `promo_section.stats.*.label`: required|string|max 120
+- `promo_section.stats.*.value`: required|string|max 120
+- `newsletter_section.enabled`: required|boolean
+- `newsletter_section.title`: nullable|string|max 255
+- `newsletter_section.description`: nullable|string|max 2000
+- `seo.meta_title`: nullable|string|max 255
+- `seo.meta_description`: nullable|string|max 320
+
+### Response Example
+
+```json
+{
+  "data": {
+    "hero": {
+      "eyebrow": "Start here",
+      "title": "Build better internet systems",
+      "description": "Editorially curated homepage content.",
+      "primary_cta_label": "Read featured stories",
+      "primary_cta_url": "https://widewebblog.com/featured",
+      "secondary_cta_label": "Browse resources",
+      "secondary_cta_url": "https://widewebblog.com/resources",
+      "media_url": "https://cdn.widewebblog.com/home/hero.png",
+      "media_alt": "Homepage hero artwork"
+    },
+    "featured_editorial": {
+      "title": "Featured editorial",
+      "description": "Hand-picked editorial cards.",
+      "mode": "manual",
+      "post_ids": [34, 21, 13],
+      "category_ids": null,
+      "limit": null
+    },
+    "guide_section": {
+      "title": "Guides and resources",
+      "description": "Automatically selected guides.",
+      "mode": "automatic",
+      "post_ids": [],
+      "category_ids": [8, 2],
+      "limit": 6
+    },
+    "topic_section": {
+      "title": "Browse topics",
+      "description": "Explore the editorial taxonomy.",
+      "category_ids": [8, 2, 5]
+    },
+    "promo_section": {
+      "enabled": true,
+      "eyebrow": "Resource pack",
+      "title": "Download the operator kit",
+      "description": "Promotional support section for a featured resource.",
+      "bullet_points": ["Checklists", "Benchmarks", "Field notes"],
+      "primary_cta_label": "Get the kit",
+      "primary_cta_url": "https://widewebblog.com/kit",
+      "stats": [
+        {"label": "Templates", "value": "12"},
+        {"label": "Playbooks", "value": "8"}
+      ]
+    },
+    "newsletter_section": {
+      "enabled": true,
+      "title": "Get weekly dispatches",
+      "description": "Editorial updates and new resources."
+    },
+    "seo": {
+      "meta_title": "Wide Web Blog | Homepage",
+      "meta_description": "Homepage metadata for discovery and click-through."
+    },
+    "updated_at": "2026-06-17T12:00:00Z",
+    "updated_by": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    }
+  }
+}
+```
+
+### Singleton Behavior
+
+- The homepage is a singleton resource, not a collection.
+- `GET /admin/api/v1/homepage` auto-creates the default record if none exists yet.
+- Ordered arrays such as `post_ids`, `category_ids`, `bullet_points`, and `stats` are preserved as submitted.
 
 ---
 
