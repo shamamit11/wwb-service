@@ -4,7 +4,14 @@
 
 Wide Web Blog is a blogging platform where the MVP starts with an admin user who can create and publish blog posts.
 
-The platform will later support AI-assisted content generation, AI-generated or AI-assisted images, SEO optimization, media handling, and public frontend rendering.
+The current service roadmap now includes a concrete Phase 3 AI content engine for:
+
+- topic discovery inside approved niche clusters
+- content brief generation from approved topics
+- draft post generation from approved briefs
+- human-reviewed AI-assisted editorial workflows
+
+Later phases may expand into richer SEO automation, image workflows, and external AI client integrations.
 
 ## Repository Scope
 
@@ -32,6 +39,9 @@ The Laravel service is responsible for:
 - tag management if implemented
 - CMS-related backend data
 - AI content generation pipeline
+- AI prompt template management and versioning
+- AI job, generation-step, token, and cost tracking
+- topic and content brief workflow management
 - SEO metadata
 - slugs
 - media and image storage
@@ -50,8 +60,30 @@ For MVP:
 - Admin can manage blog categories.
 - Blog posts should support SEO fields.
 - Blog posts should support featured images or media.
-- AI-generated content may be introduced behind service-level abstractions.
+- AI workflows are service-driven and draft-first.
 - Public frontend will consume published content from the service.
+
+### AI Content Engine MVP
+
+- Knowledge Base entries can ground AI workflows.
+- Topic discovery creates suggested topics only.
+- Only approved topics can generate content briefs.
+- Only approved content briefs can generate draft posts.
+- All AI-generated posts remain `draft` until manual admin approval.
+- Images are manual in this phase. AI may suggest image ideas, placement notes, and alt text only.
+- AI prompts must be database-backed and versioned, not hardcoded in agents.
+- AI workflows must be auditable through job and step tracking.
+
+### AI Content Clusters
+
+Topic discovery must stay within these clusters unless a later task expands them:
+
+- `ai_tools`
+- `ai_for_blogging`
+- `seo`
+- `content_marketing`
+- `productivity_automation`
+- `developer_ai`
 
 ## Non-Goals For Service Agent
 
@@ -74,6 +106,9 @@ The service agent should not implement:
 
 - AI-generated content must never publish directly.
 - AI-generated drafts require explicit admin review and approval.
+- Only approved upstream entities may move forward in the AI pipeline.
+- Retry logic must not duplicate topics, briefs, or posts.
+- Long-running AI work should use the explicit `ai` queue.
 - Public frontend should consume only published content states.
 - Agent work should remain task-driven and based on minimal context loading.
 

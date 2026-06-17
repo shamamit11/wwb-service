@@ -8,7 +8,7 @@ Use this file for stable content-state rules across posts, topics, SEO, knowledg
 
 1. Topic identified
 2. Topic approved or rejected
-3. Blueprint prepared
+3. Content brief prepared
 4. Draft created
 5. Review and revision
 6. SEO completion
@@ -38,8 +38,11 @@ Use this file for stable content-state rules across posts, topics, SEO, knowledg
 - Keep publish-state transitions explicit and auditable.
 - Separate editorial state from background processing state.
 - Use jobs for generation and analysis states, not for publish authorization.
+- Only approved topics may move into brief generation.
+- Only approved content briefs may move into draft generation.
+- Retryable background work must not duplicate domain records.
 
 ## Future Expansion
 
 - Multi-author and editorial workflow should extend this lifecycle, not replace it.
-- Topic queue, blueprint, and AI jobs should all map back to the same post lifecycle model.
+- Topic queue, content briefs, and AI jobs should all map back to the same post lifecycle model.

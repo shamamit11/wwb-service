@@ -11,12 +11,12 @@ AI must never directly publish content.
 AI may only create:
 
 - topic suggestions
-- content blueprints
+- content briefs
 - draft posts
 - SEO metadata suggestions
 - FAQs
 - tags
-- image prompts
+- image ideas, placement notes, and alt text suggestions
 
 All generated output must remain draft or review-only until explicitly approved by an admin.
 
@@ -32,15 +32,16 @@ All generated output must remain draft or review-only until explicitly approved 
 
 ```mermaid
 flowchart LR
-    A["Topic Queue"] --> B["Prompt Management"]
+    A["Knowledge Base Context"] --> B["Prompt Management"]
     B --> C["AI Orchestration Layer"]
     C --> D["Provider Abstraction"]
     D --> E["OpenAI"]
     D --> F["Anthropic"]
     D --> G["Gemini"]
     C --> H["AI Jobs"]
-    C --> I["Draft Posts / Suggestions"]
-    C --> J["Token & Cost Tracking"]
+    H --> I["AI Generation Steps"]
+    C --> J["Draft Posts / Suggestions"]
+    C --> K["Token & Cost Tracking"]
 ```
 
 ## AI Provider Abstraction
@@ -51,7 +52,6 @@ The provider layer should expose internal contracts rather than vendor-specific 
 
 - text generation
 - structured generation or normalized response extraction
-- optional image generation later
 - token and usage reporting
 
 ### Contract Goals
@@ -75,13 +75,11 @@ Prompt management should be a first-class subsystem, not hidden in code constant
 ### Prompt Categories
 
 - topic discovery
-- content blueprint
-- outline generation
-- article draft generation
-- FAQ generation
-- SEO generation
-- tag generation
-- image prompt generation
+- content brief
+- blog writer
+- editor
+- seo optimizer
+- publishing
 
 ## Topic Discovery Agent
 
@@ -107,7 +105,7 @@ Generate topic suggestions aligned with content pillars and category focus.
 - write to topic queue only
 - no direct draft creation without approval step
 
-## Content Blueprint Engine
+## Content Brief Agent
 
 ### Purpose
 
@@ -116,41 +114,42 @@ Turn approved topics into structured article plans before draft generation.
 ### Inputs
 
 - approved topic
-- selected template
 - knowledge base context
 - pillar and cluster guidance
+- existing internal content context
 
 ### Outputs
 
 - recommended article angle
 - section structure
-- template block mapping
+- internal link suggestions
 - SEO intent hints
+- image ideas and alt text suggestions
 
 ### Rules
 
-- blueprint should be inspectable before draft generation
-- blueprint output should map to block-based content
+- brief should be inspectable before draft generation
+- brief output should be structured, not raw HTML
+- only approved topics can generate briefs
 
-## Content Generation Agent
+## Blog Writer Agent
 
 ### Purpose
 
-Generate outlines and draft post content from approved topics and blueprints.
+Generate draft post content from approved content briefs.
 
 ### Inputs
 
-- topic
-- blueprint
-- template
+- approved content brief
 - prompt template
 - knowledge base context
 
 ### Outputs
 
-- outline
+- markdown body
 - draft post blocks
 - optional excerpt
+- editable SEO draft fields
 
 ### Rules
 
@@ -158,56 +157,8 @@ Generate outlines and draft post content from approved topics and blueprints.
 - no auto-publish
 - raw generated HTML is not the source of truth
 - output should map into structured content blocks
-
-## SEO Generation Agent
-
-### Purpose
-
-Suggest metadata and supporting SEO fields for draft articles.
-
-### Outputs
-
-- meta title
-- meta description
-- optional canonical recommendation
-- optional focus keyword suggestion
-
-### Rules
-
-- suggestions are editable
-- suggestions do not overwrite approved metadata silently
-
-## FAQ Generation
-
-### Purpose
-
-Generate FAQ candidates for articles where query intent supports them.
-
-### Outputs
-
-- structured FAQ block items
-
-### Rules
-
-- use only when useful
-- generated FAQs remain review-only until accepted
-
-## Image Prompt Generation
-
-### Purpose
-
-Generate image prompt candidates for future AI image workflows.
-
-### Outputs
-
-- prompt text
-- style notes
-- optional negative prompt or safety hints later
-
-### Rules
-
-- prompt generation does not equal image publication
-- generated prompts remain tied to draft or job context
+- only approved briefs can generate drafts
+- image handling stays manual in MVP
 
 ## Scheduled Jobs
 
@@ -236,9 +187,10 @@ Recommended queue separation:
 2. AI job record is created.
 3. Job is pushed to queue.
 4. Provider abstraction executes call.
-5. Normalized output is stored.
-6. Draft or suggestion records are updated.
-7. Cost and usage are stored.
+5. AI generation step is recorded.
+6. Normalized output is stored.
+7. Draft or suggestion records are updated.
+8. Cost and usage are stored.
 
 ## AI Job Tracking
 
@@ -254,6 +206,16 @@ Each AI job should track:
 - started/completed timestamps
 - input snapshot
 - output snapshot
+- error message if failed
+
+Each AI generation step should track:
+
+- parent job
+- agent name
+- status
+- input snapshot
+- output snapshot
+- usage metadata
 - error message if failed
 
 Statuses:
@@ -307,10 +269,10 @@ The system should handle:
 
 1. Topic suggestion is created.
 2. Admin approves topic.
-3. Blueprint is generated and reviewed.
+3. Content brief is generated and reviewed.
 4. Draft content is generated.
 5. Admin edits and validates content.
-6. SEO, FAQ, tags, and image prompts are reviewed.
+6. SEO suggestions, tags, and image notes are reviewed.
 7. Only then may the post move through normal publish workflow.
 
 ## Provider Notes
@@ -332,6 +294,7 @@ The engine should keep these interchangeable at orchestration level.
 ## Suggested Admin Touchpoints
 
 - topic queue
+- content briefs
 - AI jobs screen
 - prompt management
 - post editor suggestion panels
@@ -346,4 +309,4 @@ The engine should keep these interchangeable at orchestration level.
 
 ## Summary
 
-The AI content engine should function as an editorial acceleration layer, not an autonomous publisher. Its job is to create useful suggestions and draft assets across topics, blueprints, posts, metadata, FAQs, tags, and image prompts while keeping all final content decisions in human hands.
+The AI content engine should function as an editorial acceleration layer, not an autonomous publisher. Its job is to move work safely through topic suggestions, content briefs, draft posts, metadata suggestions, and image notes while keeping all final editorial and publishing decisions in human hands.

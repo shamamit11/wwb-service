@@ -191,15 +191,16 @@ Introduce AI-assisted editorial workflows that accelerate topic planning and dra
 - topic discovery workflow
 - topic queue
 - prompt management
-- content generation orchestration
+- content brief workflow
 - draft workflow for AI-assisted content
-- AI task records and provider abstractions
+- AI job tracking and provider abstractions
 
 ### Must Have
 
 - topic discovery intake model
 - topic queue with approval states
 - prompt templates or prompt management system
+- content briefs as an approval stage before draft generation
 - AI job orchestration layer
 - provider-agnostic content generation support
 - AI-generated drafts saved as draft-only content
@@ -210,17 +211,18 @@ Introduce AI-assisted editorial workflows that accelerate topic planning and dra
 - draft rewrite or section-regeneration tools
 - metadata suggestion support
 - knowledge base assisted prompt context
-- retry and auditability for AI jobs
+- retry-safe execution
+- auditability for AI jobs and generation steps
 
 ### Could Have
 
 - multiple generation modes for article types
-- AI-assisted content briefs
 - AI-assisted title and excerpt generation
+- safe MCP access to selected content operations
 
 ### Success Criteria
 
-- approved topics can move into draft generation faster than manual-only workflows
+- approved topics can move through topic -> brief -> draft faster than manual-only workflows
 - AI drafts improve editorial throughput without lowering publication quality
 - no AI-generated output can publish directly
 - editors can inspect and revise AI outputs with clear provenance
@@ -363,8 +365,8 @@ Expand Wide Web Blog from a single-admin publication into a platform capable of 
 
 ## Phase 2
 
-- Must Have: topic queue, prompt management, content generation, draft workflow
-- Should Have: brief generation, metadata support, auditability
+- Must Have: topic queue, prompt management, content briefs, draft workflow, AI job tracking
+- Should Have: metadata support, knowledge-grounded prompting, retry safety, auditability
 - Could Have: more advanced generation modes and editorial variants
 
 ## Phase 3
@@ -413,7 +415,7 @@ This sequencing reduces the most common failure modes:
 ### Months 4-8
 
 - implement Phase 2 AI-assisted publishing capabilities
-- start using AI for topic planning and draft acceleration
+- start using AI for topic discovery, content briefs, and draft acceleration
 
 ### Months 8-14
 

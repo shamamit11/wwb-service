@@ -45,6 +45,10 @@ For complex workflows:
 
 `Controller -> FormRequest -> DTO -> Application Service -> Domain Service/Action -> Repository/External Client -> Event/Job -> API Resource`
 
+For AI workflows:
+
+`Controller/Command -> FormRequest/Console Input -> DTO -> Workflow Service -> AI Client + Prompt Renderer + Internal Tools -> Repository -> Job Tracking -> API Resource`
+
 ## Layer Rules
 
 ### Controllers
@@ -176,6 +180,8 @@ Examples:
 - build sitemap
 - refresh SEO metadata
 
+AI generation jobs should use the explicit `ai` queue and must be safe to retry without duplicating topics, briefs, or posts.
+
 Use events when other parts of the service need to react to a domain change.
 
 Examples:
@@ -196,6 +202,41 @@ Examples:
 - `StorageClient`
 
 Do not call external APIs directly from controllers.
+
+For AI providers specifically:
+
+- isolate provider SDK usage behind an internal AI client abstraction
+- keep agents provider-agnostic
+- capture raw response, parsed response, usage metadata, and error state in structured results
+
+## AI Workflow Architecture
+
+The Phase 3 AI content engine is a staged workflow, not a single generation endpoint.
+
+Core stages:
+
+1. Knowledge Base context is selected and formatted.
+2. `TopicDiscoveryAgent` suggests topics inside approved clusters.
+3. approved topics feed `ContentBriefAgent`.
+4. approved briefs feed `BlogWriterAgent`.
+5. generated posts remain `draft` for admin review and manual publishing.
+
+Supporting components:
+
+- database-backed prompt templates and versions
+- AI workflow orchestration services
+- internal AI tools for duplicate checks, persistence, post search, and internal link lookup
+- `ai_jobs` lifecycle tracking
+- `ai_generation_steps` per-agent execution tracking
+- token and cost recording when usage metadata is available
+
+Non-negotiable rules:
+
+- prompts must not be hardcoded inside agent classes
+- controllers should dispatch workflows, not contain orchestration logic
+- every meaningful AI workflow must create an `ai_jobs` record
+- every agent execution must create an `ai_generation_steps` record
+- failures must be visible and retryable without creating duplicate domain records
 
 ### Transactions
 
@@ -229,6 +270,7 @@ Preferred response style:
 - Response formatting belongs in API Resources.
 - External integrations belong behind client abstractions.
 - AI content and image generation must remain draft-oriented until admin approval.
+- AI workflow state must stay separate from editorial publish state.
 
 ## Cross-App Boundary
 

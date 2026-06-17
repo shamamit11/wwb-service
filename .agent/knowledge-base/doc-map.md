@@ -23,6 +23,7 @@ Use this file to choose the smallest project document set for strategy-heavy tas
 - media system: `docs/MEDIA_SERVICE.md`
 - knowledge base: `docs/KNOWLEDGE_BASE.md`
 - AI engine: `docs/AI_CONTENT_ENGINE.md`
+- AI agents service backlog: `WB_SERVICE_AI_AGENTS_TASKS.md`
 
 ## Loading Rule
 

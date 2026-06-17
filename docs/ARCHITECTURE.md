@@ -102,7 +102,7 @@ MySQL is the system of record for:
 - knowledge base entries
 - SEO metadata
 - media records
-- AI task records
+- AI jobs and generation-step records
 - workflow state and audit-relevant metadata
 
 ### 5. Redis
@@ -121,7 +121,7 @@ The queue layer should handle:
 - media processing
 - sitemap rebuilds
 - AI content generation
-- AI image generation
+- future AI image generation
 - SEO analysis or recommendation jobs
 - future background enrichment and indexing tasks
 
@@ -262,11 +262,12 @@ sequenceDiagram
 
     Admin->>UI: Request content generation
     UI->>Service: GenerateContentData DTO
-    Service->>DB: Create AI task record
+    Service->>DB: Create AI job record
     Service->>Queue: Dispatch generation job
     Queue->>Job: Execute async
     Job->>Gateway: Call provider abstraction
     Gateway-->>Job: Provider response
+    Job->>DB: Create AI generation step record
     Job->>DB: Save output as draft or suggestion
     Job-->>Service: Emit event
 ```
@@ -274,7 +275,7 @@ sequenceDiagram
 ### Flow Notes
 
 - AI outputs must never bypass draft and review boundaries
-- orchestration should target internal task records, not direct post publication
+- orchestration should target internal AI job records, not direct post publication
 - provider-specific prompt handling belongs behind the AI integration layer
 
 ## Module Boundaries
@@ -483,7 +484,7 @@ Repositories should encapsulate persistence and reusable query logic while leavi
 - `TemplateRepository`
 - `KnowledgeEntryRepository`
 - `SeoMetadataRepository`
-- `AiTaskRepository`
+- `AiJobRepository`
 
 ### Example Repository Interface
 
@@ -574,7 +575,7 @@ Examples:
 - `MediaUploaded`
 - `TemplateApplied`
 - `KnowledgeEntryUpdated`
-- `AiTaskCompleted`
+- `AiJobCompleted`
 
 ### Jobs
 
@@ -590,7 +591,7 @@ Examples:
 
 - `ProcessMediaUploadJob`
 - `GenerateAiDraftJob`
-- `GenerateAiImageJob`
+- `GenerateAiTopicDiscoveryJob`
 - `GenerateSeoRecommendationsJob`
 - `RebuildSitemapJob`
 - `WarmPublishedPostCacheJob`
@@ -620,15 +621,15 @@ Queues should be first-class architecture, not an afterthought.
 
 ### Queue Principles
 
-- AI tasks must be isolated from content CRUD responsiveness
+- AI jobs must be isolated from content CRUD responsiveness
 - failed jobs must be retryable without corrupting publish state
-- long-running jobs should write progress to task records
+- long-running jobs should write progress to AI job records
 - queue workers should be horizontally scalable later
 
 ### Recommended Async Targets
 
 - AI generation
-- AI image creation
+- future AI image creation
 - media derivatives
 - sitemap rebuilds
 - cache warming
@@ -777,7 +778,7 @@ Instead, it should produce:
 ```mermaid
 flowchart TD
     A["Domain Module (Posts / SEO / Media / Discovery)"] --> B["AI Orchestration Services"]
-    B --> C["AI Task Records"]
+    B --> C["AI Jobs / Generation Steps"]
     B --> D["Prompt Builders / Context Assemblers"]
     B --> E["Provider-Agnostic Gateway"]
     E --> F["OpenAI Provider"]
@@ -787,7 +788,7 @@ flowchart TD
 
 ### AI Subcomponents
 
-- `AiTask` model for lifecycle tracking
+- `AiJob` and generation-step models for lifecycle tracking
 - provider contracts for text, image, and analysis capabilities
 - prompt builders separated by use case
 - context assemblers for templates, knowledge base content, and editorial guardrails
@@ -807,11 +808,23 @@ Purpose:
 
 Architecture fit:
 
-- writes discovery tasks and recommendations
+- writes AI jobs and recommendations
 - may use knowledge base and published content summaries as context
 - outputs recommendations, not published artifacts
 
-#### Content Generation Agent
+#### Content Brief Agent
+
+Purpose:
+
+- propose structured article plans before drafting
+
+Architecture fit:
+
+- consumes approved topics, knowledge base context, and editorial parameters
+- writes reviewable content brief records
+- never publishes directly
+
+#### Blog Writer Agent
 
 Purpose:
 
@@ -819,7 +832,7 @@ Purpose:
 
 Architecture fit:
 
-- consumes templates, knowledge base context, and editorial parameters
+- consumes approved briefs, knowledge base context, and editorial parameters
 - writes draft content or suggestions to controlled records
 - never publishes directly
 
@@ -843,7 +856,7 @@ Purpose:
 
 Architecture fit:
 
-- operates through the SEO module and task records
+- operates through the SEO module and AI job records
 - produces suggestions for review
 - may trigger background analyses but not direct publish changes
 
@@ -852,7 +865,7 @@ Architecture fit:
 - all AI outputs are non-authoritative until reviewed
 - all provider calls go through gateway abstractions
 - all AI workflows should be auditable
-- prompts and outputs should be traceable to task records where feasible
+- prompts and outputs should be traceable to AI job records where feasible
 - model-specific assumptions must be isolated to provider implementations
 
 ## Content Lifecycle Strategy
@@ -867,7 +880,7 @@ Recommended high-level states:
 - `unpublished`
 - `archived` if needed later
 
-For AI tasks, use separate task states such as:
+For AI jobs, use separate execution states such as:
 
 - `pending`
 - `processing`
@@ -875,7 +888,7 @@ For AI tasks, use separate task states such as:
 - `failed`
 - `reviewed`
 
-AI task state must not be conflated with post publish state.
+AI job state must not be conflated with post publish state.
 
 ## Caching Strategy
 
@@ -947,9 +960,9 @@ This allows operational scaling later without changing the application architect
 
 ### Phase 2
 
-- add AI task model and provider abstractions
-- introduce topic discovery and content generation orchestration
-- add image generation and SEO suggestion jobs
+- add AI job tracking and provider abstractions
+- introduce topic discovery, content brief, and draft generation orchestration
+- add AI generation-step tracking and SEO suggestion jobs
 - add stronger auditability and background-task monitoring
 
 ### Phase 3

@@ -1801,6 +1801,20 @@ Create a backend scoring service that evaluates content quality signals for edit
 
 ---
 
+## Phase 3 Backlog Note
+
+The detailed Phase 3 service backlog in this file predates the dedicated AI agents planning pass.
+
+Use [WB_SERVICE_AI_AGENTS_TASKS.md](/Users/amitsharma/Herd/widewebblog/service/WB_SERVICE_AI_AGENTS_TASKS.md) as the authoritative source for:
+
+- Phase 3 task order
+- AI workflow guardrails
+- topic -> content brief -> draft sequencing
+- `ai_jobs`, `ai_generation_steps`, and token/cost tracking scope
+- prompt versioning, retry safety, and `ai` queue rules
+
+The task entries below remain useful as historical planning context, but they should not be used as the implementation sequence for current AI content engine work.
+
 ## WB-SVC-041 — Implement AI provider abstraction and core orchestration contracts
 
 **Phase:** Phase 3 — AI Content Engine  
