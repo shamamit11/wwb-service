@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Infrastructure\Ai\LaravelAiClient;
 use App\Models\User;
 use App\Modules\Categories\Repositories\CategoryRepository;
 use App\Modules\Categories\Repositories\EloquentCategoryRepository;
@@ -43,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(AiClient::class, LaravelAiClient::class);
         $this->app->bind(CategoryRepository::class, EloquentCategoryRepository::class);
         $this->app->bind(HomepageRepository::class, EloquentHomepageRepository::class);
         $this->app->bind(KnowledgeBaseEntryRepository::class, EloquentKnowledgeBaseEntryRepository::class);
