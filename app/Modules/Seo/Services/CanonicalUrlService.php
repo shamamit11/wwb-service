@@ -4,6 +4,7 @@ namespace App\Modules\Seo\Services;
 
 use App\Models\Category;
 use App\Models\KnowledgeBaseEntry;
+use App\Models\Page;
 use App\Models\Post;
 use Illuminate\Database\Eloquent\Model;
 
@@ -20,6 +21,7 @@ class CanonicalUrlService
         return match ($seoable::class) {
             Post::class => $this->forPost($seoable),
             Category::class => $this->forCategory($seoable),
+            Page::class => $this->forPage($seoable),
             KnowledgeBaseEntry::class => $this->forKnowledgeBaseEntry($seoable),
             default => null,
         };
@@ -50,6 +52,15 @@ class CanonicalUrlService
         }
 
         return $this->absolute("knowledge-base/{$entry->slug}/");
+    }
+
+    private function forPage(Page $page): ?string
+    {
+        if ($page->status !== Page::STATUS_PUBLISHED || $page->visibility !== Page::VISIBILITY_PUBLIC) {
+            return null;
+        }
+
+        return $this->absolute("pages/{$page->slug}/");
     }
 
     private function absolute(string $path): string

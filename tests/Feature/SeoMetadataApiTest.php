@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Media;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,6 +97,42 @@ class SeoMetadataApiTest extends TestCase
             ->assertJsonPath('data.robots_index', true);
     }
 
+    public function test_admin_can_read_and_write_seo_metadata_for_pages(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $page = $this->createPage($admin, [
+            'title' => 'About Wide Web Blog',
+            'slug' => 'about-wide-web-blog',
+            'type' => Page::TYPE_MARKETING,
+            'status' => Page::STATUS_PUBLISHED,
+            'visibility' => Page::VISIBILITY_PUBLIC,
+            'published_at' => '2026-06-16 09:00:00',
+        ]);
+
+        $this->withToken($token)->getJson("/api/v1/admin/seo/page/{$page->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', null)
+            ->assertJsonPath('data.seoable_type', 'page')
+            ->assertJsonPath('data.seoable_id', $page->id);
+
+        $this->withToken($token)->putJson("/api/v1/admin/seo/page/{$page->id}", [
+            'meta_title' => 'About Wide Web Blog',
+            'meta_description' => 'Learn about the editorial mission behind Wide Web Blog.',
+            'canonical_url' => 'https://widewebblog.test/about/',
+            'robots_index' => true,
+            'robots_follow' => true,
+            'schema_type' => 'AboutPage',
+        ])->assertOk()
+            ->assertJsonPath('data.seoable_type', 'page')
+            ->assertJsonPath('data.canonical_url', 'https://widewebblog.test/about/')
+            ->assertJsonPath('data.schema_type', 'AboutPage');
+
+        $this->withToken($token)->getJson("/api/v1/admin/seo/pages/{$page->id}")
+            ->assertOk()
+            ->assertJsonPath('data.meta_title', 'About Wide Web Blog');
+    }
+
     public function test_admin_seo_read_derives_default_canonical_when_override_is_missing(): void
     {
         config()->set('app.url', 'https://widewebblog.test');
@@ -177,6 +214,27 @@ class SeoMetadataApiTest extends TestCase
             'reading_time_minutes' => null,
             'word_count' => null,
             'is_featured' => false,
+            'meta' => null,
+        ], $overrides));
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createPage(User $author, array $overrides = []): Page
+    {
+        return Page::query()->create(array_merge([
+            'created_by_user_id' => $author->id,
+            'updated_by_user_id' => null,
+            'title' => 'Sample Page',
+            'slug' => 'sample-page',
+            'type' => Page::TYPE_STANDARD,
+            'status' => Page::STATUS_DRAFT,
+            'summary' => null,
+            'content_markdown' => 'Sample page content.',
+            'visibility' => Page::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
             'meta' => null,
         ], $overrides));
     }

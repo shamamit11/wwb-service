@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
+use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\RssFeedController as AdminRssFeedController;
 use App\Http\Controllers\Api\V1\Admin\SchemaController as AdminSchemaController;
@@ -85,6 +86,9 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.posts.schedule');
             Route::post('posts/{post}/unpublish', [AdminPostController::class, 'unpublish'])
                 ->name('api.v1.admin.posts.unpublish');
+
+            Route::apiResource('pages', AdminPageController::class)
+                ->names('api.v1.admin.pages');
 
             Route::get('seo/schema/{seoableType}/{seoableId}', [AdminSchemaController::class, 'show'])
                 ->name('api.v1.admin.seo.schema.show');

@@ -17,6 +17,8 @@ use App\Modules\Media\Services\DeleteMediaService;
 use App\Modules\Media\Services\FilesystemMediaStorage;
 use App\Modules\Media\Services\ReadMediaService;
 use App\Modules\Media\Services\UploadMediaService;
+use App\Modules\Pages\Repositories\EloquentPageRepository;
+use App\Modules\Pages\Repositories\PageRepository;
 use App\Modules\Posts\Repositories\EloquentPostBlockRepository;
 use App\Modules\Posts\Repositories\EloquentPostRepository;
 use App\Modules\Posts\Repositories\PostBlockRepository;
@@ -46,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MediaUploader::class, UploadMediaService::class);
         $this->app->bind(MediaReader::class, ReadMediaService::class);
         $this->app->bind(MediaDeleter::class, DeleteMediaService::class);
+        $this->app->bind(PageRepository::class, EloquentPageRepository::class);
         $this->app->bind(PostBlockRepository::class, EloquentPostBlockRepository::class);
         $this->app->bind(PostRepository::class, EloquentPostRepository::class);
         $this->app->bind(SeoMetadataRepository::class, EloquentSeoMetadataRepository::class);

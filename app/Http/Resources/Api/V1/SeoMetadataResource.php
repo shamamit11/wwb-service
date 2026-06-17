@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api\V1;
 use App\Http\Resources\Api\ApiResource;
 use App\Models\Category;
 use App\Models\KnowledgeBaseEntry;
+use App\Models\Page;
 use App\Models\Post;
 use App\Modules\Media\Services\Contracts\MediaReader;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class SeoMetadataResource extends ApiResource
             'seoable_type' => match ($seoable::class) {
                 Post::class => 'post',
                 Category::class => 'category',
+                Page::class => 'page',
                 KnowledgeBaseEntry::class => 'knowledge_base_entry',
                 default => $this->resource->seoable_type,
             },

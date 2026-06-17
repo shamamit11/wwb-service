@@ -120,6 +120,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 
 - Categories
 - Posts
+- Pages
 - Media
 - Templates
 - Knowledge Base
@@ -284,6 +285,98 @@ This is a reference specification, not a generated OpenAPI JSON file.
   }
 }
 ```
+
+---
+
+## Pages
+
+### Endpoint List
+
+- `GET /admin/api/v1/pages`
+- `POST /admin/api/v1/pages`
+- `GET /admin/api/v1/pages/{id}`
+- `PUT /admin/api/v1/pages/{id}`
+- `DELETE /admin/api/v1/pages/{id}`
+
+### Create Request Example
+
+```json
+{
+  "title": "Privacy Policy",
+  "slug": "privacy-policy",
+  "type": "legal",
+  "status": "draft",
+  "summary": "How Wide Web Blog handles user data and editorial submissions.",
+  "content_markdown": "# Privacy Policy\n\nYour privacy matters to us.",
+  "visibility": "public",
+  "published_at": null,
+  "scheduled_for": null,
+  "meta": {
+    "layout": "legal"
+  }
+}
+```
+
+### Validation Rules
+
+- `title`: required|string|max 255
+- `slug`: nullable|string|max 190|unique:pages,slug
+- `type`: required|in:legal,marketing,support,faq,standard
+- `status`: required|in:draft,scheduled,published,unpublished,archived
+- `summary`: nullable|string
+- `content_markdown`: required|string
+- `visibility`: required|in:public,private,internal
+- `published_at`: nullable|date
+- `scheduled_for`: nullable|date
+- `meta`: nullable|array
+
+### Response Example
+
+```json
+{
+  "data": {
+    "id": 21,
+    "ulid": "01J00000000000000000000021",
+    "title": "Privacy Policy",
+    "slug": "privacy-policy",
+    "type": "legal",
+    "status": "published",
+    "summary": "How Wide Web Blog handles user data and editorial submissions.",
+    "content_markdown": "# Privacy Policy\n\nYour privacy matters to us.",
+    "visibility": "public",
+    "published_at": "2026-06-17T10:00:00Z",
+    "scheduled_for": null,
+    "canonical_url": "https://widewebblog.com/pages/privacy-policy/",
+    "meta": {
+      "layout": "legal"
+    },
+    "created_by": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    },
+    "updated_by": null,
+    "created_at": "2026-06-17T09:45:00Z",
+    "updated_at": "2026-06-17T10:00:00Z"
+  }
+}
+```
+
+### Filtering And Sorting
+
+- `search`: title, slug, summary, and markdown content
+- `status`: editorial status filter
+- `type`: page type filter
+- `visibility`: visibility filter
+- `created_by_user_id`: author filter
+- `sort`: `title`, `created_at`, `updated_at`, `published_at` with optional `-` prefix
+
+### SEO
+
+- Pages are SEOable through the existing SEO metadata endpoints:
+  - `GET /admin/api/v1/seo/page/{id}`
+  - `PUT /admin/api/v1/seo/page/{id}`
+- This keeps canonical URLs and metadata in the shared SEO model instead of duplicating those fields in the pages table.
 
 ---
 
