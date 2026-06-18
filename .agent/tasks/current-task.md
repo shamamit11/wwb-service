@@ -1,41 +1,52 @@
-# Task Summary
+# Task Template
 
-No active task.
+## Task Summary
+
+Describe the task in one sentence.
 
 ## Requested Outcome
 
-- pending
+- target result
+- explicit acceptance criteria
 
 ## Scope Boundaries
 
-- pending
+- what is in scope
+- what is out of scope
 
 ## Context Files Loaded
 
 - `.agent/INDEX.md`
 - `.agent/tasks/current-task.md`
-- `.agent/agents/SHARED-INSTRUCTIONS.md`
+
+Add only the extra docs actually used.
 
 ## Repository Files Inspected
 
-- none
+- list only the files or directories actually inspected
 
 ## Plan
 
-1. Await the next task.
+1. First implementation step
+2. Validation step
+3. Completion step
 
 ## Changed Files
 
-- `.agent/tasks/current-task.md`
+- add each created or modified file
 
 ## Validation
 
-- not applicable
+- commands run
+- results
+- gaps not validated
 
 ## Risks Or Follow-Ups
 
-- none
+- residual risk
+- future cleanup or improvements
 
 ## Completion Notes
 
-- archived completed task note to `.agent/tasks/completed/2026-06-18-wb-svc-055-implement-ai-workflow-orchestration-service.md`
+- summary of what was finished
+- handover note if not complete
