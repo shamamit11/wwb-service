@@ -2,7 +2,7 @@
 
 ## Task Summary
 
-No active service task. `WB-SVC-061` is complete.
+No active service task. Database cleanup and seeding task is complete.
 
 ## Requested Outcome
 
@@ -35,42 +35,27 @@ No active service task. `WB-SVC-061` is complete.
 
 ## Changed Files
 
-- `PHASE2.md`
 - `.agent/tasks/current-task.md`
-- `app/AI/Agents/TitleExcerptRefinementAgent.php`
-- `app/AI/DTO/PostTitleExcerptRefinementInput.php`
-- `app/AI/DTO/PostTitleExcerptRefinementResult.php`
-- `app/Http/Controllers/Api/V1/Admin/PostController.php`
-- `app/Http/Requests/Api/V1/Admin/QueuePostTitleExcerptRefinementRequest.php`
-- `app/Jobs/AI/GeneratePostTitleExcerptRefinementJob.php`
-- `app/Mcp/Prompts/TitleExcerptRefinementPrompt.php`
-- `app/Mcp/Servers/ContentOperationsServer.php`
-- `app/Mcp/Tools/RefinePostTitleExcerptTool.php`
-- `app/Models/AiPromptTemplate.php`
-- `app/Modules/Ai/Data/QueuePostTitleExcerptRefinementData.php`
-- `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
-- `app/Modules/Ai/Services/QueuePostTitleExcerptRefinementService.php`
-- `app/Modules/Ai/Services/RunPostTitleExcerptRefinementService.php`
-- `app/Modules/Ai/Services/SuggestPostTitleExcerptRefinementService.php`
-- `app/Modules/Ai/Services/TitleExcerptRefinementWorkflow.php`
-- `routes/api.php`
-- `tests/Feature/ContentOperationsMcpServerTest.php`
-- `tests/Feature/PostApiTest.php`
-- `tests/Feature/PostTitleExcerptRefinementWorkflowTest.php`
+- `database/seeders/AiPromptTemplateSeeder.php`
+- `database/seeders/ContentBriefSeeder.php`
+- `database/seeders/ContentTopicSeeder.php`
+- `database/seeders/DatabaseSeeder.php`
+- `database/seeders/HomepageSeeder.php`
+- `database/seeders/NewsletterCampaignSeeder.php`
+- `database/seeders/NewsletterListSeeder.php`
+- `database/seeders/NewsletterSubscriberSeeder.php`
+- `database/seeders/PageSeeder.php`
 
 ## Validation
 
-- `php artisan test tests/Feature/PostTitleExcerptRefinementWorkflowTest.php`
-- `php artisan test tests/Feature/PostApiTest.php --filter=title_excerpt_refinement`
-- `php artisan test tests/Feature/ContentOperationsMcpServerTest.php`
-- `php artisan test`
+- `php artisan migrate:fresh --seed`
+- `php artisan db:seed`
+- `php artisan tinker --execute="echo json_encode([...counts...]);"`
 
 ## Risks Or Follow-Ups
 
-- title and excerpt refinement should stay review-only; applying suggestions should remain an explicit editorial action unless requested later
+- none active
 
 ## Completion Notes
 
-- `WB-SVC-060` completed and archived in `.agent/tasks/completed/2026-06-18-wb-svc-060-implement-editorial-generation-modes-for-draft-creation.md`
-- `WB-SVC-061` completed and archived in `.agent/tasks/completed/2026-06-18-wb-svc-061-implement-ai-title-and-excerpt-refinement-tools.md`
-- the remaining in-phase AI-assisted publishing service backlog is clear; next work is outside this closed scope unless new requirements are added
+- archived in `.agent/tasks/completed/2026-06-19-clean-up-database-and-add-missing-seeders.md`
