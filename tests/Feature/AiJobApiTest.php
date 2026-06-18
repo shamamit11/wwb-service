@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\AiGenerationStep;
 use App\Models\AiJob;
 use App\Models\AiJobCost;
+use App\Models\ContentBrief;
+use App\Models\ContentTopic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -28,6 +30,39 @@ class AiJobApiTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
 
+        $topic = ContentTopic::query()->create([
+            'title' => 'Retry Topic',
+            'slug' => 'retry-topic',
+            'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
+            'primary_keyword' => 'retry topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '80.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'status' => ContentTopic::STATUS_APPROVED,
+            'notes' => null,
+            'approved_at' => now(),
+        ]);
+
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'Retry Brief',
+            'slug' => 'retry-brief',
+            'meta_title' => null,
+            'meta_description' => null,
+            'primary_keyword' => 'retry topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro', 'purpose' => 'Frame it']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+
         $completed = AiJob::query()->create([
             'type' => 'content_brief',
             'status' => AiJob::STATUS_COMPLETED,
@@ -46,10 +81,10 @@ class AiJobApiTest extends TestCase
             'type' => 'blog_writer',
             'status' => AiJob::STATUS_FAILED,
             'entity_type' => 'content_brief',
-            'entity_id' => 42,
+            'entity_id' => $brief->id,
             'provider' => 'openai',
             'model' => 'gpt-5-mini',
-            'input_payload' => ['brief_id' => 42],
+            'input_payload' => ['content_brief_id' => $brief->id, 'category_id' => 7],
             'output_payload' => ['draft' => null],
             'usage_payload' => ['prompt_tokens' => 180],
             'error_message' => 'Provider timeout.',
@@ -111,7 +146,7 @@ class AiJobApiTest extends TestCase
             ->assertJsonPath('data.attempts', 2)
             ->assertJsonPath('data.type', 'blog_writer')
             ->assertJsonPath('data.entity_type', 'content_brief')
-            ->assertJsonPath('data.entity_id', 42)
+            ->assertJsonPath('data.entity_id', $brief->id)
             ->assertJsonPath('data.can_retry', false);
 
         $this->assertDatabaseCount('ai_jobs', 3);

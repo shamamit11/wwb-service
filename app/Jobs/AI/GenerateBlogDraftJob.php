@@ -2,7 +2,7 @@
 
 namespace App\Jobs\AI;
 
-use App\Modules\Ai\Services\RunBlogDraftGenerationService;
+use App\Modules\Ai\Services\AiWorkflowOrchestrator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -26,8 +26,8 @@ class GenerateBlogDraftJob implements ShouldQueue
         return [60, 300, 900];
     }
 
-    public function handle(RunBlogDraftGenerationService $service): void
+    public function handle(AiWorkflowOrchestrator $service): void
     {
-        $service->handle($this->aiJobId);
+        $service->runQueuedDraftGeneration($this->aiJobId);
     }
 }

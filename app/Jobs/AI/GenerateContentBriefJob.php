@@ -6,7 +6,7 @@ use App\Modules\Ai\Services\AiWorkflowOrchestrator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class DiscoverContentTopicsJob implements ShouldQueue
+class GenerateContentBriefJob implements ShouldQueue
 {
     use Queueable;
 
@@ -28,6 +28,6 @@ class DiscoverContentTopicsJob implements ShouldQueue
 
     public function handle(AiWorkflowOrchestrator $service): void
     {
-        $service->runQueuedTopicDiscovery($this->aiJobId);
+        $service->runQueuedContentBrief($this->aiJobId);
     }
 }

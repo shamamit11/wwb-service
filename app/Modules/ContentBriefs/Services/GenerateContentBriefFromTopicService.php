@@ -21,7 +21,11 @@ class GenerateContentBriefFromTopicService
         private readonly FindRelatedContentService $relatedContent,
     ) {}
 
-    public function handle(ContentTopic $topic): GeneratedContentBriefData
+    public function handle(
+        ContentTopic $topic,
+        ?int $aiJobId = null,
+        ?string $promptTemplateKey = null,
+    ): GeneratedContentBriefData
     {
         if (! $topic->isApproved()) {
             throw new ContentBriefGenerationNotAllowedException(
@@ -57,6 +61,10 @@ class GenerateContentBriefFromTopicService
             existingPostContext: $this->existingPostContext($topic),
             internalLinkContext: [],
             editorialIntent: $topic->notes,
+            metadata: array_filter([
+                'ai_job_id' => $aiJobId,
+                'prompt_template_key' => $promptTemplateKey,
+            ], static fn (mixed $value): bool => $value !== null),
         ));
 
         $briefId = $result->metadata['brief_id'] ?? null;

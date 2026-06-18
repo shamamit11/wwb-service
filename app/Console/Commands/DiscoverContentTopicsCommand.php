@@ -2,12 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\AI\DiscoverContentTopicsJob;
 use App\Models\ContentTopic;
 use App\Modules\Ai\Data\DiscoverContentTopicsData;
-use App\Modules\Ai\Services\RunTopicDiscoveryService;
+use App\Modules\Ai\Services\AiWorkflowOrchestrator;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Bus;
 
 class DiscoverContentTopicsCommand extends Command
 {
@@ -20,7 +18,7 @@ class DiscoverContentTopicsCommand extends Command
 
     protected $description = 'Discover AI-generated content topics inside an approved Wide Web Blog cluster.';
 
-    public function handle(RunTopicDiscoveryService $service): int
+    public function handle(AiWorkflowOrchestrator $service): int
     {
         $cluster = $this->option('cluster');
         $count = (int) $this->option('count');
@@ -47,7 +45,7 @@ class DiscoverContentTopicsCommand extends Command
         }
 
         if ($this->option('sync')) {
-            $result = $service->handle(new DiscoverContentTopicsData(
+            $result = $service->runTopicDiscovery(new DiscoverContentTopicsData(
                 cluster: $cluster,
                 count: $count,
                 audience: is_string($audience) && $audience !== '' ? $audience : null,
@@ -65,7 +63,7 @@ class DiscoverContentTopicsCommand extends Command
             return self::SUCCESS;
         }
 
-        Bus::dispatch(new DiscoverContentTopicsJob(
+        $service->dispatchTopicDiscovery(new DiscoverContentTopicsData(
             cluster: $cluster,
             count: $count,
             audience: is_string($audience) && $audience !== '' ? $audience : null,
