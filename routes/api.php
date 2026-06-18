@@ -61,6 +61,8 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('ai-jobs', [AdminAiJobController::class, 'index'])
                 ->name('api.v1.admin.ai-jobs.index');
+            Route::post('ai-jobs/topic-discovery', [AdminAiJobController::class, 'queueTopicDiscovery'])
+                ->name('api.v1.admin.ai-jobs.topic-discovery');
             Route::get('ai-jobs/{aiJob}', [AdminAiJobController::class, 'show'])
                 ->name('api.v1.admin.ai-jobs.show');
             Route::post('ai-jobs/{aiJob}/retry', [AdminAiJobController::class, 'retry'])

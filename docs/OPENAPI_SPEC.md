@@ -767,40 +767,36 @@ Multipart upload is preferred for binary data. Metadata may be included as field
 
 ### Endpoint List
 
-- `GET /admin/api/v1/ai-jobs`
-- `POST /admin/api/v1/ai-jobs/topic-discovery`
-- `POST /admin/api/v1/ai-jobs/content-generation`
-- `POST /admin/api/v1/ai-jobs/seo-generation`
-- `GET /admin/api/v1/ai-jobs/{id}`
-- `POST /admin/api/v1/ai-jobs/{id}/retry`
-- `POST /admin/api/v1/ai-jobs/{id}/cancel`
+- `GET /api/v1/admin/ai-jobs`
+- `POST /api/v1/admin/ai-jobs/topic-discovery`
+- `GET /api/v1/admin/ai-jobs/{id}`
+- `POST /api/v1/admin/ai-jobs/{id}/retry`
 
-### Content Generation Request Example
+### Topic Discovery Request Example
 
 ```json
 {
-  "topic_id": 5,
-  "template_id": 2,
-  "provider": "openai",
-  "model": "gpt-5",
-  "prompt_template_id": 3,
-  "target_post_id": null,
-  "options": {
-    "generate_faq": true,
-    "generate_tags": true,
-    "generate_seo": true
+  "cluster": "ai_tools",
+  "count": 4,
+  "audience": "Editorial leads",
+  "prompt_template_key": "topic_discovery_default",
+  "metadata": {
+    "knowledge_context_filters": {
+      "clusters": [
+        "ai_tools"
+      ]
+    }
   }
 }
 ```
 
 ### Validation Rules
 
-- `topic_id`: required|exists:topics,id
-- `template_id`: nullable|exists:templates,id
-- `provider`: required|in:openai,anthropic,gemini
-- `model`: required|string|max 120
-- `prompt_template_id`: nullable|exists:prompt_templates,id
-- `target_post_id`: nullable|exists:posts,id
+- `cluster`: required|in:ai_tools,ai_for_blogging,seo,content_marketing,productivity_automation,developer_ai
+- `count`: sometimes|integer|min 1|max 25
+- `audience`: sometimes|nullable|string|max 255
+- `prompt_template_key`: sometimes|nullable|string|max 190
+- `metadata`: sometimes|array
 
 ### Response Example
 
@@ -808,14 +804,37 @@ Multipart upload is preferred for binary data. Metadata may be included as field
 {
   "data": {
     "id": 101,
-    "ulid": "01J00000000000000000000101",
-    "job_type": "content_generation",
+    "type": "topic_discovery",
     "status": "queued",
-    "provider": "openai",
-    "model": "gpt-5",
-    "queue_name": "ai",
-    "target_type": "topic",
-    "target_id": 5,
+    "entity_type": "content_topic_batch",
+    "entity_id": null,
+    "provider": null,
+    "model": null,
+    "input_payload": {
+      "cluster": "ai_tools",
+      "count": 4,
+      "audience": "Editorial leads",
+      "prompt_template_key": "topic_discovery_default",
+      "metadata": {
+        "knowledge_context_filters": {
+          "clusters": [
+            "ai_tools"
+          ]
+        },
+        "trigger": "admin_api"
+      }
+    },
+    "output_payload": null,
+    "usage_payload": null,
+    "error_message": null,
+    "attempts": 1,
+    "retry_of_ai_job_id": null,
+    "can_retry": false,
+    "steps_count": 0,
+    "cost_summary": null,
+    "started_at": null,
+    "completed_at": null,
+    "failed_at": null,
     "created_at": "2026-06-16T12:00:00Z"
   }
 }
