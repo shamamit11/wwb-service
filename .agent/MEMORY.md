@@ -21,6 +21,10 @@ Store only stable, reusable service knowledge here. Do not write temporary task 
 - External API calls should be isolated behind client classes.
 - AI content and image generation should be implemented behind service and client abstractions, not directly inside controllers.
 - AI-generated content must remain in draft until explicit admin approval.
+- The Phase 3 AI content engine currently follows a fixed editorial sequence: topic discovery -> topic approval -> content brief generation -> brief approval -> blog draft generation -> manual review and publish.
+- Topic discovery, content brief generation, and blog draft generation are tracked through AI workflow services and AI job records.
+- Prompt templates are database-backed and versioned, with active prompt versions resolved at runtime rather than hardcoded workflow prompts.
+- Images remain manual in the current AI phase; AI may only provide image ideas, placement notes, and alt text suggestions.
 - SEO fields and published content should be designed for consumption by the public frontend.
 
 ## Update Policy

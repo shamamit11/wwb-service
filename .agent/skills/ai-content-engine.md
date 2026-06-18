@@ -28,12 +28,14 @@ Use this skill for service-side AI content workflows, including topic discovery,
 
 - Every AI output begins as draft content.
 - Human review is mandatory before publication.
+- The current MVP sequence is topic discovery -> topic approval -> content brief generation -> brief approval -> draft generation -> manual review/publish.
 - Prompting, generation, moderation, and approval should be separable stages.
 - Keep provider integrations behind service and client abstractions.
 - Keep prompts database-backed and versioned rather than hardcoded in agents.
 - Track workflow-level jobs and per-agent generation steps.
 - Allow topic discovery only inside approved content clusters.
 - Require approved topics before brief generation and approved briefs before draft generation.
+- Images are manual in this phase; AI may only suggest image ideas and alt text.
 - Use the `ai` queue for long-running AI jobs.
 - Record model/provider assumptions in the task file, not memory, unless they become a stable platform choice.
 
