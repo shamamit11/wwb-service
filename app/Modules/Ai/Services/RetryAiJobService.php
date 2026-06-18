@@ -2,6 +2,8 @@
 
 namespace App\Modules\Ai\Services;
 
+use App\Jobs\AI\GenerateBlogDraftJob;
+use App\Models\AiPromptTemplate;
 use App\Models\AiJob;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException;
@@ -21,7 +23,7 @@ class RetryAiJobService
             throw new AiJobRetryNotAllowedException($job->status);
         }
 
-        return $this->jobs->create(new CreateAiJobData(
+        $retry = $this->jobs->create(new CreateAiJobData(
             type: $job->type,
             status: AiJob::STATUS_QUEUED,
             entityType: $job->entity_type,
@@ -32,5 +34,11 @@ class RetryAiJobService
             attempts: $job->attempts + 1,
             retryOfAiJobId: (int) $job->id,
         ));
+
+        if ($retry->type === AiPromptTemplate::TYPE_BLOG_WRITER) {
+            GenerateBlogDraftJob::dispatch((int) $retry->id);
+        }
+
+        return $retry;
     }
 }

@@ -28,6 +28,8 @@ class GenerateBlogDraftFromBriefService
         ?int $templateId = null,
         ?int $featuredMediaId = null,
         string $visibility = Post::VISIBILITY_PUBLIC,
+        ?int $aiJobId = null,
+        ?string $promptTemplateKey = null,
     ): GeneratedBlogDraftData {
         $existing = $this->posts->findBySourceContentBriefId((int) $brief->id);
 
@@ -63,13 +65,15 @@ class GenerateBlogDraftFromBriefService
             faqSuggestions: $brief->faq_suggestions ?? [],
             knowledgeBaseContext: $this->knowledgeContext(),
             imageSuggestions: $brief->image_suggestions ?? [],
-            metadata: [
+            metadata: array_filter([
+                'ai_job_id' => $aiJobId,
                 'author_user_id' => $authorUserId,
                 'category_id' => $categoryId,
                 'template_id' => $templateId,
                 'featured_media_id' => $featuredMediaId,
                 'visibility' => $visibility,
-            ],
+                'prompt_template_key' => $promptTemplateKey,
+            ], static fn (mixed $value): bool => $value !== null),
         ));
 
         if (! $result->isSuccessful()) {

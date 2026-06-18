@@ -103,6 +103,8 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.content-briefs.update');
             Route::post('content-briefs/{contentBrief}/approve', [AdminContentBriefController::class, 'approve'])
                 ->name('api.v1.admin.content-briefs.approve');
+            Route::post('content-briefs/{contentBrief}/generate-draft', [AdminContentBriefController::class, 'generateDraft'])
+                ->name('api.v1.admin.content-briefs.generate-draft');
 
             Route::get('homepage', [AdminHomepageController::class, 'show'])
                 ->name('api.v1.admin.homepage.show');

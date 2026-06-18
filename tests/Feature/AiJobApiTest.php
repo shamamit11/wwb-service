@@ -7,6 +7,7 @@ use App\Models\AiJob;
 use App\Models\AiJobCost;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class AiJobApiTest extends TestCase
@@ -22,6 +23,8 @@ class AiJobApiTest extends TestCase
 
     public function test_admin_can_list_show_and_retry_failed_ai_jobs(): void
     {
+        Queue::fake();
+
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
 
@@ -122,6 +125,8 @@ class AiJobApiTest extends TestCase
             'id' => $completed->id,
             'status' => AiJob::STATUS_COMPLETED,
         ]);
+
+        Queue::assertPushed(\App\Jobs\AI\GenerateBlogDraftJob::class, 1);
     }
 
     public function test_retry_endpoint_rejects_non_failed_jobs(): void

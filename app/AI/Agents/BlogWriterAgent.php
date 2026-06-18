@@ -17,6 +17,7 @@ use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
+use App\Modules\Ai\Repositories\AiJobRepository;
 use App\Modules\Ai\Services\RecordAiUsageService;
 use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
@@ -30,6 +31,7 @@ class BlogWriterAgent implements ContentAgentInterface
     public function __construct(
         private readonly AiClient $aiClient,
         private readonly AiPromptTemplateRepository $promptTemplates,
+        private readonly AiJobRepository $jobs,
         private readonly RenderAiPromptTemplateService $renderPrompt,
         private readonly TrackAiJobService $trackAiJob,
         private readonly RecordAiUsageService $recordAiUsage,
@@ -51,18 +53,7 @@ class BlogWriterAgent implements ContentAgentInterface
 
         $contextualInput = $this->hydrateContext($input);
 
-        $job = $this->trackAiJob->createJob(new CreateAiJobData(
-            type: AiPromptTemplate::TYPE_BLOG_WRITER,
-            status: \App\Models\AiJob::STATUS_PENDING,
-            entityType: 'content_brief',
-            entityId: $contextualInput->contentBriefId,
-            provider: $this->resolveProvider($contextualInput),
-            model: $this->resolveModel($contextualInput),
-            inputPayload: $this->buildJobInputPayload($contextualInput),
-        ));
-
-        $job = $this->trackAiJob->queueJob($job);
-        $job = $this->trackAiJob->startJob($job);
+        $job = $this->resolveOrCreateJob($contextualInput);
 
         $step = $this->trackAiJob->createStep(new CreateAiGenerationStepData(
             aiJobId: (int) $job->id,
@@ -468,5 +459,34 @@ class BlogWriterAgent implements ContentAgentInterface
         $model = config("ai.service.providers.{$provider}.text_model");
 
         return is_string($model) && $model !== '' ? $model : null;
+    }
+
+    private function resolveOrCreateJob(BlogDraftInput $input): \App\Models\AiJob
+    {
+        $existingJobId = $input->metadata['ai_job_id'] ?? null;
+
+        if (is_int($existingJobId) || (is_string($existingJobId) && ctype_digit($existingJobId))) {
+            $job = $this->jobs->findById((int) $existingJobId);
+
+            if ($job === null) {
+                throw new RuntimeException("Queued AI job [{$existingJobId}] could not be found.");
+            }
+
+            return $this->trackAiJob->startJob($job);
+        }
+
+        $job = $this->trackAiJob->createJob(new CreateAiJobData(
+            type: AiPromptTemplate::TYPE_BLOG_WRITER,
+            status: \App\Models\AiJob::STATUS_PENDING,
+            entityType: 'content_brief',
+            entityId: $input->contentBriefId,
+            provider: $this->resolveProvider($input),
+            model: $this->resolveModel($input),
+            inputPayload: $this->buildJobInputPayload($input),
+        ));
+
+        $job = $this->trackAiJob->queueJob($job);
+
+        return $this->trackAiJob->startJob($job);
     }
 }

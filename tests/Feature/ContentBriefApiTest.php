@@ -6,13 +6,17 @@ use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use App\Infrastructure\Ai\Data\GenerateTextRequest;
 use App\Infrastructure\Ai\Data\TextGenerationResult;
+use App\Jobs\AI\GenerateBlogDraftJob;
+use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
 use App\Models\AiPromptTemplateVersion;
 use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Models\KnowledgeBaseEntry;
+use App\Models\Post;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ContentBriefApiTest extends TestCase
@@ -151,6 +155,130 @@ class ContentBriefApiTest extends TestCase
             ->assertJsonPath('error_code', 'CONFLICT')
             ->assertJsonPath('errors.status.0', ContentTopic::STATUS_SUGGESTED)
             ->assertJsonPath('errors.action.0', 'generate-brief');
+    }
+
+    public function test_admin_can_queue_draft_generation_from_an_approved_brief(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Editorial Checklists for Content Teams',
+            'slug' => 'ai-editorial-checklists-for-content-teams',
+            'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
+            'primary_keyword' => 'ai editorial checklist',
+            'secondary_keywords' => ['content operations', 'editorial workflow'],
+            'search_intent' => 'informational',
+            'priority_score' => '88.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'status' => ContentTopic::STATUS_APPROVED,
+            'notes' => 'Approved for brief generation.',
+            'approved_at' => now(),
+        ]);
+
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Editorial Checklists for Content Teams',
+            'slug' => 'ai-editorial-checklists-for-content-teams',
+            'meta_title' => 'AI Editorial Checklists for Content Teams',
+            'meta_description' => 'Structured brief for editorial checklists.',
+            'primary_keyword' => 'ai editorial checklist',
+            'secondary_keywords' => ['content operations', 'editorial workflow'],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Why this matters', 'purpose' => 'Frame the workflow']],
+            'headings' => ['Why this matters'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+
+        $category = \App\Models\Category::query()->create([
+            'name' => 'AI Workflows',
+            'slug' => 'ai-workflows',
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/content-briefs/{$brief->id}/generate-draft", [
+            'category_id' => $category->id,
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', AiPromptTemplate::TYPE_BLOG_WRITER)
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'content_brief')
+            ->assertJsonPath('data.entity_id', $brief->id)
+            ->assertJsonPath('data.input_payload.content_brief_id', $brief->id)
+            ->assertJsonPath('data.input_payload.category_id', $category->id)
+            ->assertJsonPath('data.input_payload.author_user_id', null);
+
+        $job = AiJob::query()->latest('id')->firstOrFail();
+
+        Queue::assertPushed(GenerateBlogDraftJob::class, function (GenerateBlogDraftJob $queuedJob) use ($job): bool {
+            return $queuedJob->aiJobId === (int) $job->id
+                && $queuedJob->queue === 'ai';
+        });
+    }
+
+    public function test_draft_generation_is_rejected_for_non_approved_briefs_when_no_post_exists(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Search Intent Maps',
+            'slug' => 'ai-search-intent-maps',
+            'cluster' => ContentTopic::CLUSTER_SEO,
+            'primary_keyword' => 'ai search intent',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '70.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_MANUAL,
+            'status' => ContentTopic::STATUS_APPROVED,
+            'notes' => null,
+            'approved_at' => now(),
+        ]);
+
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Search Intent Maps',
+            'slug' => 'ai-search-intent-maps',
+            'meta_title' => null,
+            'meta_description' => null,
+            'primary_keyword' => 'ai search intent',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro', 'purpose' => 'Frame the topic']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_DRAFT,
+        ]);
+
+        $category = \App\Models\Category::query()->create([
+            'name' => 'SEO',
+            'slug' => 'seo',
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/content-briefs/{$brief->id}/generate-draft", [
+            'category_id' => $category->id,
+        ])->assertStatus(409)
+            ->assertJsonPath('error_code', 'CONFLICT')
+            ->assertJsonPath('errors.status.0', ContentBrief::STATUS_DRAFT)
+            ->assertJsonPath('errors.action.0', 'generate-draft');
     }
 
     public function test_content_brief_validation_errors_use_consistent_json_shape(): void
