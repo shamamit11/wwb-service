@@ -128,6 +128,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - SEO
 - Topics
 - AI Jobs
+- Newsletter
 
 ---
 
@@ -233,6 +234,45 @@ This is a reference specification, not a generated OpenAPI JSON file.
   ]
 }
 ```
+
+---
+
+## Newsletter
+
+### Endpoint List
+
+- `GET /api/v1/admin/newsletter/lists`
+- `POST /api/v1/admin/newsletter/lists`
+- `GET /api/v1/admin/newsletter/lists/{id}`
+- `PATCH /api/v1/admin/newsletter/lists/{id}`
+- `DELETE /api/v1/admin/newsletter/lists/{id}`
+- `GET /api/v1/admin/newsletter/subscribers`
+- `POST /api/v1/admin/newsletter/subscribers`
+- `GET /api/v1/admin/newsletter/subscribers/{id}`
+- `PATCH /api/v1/admin/newsletter/subscribers/{id}`
+- `POST /api/v1/admin/newsletter/subscribers/{id}/unsubscribe`
+- `POST /api/v1/admin/newsletter/subscribers/{id}/resubscribe`
+- `GET /api/v1/admin/newsletter/campaigns`
+- `POST /api/v1/admin/newsletter/campaigns`
+- `GET /api/v1/admin/newsletter/campaigns/{id}`
+- `PATCH /api/v1/admin/newsletter/campaigns/{id}`
+- `DELETE /api/v1/admin/newsletter/campaigns/{id}`
+- `GET /api/v1/admin/newsletter/campaigns/{id}/recipients`
+- `POST /api/v1/admin/newsletter/campaigns/{id}/stage-recipients`
+- `POST /api/v1/admin/newsletter/campaigns/{id}/send`
+- `POST /api/v1/public/newsletter/subscribe`
+- `GET|POST /api/v1/public/newsletter/unsubscribe`
+- `GET /api/v1/public/newsletter/track/open/{recipient}`
+- `GET /api/v1/public/newsletter/track/click/{recipient}/{target}`
+- `POST /api/v1/public/newsletter/webhooks/events`
+
+### Notes
+
+- Subscribers are created active immediately. There is no verification token, verification email, or pending subscriber state.
+- Recipient staging is safe: it creates recipient rows without sending email and skips already staged campaign/subscriber pairs.
+- Public subscribe and unsubscribe flows are available without verification or double opt-in.
+- Campaign sending is queued and routes through a provider abstraction. The default implementation uses Laravel Mail.
+- Tracking and webhook ingestion update recipient and subscriber delivery state without publishing posts.
 
 ### Validation Rules
 

@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\V1\Admin\ContentTopicController as AdminContentTopi
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterCampaignController as AdminNewsletterCampaignController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterListController as AdminNewsletterListController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\RssFeedController as AdminRssFeedController;
@@ -28,6 +31,9 @@ use App\Http\Controllers\Api\V1\EchoMessageController;
 use App\Http\Controllers\Api\V1\HealthCheckController;
 use App\Http\Controllers\Api\V1\Public\CategoryController as PublicCategoryController;
 use App\Http\Controllers\Api\V1\Public\HomeController as PublicHomeController;
+use App\Http\Controllers\Api\V1\Public\NewsletterController as PublicNewsletterController;
+use App\Http\Controllers\Api\V1\Public\NewsletterTrackingController as PublicNewsletterTrackingController;
+use App\Http\Controllers\Api\V1\Public\NewsletterWebhookController as PublicNewsletterWebhookController;
 use App\Http\Controllers\Api\V1\Public\PostController as PublicPostController;
 use App\Http\Controllers\Api\V1\Public\RssController as PublicRssController;
 use App\Http\Controllers\Api\V1\Public\SearchController as PublicSearchController;
@@ -140,6 +146,42 @@ Route::prefix('v1')->group(function (): void {
             Route::post('knowledge-base/{knowledgeBase}/link-topic', [AdminKnowledgeBaseEntryController::class, 'linkTopic'])
                 ->name('api.v1.admin.knowledge-base.link-topic');
 
+            Route::prefix('newsletter')->group(function (): void {
+                Route::apiResource('lists', AdminNewsletterListController::class)
+                    ->parameters(['lists' => 'newsletterList'])
+                    ->names('api.v1.admin.newsletter.lists');
+
+                Route::get('subscribers', [AdminNewsletterSubscriberController::class, 'index'])
+                    ->name('api.v1.admin.newsletter.subscribers.index');
+                Route::post('subscribers', [AdminNewsletterSubscriberController::class, 'store'])
+                    ->name('api.v1.admin.newsletter.subscribers.store');
+                Route::get('subscribers/{newsletterSubscriber}', [AdminNewsletterSubscriberController::class, 'show'])
+                    ->name('api.v1.admin.newsletter.subscribers.show');
+                Route::patch('subscribers/{newsletterSubscriber}', [AdminNewsletterSubscriberController::class, 'update'])
+                    ->name('api.v1.admin.newsletter.subscribers.update');
+                Route::post('subscribers/{newsletterSubscriber}/unsubscribe', [AdminNewsletterSubscriberController::class, 'unsubscribe'])
+                    ->name('api.v1.admin.newsletter.subscribers.unsubscribe');
+                Route::post('subscribers/{newsletterSubscriber}/resubscribe', [AdminNewsletterSubscriberController::class, 'resubscribe'])
+                    ->name('api.v1.admin.newsletter.subscribers.resubscribe');
+
+                Route::get('campaigns', [AdminNewsletterCampaignController::class, 'index'])
+                    ->name('api.v1.admin.newsletter.campaigns.index');
+                Route::post('campaigns', [AdminNewsletterCampaignController::class, 'store'])
+                    ->name('api.v1.admin.newsletter.campaigns.store');
+                Route::get('campaigns/{newsletterCampaign}', [AdminNewsletterCampaignController::class, 'show'])
+                    ->name('api.v1.admin.newsletter.campaigns.show');
+                Route::patch('campaigns/{newsletterCampaign}', [AdminNewsletterCampaignController::class, 'update'])
+                    ->name('api.v1.admin.newsletter.campaigns.update');
+                Route::delete('campaigns/{newsletterCampaign}', [AdminNewsletterCampaignController::class, 'destroy'])
+                    ->name('api.v1.admin.newsletter.campaigns.destroy');
+                Route::get('campaigns/{newsletterCampaign}/recipients', [AdminNewsletterCampaignController::class, 'recipients'])
+                    ->name('api.v1.admin.newsletter.campaigns.recipients.index');
+                Route::post('campaigns/{newsletterCampaign}/stage-recipients', [AdminNewsletterCampaignController::class, 'stageRecipients'])
+                    ->name('api.v1.admin.newsletter.campaigns.recipients.stage');
+                Route::post('campaigns/{newsletterCampaign}/send', [AdminNewsletterCampaignController::class, 'send'])
+                    ->name('api.v1.admin.newsletter.campaigns.send');
+            });
+
             Route::apiResource('posts', AdminPostController::class)
                 ->names('api.v1.admin.posts');
             Route::post('posts/{post}/publish', [AdminPostController::class, 'publish'])
@@ -197,6 +239,16 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.v1.public.posts.show');
         Route::get('home', PublicHomeController::class)
             ->name('api.v1.public.home');
+        Route::post('newsletter/subscribe', [PublicNewsletterController::class, 'subscribe'])
+            ->name('api.v1.public.newsletter.subscribe');
+        Route::match(['get', 'post'], 'newsletter/unsubscribe', [PublicNewsletterController::class, 'unsubscribe'])
+            ->name('api.v1.public.newsletter.unsubscribe');
+        Route::get('newsletter/track/open/{recipient}', [PublicNewsletterTrackingController::class, 'open'])
+            ->name('api.v1.public.newsletter.track.open');
+        Route::get('newsletter/track/click/{recipient}/{target}', [PublicNewsletterTrackingController::class, 'click'])
+            ->name('api.v1.public.newsletter.track.click');
+        Route::post('newsletter/webhooks/events', PublicNewsletterWebhookController::class)
+            ->name('api.v1.public.newsletter.webhooks.events');
         Route::get('search', PublicSearchController::class)
             ->name('api.v1.public.search');
         Route::get('sitemap', PublicSitemapController::class)

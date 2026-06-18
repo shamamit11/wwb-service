@@ -6,6 +6,7 @@ use App\Modules\ContentBriefs\Exceptions\InvalidContentBriefStateTransitionExcep
 use App\Modules\ContentTopics\Exceptions\DuplicateContentTopicException;
 use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionException;
 use App\Modules\Media\Exceptions\MediaInUseException;
+use App\Modules\Newsletter\Exceptions\NewsletterCampaignSendNotAllowedException;
 use App\Modules\Posts\Exceptions\BlogDraftGenerationNotAllowedException;
 use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Support\ApiErrorResponse;
@@ -207,6 +208,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 [
                     'status' => [$exception->briefStatus],
                     'action' => ['generate-draft'],
+                ],
+            );
+        });
+
+        $exceptions->render(function (NewsletterCampaignSendNotAllowedException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->campaignStatus],
                 ],
             );
         });
