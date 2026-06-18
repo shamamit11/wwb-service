@@ -1,6 +1,8 @@
 <?php
 
 use App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException;
+use App\Modules\ContentTopics\Exceptions\DuplicateContentTopicException;
+use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionException;
 use App\Modules\Media\Exceptions\MediaInUseException;
 use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Support\ApiErrorResponse;
@@ -148,6 +150,40 @@ return Application::configure(basePath: dirname(__DIR__))
                 409,
                 [
                     'status' => [$exception->currentStatus],
+                ],
+            );
+        });
+
+        $exceptions->render(function (DuplicateContentTopicException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'title' => [$exception->title],
+                    'cluster' => [$exception->cluster],
+                ],
+            );
+        });
+
+        $exceptions->render(function (InvalidContentTopicStateTransitionException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->currentStatus],
+                    'action' => [$exception->action],
                 ],
             );
         });

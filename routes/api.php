@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\AiJobController as AdminAiJobController;
 use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ContentTopicController as AdminContentTopicController;
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
@@ -75,6 +76,22 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.ai-prompts.versions.store');
             Route::post('ai-prompts/{aiPrompt}/activate-version/{versionId}', [AdminAiPromptTemplateController::class, 'activateVersion'])
                 ->name('api.v1.admin.ai-prompts.versions.activate');
+            Route::get('content-topics', [AdminContentTopicController::class, 'index'])
+                ->name('api.v1.admin.content-topics.index');
+            Route::post('content-topics', [AdminContentTopicController::class, 'store'])
+                ->name('api.v1.admin.content-topics.store');
+            Route::get('content-topics/{contentTopic}', [AdminContentTopicController::class, 'show'])
+                ->name('api.v1.admin.content-topics.show');
+            Route::patch('content-topics/{contentTopic}', [AdminContentTopicController::class, 'update'])
+                ->name('api.v1.admin.content-topics.update');
+            Route::delete('content-topics/{contentTopic}', [AdminContentTopicController::class, 'destroy'])
+                ->name('api.v1.admin.content-topics.destroy');
+            Route::post('content-topics/{contentTopic}/approve', [AdminContentTopicController::class, 'approve'])
+                ->name('api.v1.admin.content-topics.approve');
+            Route::post('content-topics/{contentTopic}/reject', [AdminContentTopicController::class, 'reject'])
+                ->name('api.v1.admin.content-topics.reject');
+            Route::post('content-topics/{contentTopic}/mark-used', [AdminContentTopicController::class, 'markUsed'])
+                ->name('api.v1.admin.content-topics.mark-used');
 
             Route::get('homepage', [AdminHomepageController::class, 'show'])
                 ->name('api.v1.admin.homepage.show');
