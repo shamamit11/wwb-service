@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\AiJobController as AdminAiJobController;
+use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
@@ -62,6 +63,18 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.ai-jobs.show');
             Route::post('ai-jobs/{aiJob}/retry', [AdminAiJobController::class, 'retry'])
                 ->name('api.v1.admin.ai-jobs.retry');
+            Route::get('ai-prompts', [AdminAiPromptTemplateController::class, 'index'])
+                ->name('api.v1.admin.ai-prompts.index');
+            Route::post('ai-prompts', [AdminAiPromptTemplateController::class, 'store'])
+                ->name('api.v1.admin.ai-prompts.store');
+            Route::get('ai-prompts/{aiPrompt}', [AdminAiPromptTemplateController::class, 'show'])
+                ->name('api.v1.admin.ai-prompts.show');
+            Route::patch('ai-prompts/{aiPrompt}', [AdminAiPromptTemplateController::class, 'update'])
+                ->name('api.v1.admin.ai-prompts.update');
+            Route::post('ai-prompts/{aiPrompt}/versions', [AdminAiPromptTemplateController::class, 'storeVersion'])
+                ->name('api.v1.admin.ai-prompts.versions.store');
+            Route::post('ai-prompts/{aiPrompt}/activate-version/{versionId}', [AdminAiPromptTemplateController::class, 'activateVersion'])
+                ->name('api.v1.admin.ai-prompts.versions.activate');
 
             Route::get('homepage', [AdminHomepageController::class, 'show'])
                 ->name('api.v1.admin.homepage.show');
