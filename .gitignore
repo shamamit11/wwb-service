@@ -28,7 +28,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/bootstrap/cache/*
 
 # Optional local agent scratch space if introduced later
 .agent/tmp/
