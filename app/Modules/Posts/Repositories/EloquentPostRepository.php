@@ -115,6 +115,22 @@ class EloquentPostRepository implements PostRepository
             ->exists();
     }
 
+    public function existsPotentialDuplicate(string $title, ?string $slug = null): bool
+    {
+        $normalizedTitle = mb_strtolower(trim($title));
+        $normalizedSlug = is_string($slug) && $slug !== '' ? trim($slug) : null;
+
+        return Post::query()
+            ->where(function ($query) use ($normalizedTitle, $normalizedSlug): void {
+                $query->whereRaw('LOWER(title) = ?', [$normalizedTitle]);
+
+                if ($normalizedSlug !== null) {
+                    $query->orWhere('slug', $normalizedSlug);
+                }
+            })
+            ->exists();
+    }
+
     /**
      * @return Collection<int, Post>
      */

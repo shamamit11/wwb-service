@@ -22,6 +22,10 @@ interface AiPromptTemplateRepository
 
     public function findById(int $id): ?AiPromptTemplate;
 
+    public function findByKey(string $key): ?AiPromptTemplate;
+
+    public function findActiveByType(string $type): ?AiPromptTemplate;
+
     public function findVersionById(AiPromptTemplate $template, int $versionId): ?AiPromptTemplateVersion;
 
     public function existsByKey(string $key, ?int $ignoreId = null): bool;

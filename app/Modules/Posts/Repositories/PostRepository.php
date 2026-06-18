@@ -27,6 +27,8 @@ interface PostRepository
 
     public function existsBySlug(string $slug, ?int $ignoreId = null): bool;
 
+    public function existsPotentialDuplicate(string $title, ?string $slug = null): bool;
+
     /**
      * @return Collection<int, Post>
      */

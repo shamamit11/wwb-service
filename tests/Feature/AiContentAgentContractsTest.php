@@ -8,6 +8,7 @@ use App\AI\DTO\AgentInput;
 use App\AI\DTO\AgentResult;
 use App\AI\DTO\TopicDiscoveryInput;
 use App\AI\DTO\TopicDiscoveryResult;
+use App\AI\DTO\TopicSuggestionData;
 use App\AI\Enums\AiRunStatus;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use Tests\TestCase;
@@ -17,11 +18,11 @@ class AiContentAgentContractsTest extends TestCase
     public function test_agent_input_can_build_text_generation_request(): void
     {
         $input = new TopicDiscoveryInput(
-            contentClusters: ['ai_tools', 'seo'],
+            cluster: 'ai_tools',
+            targetCount: 5,
+            audience: 'Technical content leads',
             existingTopics: ['Prompt versioning'],
-            publishedPostTitles: ['AI Agent Memory'],
-            knowledgeBaseContext: ['Use database-backed prompts.'],
-            maxTopics: 5,
+            knowledgeContext: ['Use database-backed prompts.'],
             provider: 'openai',
             model: 'gpt-5-mini',
             timeoutSeconds: 20,
@@ -46,11 +47,12 @@ class AiContentAgentContractsTest extends TestCase
     public function test_agent_result_success_can_wrap_structured_output_and_usage_metadata(): void
     {
         $parsed = new TopicDiscoveryResult([
-            [
-                'title' => 'AI Prompt Versioning for Editorial Teams',
-                'cluster' => 'ai_tools',
-                'score' => 0.94,
-            ],
+            new TopicSuggestionData(
+                title: 'AI Prompt Versioning for Editorial Teams',
+                slug: 'ai-prompt-versioning-for-editorial-teams',
+                cluster: 'ai_tools',
+                priorityScore: '94.00',
+            ),
         ]);
 
         $result = AgentResult::success(
@@ -68,7 +70,7 @@ class AiContentAgentContractsTest extends TestCase
         $this->assertSame(AiRunStatus::SUCCESS, $result->status);
         $this->assertSame(120, $result->usage?->promptTokens);
         $this->assertInstanceOf(TopicDiscoveryResult::class, $result->parsedResponse);
-        $this->assertSame('AI Prompt Versioning for Editorial Teams', $result->parsedResponse?->topics[0]['title']);
+        $this->assertSame('AI Prompt Versioning for Editorial Teams', $result->parsedResponse?->topics[0]->title);
         $this->assertSame(42, $result->metadata['job_id']);
     }
 
@@ -87,21 +89,22 @@ class AiContentAgentContractsTest extends TestCase
                     agent: $this->name(),
                     rawResponse: ['topics' => [['title' => 'AI Queue Idempotency']]],
                     parsedResponse: new TopicDiscoveryResult([
-                        [
-                            'title' => 'AI Queue Idempotency',
-                            'cluster' => 'developer_ai',
-                        ],
+                        new TopicSuggestionData(
+                            title: 'AI Queue Idempotency',
+                            slug: 'ai-queue-idempotency',
+                            cluster: 'developer_ai',
+                        ),
                     ]),
                 );
             }
         };
 
         $result = $agent->run(new TopicDiscoveryInput(
-            contentClusters: ['developer_ai'],
+            cluster: 'developer_ai',
         ));
 
         $this->assertTrue($result->isSuccessful());
-        $this->assertSame('AI Queue Idempotency', $result->parsedResponse?->topics[0]['title']);
+        $this->assertSame('AI Queue Idempotency', $result->parsedResponse?->topics[0]->title);
     }
 
     public function test_failed_or_partial_runs_capture_error_details_without_silent_failure(): void

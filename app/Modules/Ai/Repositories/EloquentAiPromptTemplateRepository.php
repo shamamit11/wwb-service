@@ -98,6 +98,27 @@ class EloquentAiPromptTemplateRepository implements AiPromptTemplateRepository
             ->find($id);
     }
 
+    public function findByKey(string $key): ?AiPromptTemplate
+    {
+        return AiPromptTemplate::query()
+            ->with(['activeVersion', 'versions'])
+            ->withCount('versions')
+            ->where('key', $key)
+            ->first();
+    }
+
+    public function findActiveByType(string $type): ?AiPromptTemplate
+    {
+        return AiPromptTemplate::query()
+            ->with(['activeVersion', 'versions'])
+            ->withCount('versions')
+            ->where('type', $type)
+            ->where('status', AiPromptTemplate::STATUS_ACTIVE)
+            ->whereNotNull('active_version_id')
+            ->orderByDesc('id')
+            ->first();
+    }
+
     public function findVersionById(AiPromptTemplate $template, int $versionId): ?AiPromptTemplateVersion
     {
         return $template->versions()

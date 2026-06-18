@@ -5,18 +5,17 @@ namespace App\AI\DTO;
 final readonly class TopicDiscoveryInput extends AgentInput
 {
     /**
-     * @param  list<string>  $contentClusters
      * @param  list<string>  $existingTopics
-     * @param  list<string>  $publishedPostTitles
-     * @param  list<string>  $knowledgeBaseContext
+     * @param  list<string>  $knowledgeContext
+     * @param  list<string>  $existingTopics
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
-        public array $contentClusters,
+        public string $cluster,
+        public int $targetCount = 10,
+        public ?string $audience = null,
         public array $existingTopics = [],
-        public array $publishedPostTitles = [],
-        public array $knowledgeBaseContext = [],
-        public int $maxTopics = 10,
+        public array $knowledgeContext = [],
         ?string $provider = null,
         ?string $model = null,
         ?int $timeoutSeconds = null,
