@@ -171,6 +171,30 @@ class EloquentPostRepository implements PostRepository
             })
             ->when($filters->isFeatured !== null, fn ($query) => $query->where('is_featured', $filters->isFeatured))
             ->when($filters->authorUserId, fn ($query, int $authorUserId) => $query->where('author_user_id', $authorUserId))
+            ->when($filters->isAiGenerated !== null, function ($query) use ($filters): void {
+                if ($filters->isAiGenerated) {
+                    $query->where(function ($innerQuery): void {
+                        $innerQuery
+                            ->whereNotNull('meta->source_content_brief_id')
+                            ->orWhereNotNull('meta->source_content_topic_id')
+                            ->orWhereNotNull('meta->ai_job_id')
+                            ->orWhereNotNull('meta->generated_by');
+                    });
+
+                    return;
+                }
+
+                $query->where(function ($innerQuery): void {
+                    $innerQuery
+                        ->whereNull('meta->source_content_brief_id')
+                        ->whereNull('meta->source_content_topic_id')
+                        ->whereNull('meta->ai_job_id')
+                        ->whereNull('meta->generated_by');
+                });
+            })
+            ->when($filters->sourceContentBriefId, fn ($query, int $sourceContentBriefId) => $query->where('meta->source_content_brief_id', $sourceContentBriefId))
+            ->when($filters->sourceContentTopicId, fn ($query, int $sourceContentTopicId) => $query->where('meta->source_content_topic_id', $sourceContentTopicId))
+            ->when($filters->generatedByAiJobId, fn ($query, int $generatedByAiJobId) => $query->where('meta->ai_job_id', $generatedByAiJobId))
             ->orderBy($sortColumn, $descending ? 'desc' : 'asc')
             ->orderByDesc('id')
             ->get();

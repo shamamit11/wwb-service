@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\ContentBrief;
+use App\Models\ContentTopic;
 use App\Models\Media;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\Template;
 use App\Models\User;
+use App\Models\AiJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -196,11 +199,67 @@ class PostApiTest extends TestCase
             'published_at' => null,
             'excerpt' => 'Internal planning note',
         ]);
+        $aiJob = AiJob::query()->create([
+            'type' => 'blog_writer',
+            'status' => 'completed',
+            'entity_type' => 'content_brief',
+            'entity_id' => 10,
+            'input_payload' => [],
+            'output_payload' => [],
+            'usage_payload' => [],
+            'attempts' => 1,
+        ]);
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Draft Topic',
+            'slug' => 'ai-draft-topic',
+            'cluster' => 'ai_tools',
+            'primary_keyword' => 'ai draft topic',
+            'secondary_keywords' => ['ai draft'],
+            'search_intent' => 'informational',
+            'priority_score' => '88.00',
+            'difficulty_note' => 'Medium',
+            'source' => 'ai_suggested',
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Draft Brief',
+            'slug' => 'ai-draft-brief',
+            'meta_title' => 'AI Draft Brief',
+            'meta_description' => 'Brief for AI draft review',
+            'primary_keyword' => 'ai draft brief',
+            'secondary_keywords' => ['ai draft review'],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+        $aiDraft = $this->createPost($admin, $aiCategory, [
+            'title' => 'AI Draft Review',
+            'slug' => 'ai-draft-review',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_INTERNAL,
+            'is_featured' => false,
+            'published_at' => null,
+            'excerpt' => 'Generated draft',
+            'meta' => [
+                'source_content_brief_id' => $brief->id,
+                'source_content_topic_id' => $topic->id,
+                'ai_job_id' => $aiJob->id,
+                'generated_by' => 'BlogWriterAgent',
+            ],
+        ]);
 
         $this->withToken($token)->getJson('/api/v1/admin/posts?status=draft')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $alpha->id);
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $alpha->id, 'slug' => 'alpha-systems'])
+            ->assertJsonFragment(['id' => $aiDraft->id, 'slug' => 'ai-draft-review']);
 
         $this->withToken($token)->getJson('/api/v1/admin/posts?category_slug=seo')
             ->assertOk()
@@ -223,9 +282,39 @@ class PostApiTest extends TestCase
 
         $this->withToken($token)->getJson('/api/v1/admin/posts?sort=title')
             ->assertOk()
-            ->assertJsonPath('data.0.id', $alpha->id)
-            ->assertJsonPath('data.1.id', $beta->id)
-            ->assertJsonPath('data.2.id', $gamma->id);
+            ->assertJsonPath('data.0.id', $aiDraft->id)
+            ->assertJsonPath('data.1.id', $alpha->id)
+            ->assertJsonPath('data.2.id', $beta->id)
+            ->assertJsonPath('data.3.id', $gamma->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?is_ai_generated=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id)
+            ->assertJsonPath('data.0.is_ai_generated', true)
+            ->assertJsonPath('data.0.source_content_brief_id', $brief->id)
+            ->assertJsonPath('data.0.source_content_topic_id', $topic->id)
+            ->assertJsonPath('data.0.generated_by_ai_job_id', $aiJob->id)
+            ->assertJsonPath('data.0.generated_by', 'BlogWriterAgent');
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?source_content_brief_id='.$brief->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?source_content_topic_id='.$topic->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?generated_by_ai_job_id='.$aiJob->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?is_ai_generated=0')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_admin_post_validation_errors_use_consistent_json_shape(): void

@@ -18,6 +18,15 @@ class PostResource extends ApiResource
         $reader = app(MediaReader::class);
         /** @var CanonicalUrlService $canonicalUrls */
         $canonicalUrls = app(CanonicalUrlService::class);
+        $meta = is_array($this->resource->meta) ? $this->resource->meta : [];
+        $sourceContentBriefId = $this->nullableInt($meta['source_content_brief_id'] ?? null);
+        $sourceContentTopicId = $this->nullableInt($meta['source_content_topic_id'] ?? null);
+        $generatedByAiJobId = $this->nullableInt($meta['ai_job_id'] ?? null);
+        $generatedBy = is_string($meta['generated_by'] ?? null) && $meta['generated_by'] !== '' ? $meta['generated_by'] : null;
+        $isAiGenerated = $sourceContentBriefId !== null
+            || $sourceContentTopicId !== null
+            || $generatedByAiJobId !== null
+            || $generatedBy !== null;
 
         return [
             'id' => $this->resource->id,
@@ -34,7 +43,12 @@ class PostResource extends ApiResource
             'reading_time_minutes' => $this->resource->reading_time_minutes,
             'word_count' => $this->resource->word_count,
             'is_featured' => (bool) $this->resource->is_featured,
-            'meta' => $this->resource->meta ?? [],
+            'is_ai_generated' => $isAiGenerated,
+            'source_content_brief_id' => $sourceContentBriefId,
+            'source_content_topic_id' => $sourceContentTopicId,
+            'generated_by_ai_job_id' => $generatedByAiJobId,
+            'generated_by' => $generatedBy,
+            'meta' => $meta,
             'author' => $this->whenLoaded('author', fn (): array => [
                 'id' => $this->resource->author->id,
                 'name' => $this->resource->author->name,
@@ -72,5 +86,18 @@ class PostResource extends ApiResource
             'created_at' => $this->resource->created_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
         ];
+    }
+
+    private function nullableInt(mixed $value): ?int
+    {
+        if (is_int($value) && $value > 0) {
+            return $value;
+        }
+
+        if (is_string($value) && ctype_digit($value) && (int) $value > 0) {
+            return (int) $value;
+        }
+
+        return null;
     }
 }
