@@ -1120,6 +1120,188 @@ php artisan test
 
 ---
 
+## WB-SVC-058 — Implement draft rewrite and section regeneration workflow
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `5`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Add a first-class rewrite workflow so editors and agents can selectively regenerate weak content inside an existing AI-generated draft without replacing the whole post.
+
+### Deliverables
+
+- Draft rewrite service
+- Section or paragraph regeneration support
+- Safe rewrite request DTOs and validation
+- API and/or MCP entry points for rewrite operations
+- AI job and generation-step tracking for rewrite runs
+
+### Suggested Files / Areas
+
+```txt
+app/Modules/Ai/Services/DraftRewriteWorkflow.php
+app/Modules/Ai/Services/AiWorkflowOrchestrator.php
+app/AI/Agents/BlogWriterAgent.php
+app/AI/DTO/
+app/AI/Tools/
+app/Modules/Posts/
+app/Http/Controllers/Admin/
+app/MCP/
+```
+
+### Acceptance Criteria
+
+- Editors or internal tools can request rewrite operations for an existing draft post.
+- Rewrite requests can target the full draft or specific sections/paragraphs.
+- Rewrite output is saved as reviewable draft content and does not publish automatically.
+- Rewrite executions create `ai_jobs` and `ai_generation_steps` records.
+- Retry behavior does not duplicate posts or corrupt existing draft structure.
+
+### Validation
+
+```bash
+php artisan test
+```
+
+---
+
+## WB-SVC-059 — Implement AI metadata suggestion workflow
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `5`  
+**Priority:** Should Have  
+**Status:** Backlog
+
+### Description
+
+Create a dedicated metadata suggestion workflow so editors can request review-only SEO and editorial metadata for an existing draft or post.
+
+### Deliverables
+
+- Metadata suggestion service
+- Structured metadata suggestion result DTO
+- API and/or MCP entry points
+- AI job tracking for metadata suggestion runs
+- Prompt template support for metadata suggestion
+
+### Suggested Files / Areas
+
+```txt
+app/Modules/Ai/Services/MetadataSuggestionWorkflow.php
+app/Modules/Prompt/
+app/AI/DTO/
+app/AI/Agents/
+app/Http/Controllers/Admin/
+app/MCP/
+```
+
+### Acceptance Criteria
+
+- Service can suggest title, excerpt, meta title, meta description, and focus keyword for a draft or post.
+- Suggestions are stored or returned as review-only output and do not auto-publish or overwrite editorial content silently.
+- Metadata suggestion runs create `ai_jobs` and `ai_generation_steps` records.
+- Prompt/service flow stays inside existing validation and service boundaries.
+
+### Validation
+
+```bash
+php artisan test
+```
+
+---
+
+## WB-SVC-060 — Implement editorial generation modes for draft creation
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `3`  
+**Priority:** Could Have  
+**Status:** Backlog
+
+### Description
+
+Extend draft generation so the system can generate different article styles through explicit modes rather than a single default path.
+
+### Deliverables
+
+- Draft generation mode enum or equivalent contract
+- Prompt/template support for multiple article styles
+- Workflow support for mode-aware draft generation
+- Validation for supported generation modes
+
+### Suggested Files / Areas
+
+```txt
+app/AI/DTO/
+app/AI/Enums/
+app/Modules/Ai/Services/DraftGenerationWorkflow.php
+app/Modules/Ai/Services/AiWorkflowOrchestrator.php
+app/Modules/Prompt/
+app/Http/Controllers/Admin/
+app/MCP/
+```
+
+### Acceptance Criteria
+
+- Draft generation can explicitly request supported modes such as tutorial, comparison, checklist, or opinionated analysis.
+- Mode choice changes prompt/template behavior without bypassing review or draft-only rules.
+- Unsupported modes are rejected through normal validation.
+- Existing default generation path continues to work unchanged when no mode is provided.
+
+### Validation
+
+```bash
+php artisan test
+```
+
+---
+
+## WB-SVC-061 — Implement AI title and excerpt refinement tools
+
+**Phase:** Phase 3 — AI Content Engine  
+**Story Points:** `3`  
+**Priority:** Could Have  
+**Status:** Backlog
+
+### Description
+
+Add lightweight refinement workflows that let editors request alternate title and excerpt suggestions for an existing draft or post.
+
+### Deliverables
+
+- Title refinement service
+- Excerpt refinement service
+- Alternate headline suggestion support
+- API and/or MCP entry points
+- Review-only output contract
+
+### Suggested Files / Areas
+
+```txt
+app/Modules/Ai/Services/TitleExcerptRefinementWorkflow.php
+app/AI/DTO/
+app/Http/Controllers/Admin/
+app/MCP/
+app/Modules/Prompt/
+```
+
+### Acceptance Criteria
+
+- Editors can request title suggestions, excerpt suggestions, and alternate headline variations for an existing draft or post.
+- Refinement outputs are review-only and do not publish content or overwrite approved content automatically.
+- Refinement requests use the same service-layer validation rules as the rest of the AI content engine.
+- Refinement runs are trackable through `ai_jobs` when executed as asynchronous AI workflows.
+
+### Validation
+
+```bash
+php artisan test
+```
+
+---
+
 # MVP Build Order
 
 Use this order for the coding agent:
@@ -1142,6 +1324,10 @@ Use this order for the coding agent:
 15. WB-SVC-055 — Implement AI workflow orchestration service
 16. WB-SVC-056 — Implement Laravel MCP server for content operations
 17. WB-SVC-057 — Add AI-specific service documentation
+18. WB-SVC-058 — Implement draft rewrite and section regeneration workflow
+19. WB-SVC-059 — Implement AI metadata suggestion workflow
+20. WB-SVC-060 — Implement editorial generation modes for draft creation
+21. WB-SVC-061 — Implement AI title and excerpt refinement tools
 ```
 
 ---

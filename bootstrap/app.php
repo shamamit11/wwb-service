@@ -8,6 +8,7 @@ use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionExcep
 use App\Modules\Media\Exceptions\MediaInUseException;
 use App\Modules\Newsletter\Exceptions\NewsletterCampaignSendNotAllowedException;
 use App\Modules\Posts\Exceptions\BlogDraftGenerationNotAllowedException;
+use App\Modules\Posts\Exceptions\PostRewriteNotAllowedException;
 use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Support\ApiErrorResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -208,6 +209,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 [
                     'status' => [$exception->briefStatus],
                     'action' => ['generate-draft'],
+                ],
+            );
+        });
+
+        $exceptions->render(function (PostRewriteNotAllowedException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->postStatus],
+                    'action' => ['rewrite-draft'],
                 ],
             );
         });

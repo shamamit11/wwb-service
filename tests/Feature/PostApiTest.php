@@ -12,6 +12,7 @@ use App\Models\Template;
 use App\Models\User;
 use App\Models\AiJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -160,6 +161,90 @@ class PostApiTest extends TestCase
         $this->assertSoftDeleted('posts', [
             'id' => $postId,
         ]);
+    }
+
+    public function test_admin_can_queue_draft_rewrite_for_ai_generated_draft_posts(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Draft Topic',
+            'slug' => 'ai-draft-topic',
+            'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
+            'primary_keyword' => 'ai draft topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '88.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'status' => ContentTopic::STATUS_USED,
+            'notes' => null,
+            'approved_at' => now(),
+            'used_at' => now(),
+        ]);
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Draft Brief',
+            'slug' => 'ai-draft-brief',
+            'meta_title' => null,
+            'meta_description' => null,
+            'primary_keyword' => 'ai draft topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro', 'purpose' => 'Frame the topic']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_USED,
+            'approved_at' => now(),
+        ]);
+        $post = $this->createPost($admin, $category, [
+            'title' => 'AI Draft Post',
+            'slug' => 'ai-draft-post',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'meta' => [
+                'source_content_brief_id' => (int) $brief->id,
+                'source_content_topic_id' => (int) $brief->content_topic_id,
+                'generated_by' => 'BlogWriterAgent',
+            ],
+        ]);
+        $post->blocks()->createMany([
+            [
+                'block_type' => 'heading',
+                'sort_order' => 1,
+                'content_markdown' => '# AI Draft Post',
+                'plain_text_cache' => 'AI Draft Post',
+                'settings' => ['level' => 1],
+            ],
+            [
+                'block_type' => 'paragraph',
+                'sort_order' => 2,
+                'content_markdown' => 'Original paragraph.',
+                'plain_text_cache' => 'Original paragraph.',
+                'settings' => [],
+            ],
+        ]);
+        $targetBlockId = (int) $post->blocks()->where('sort_order', 2)->value('id');
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/rewrite", [
+            'scope' => 'paragraph',
+            'target_block_ids' => [$targetBlockId],
+            'instructions' => 'Make this paragraph more concrete.',
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', 'editor')
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'post')
+            ->assertJsonPath('data.entity_id', $post->id)
+            ->assertJsonPath('data.input_payload.post_id', $post->id)
+            ->assertJsonPath('data.input_payload.scope', 'paragraph')
+            ->assertJsonPath('data.input_payload.target_block_ids.0', $targetBlockId);
+
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostRewriteJob::class, 1);
     }
 
     public function test_admin_post_list_supports_filters_and_sorting(): void

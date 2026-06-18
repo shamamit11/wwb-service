@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Mcp\ContentMcpRegistration;
 use App\Mcp\Prompts\BlogDraftPrompt;
+use App\Mcp\Prompts\DraftRewritePrompt;
 use App\Mcp\Resources\KnowledgeBaseEntriesResource;
 use App\Mcp\Resources\RecentAiJobsResource;
 use App\Mcp\Servers\ContentOperationsServer;
@@ -12,12 +13,14 @@ use App\Mcp\Tools\GenerateBlogDraftTool;
 use App\Mcp\Tools\GenerateContentBriefTool;
 use App\Mcp\Tools\GetAiJobStatusTool;
 use App\Mcp\Tools\ListContentTopicsTool;
+use App\Mcp\Tools\RewritePostDraftTool;
 use App\Mcp\Tools\SearchKnowledgeBaseTool;
 use App\Models\AiJob;
 use App\Models\Category;
 use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Models\KnowledgeBaseEntry;
+use App\Models\Post;
 use App\Models\User;
 use App\Modules\Ai\Services\ContentBriefWorkflow;
 use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
@@ -143,6 +146,44 @@ class ContentOperationsMcpServerTest extends TestCase
             'status' => ContentBrief::STATUS_APPROVED,
             'approved_at' => now(),
         ]);
+        $draftPost = Post::query()->create([
+            'author_user_id' => $admin->id,
+            'category_id' => $category->id,
+            'template_id' => null,
+            'featured_media_id' => null,
+            'title' => 'Editorial AI Checklists for Content Teams',
+            'slug' => 'editorial-ai-checklists-for-content-teams',
+            'excerpt' => 'Draft rewrite candidate.',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
+            'content_version' => 1,
+            'reading_time_minutes' => 4,
+            'word_count' => 400,
+            'is_featured' => false,
+            'meta' => [
+                'source_content_brief_id' => (int) $brief->id,
+                'source_content_topic_id' => (int) $approvedTopic->id,
+                'generated_by' => 'BlogWriterAgent',
+            ],
+        ]);
+        $draftPost->blocks()->createMany([
+            [
+                'block_type' => 'heading',
+                'sort_order' => 1,
+                'content_markdown' => '# Editorial AI Checklists for Content Teams',
+                'plain_text_cache' => 'Editorial AI Checklists for Content Teams',
+                'settings' => ['level' => 1],
+            ],
+            [
+                'block_type' => 'paragraph',
+                'sort_order' => 2,
+                'content_markdown' => 'Original draft paragraph.',
+                'plain_text_cache' => 'Original draft paragraph.',
+                'settings' => [],
+            ],
+        ]);
 
         ContentOperationsServer::tool(SearchKnowledgeBaseTool::class, [
             'subject' => 'editorial ai',
@@ -221,6 +262,19 @@ class ContentOperationsMcpServerTest extends TestCase
                 ->where('job.entity_id', $brief->id)
                 ->etc();
         });
+        $targetBlockId = (int) $draftPost->blocks()->where('sort_order', 2)->value('id');
+        ContentOperationsServer::tool(RewritePostDraftTool::class, [
+            'post_id' => (string) $draftPost->id,
+            'scope' => 'paragraph',
+            'target_block_ids' => [$targetBlockId],
+            'instructions' => 'Strengthen the paragraph.',
+        ])->assertOk()->assertStructuredContent(function ($json) use ($draftPost, $targetBlockId): void {
+            $json->where('queued', true)
+                ->where('job.status', AiJob::STATUS_QUEUED)
+                ->where('job.entity_id', $draftPost->id)
+                ->where('job.input_payload.target_block_ids.0', $targetBlockId)
+                ->etc();
+        });
 
         $jobId = (int) AiJob::query()->value('id');
 
@@ -234,6 +288,7 @@ class ContentOperationsMcpServerTest extends TestCase
         });
 
         Queue::assertPushed(\App\Jobs\AI\GenerateBlogDraftJob::class, 1);
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostRewriteJob::class, 1);
     }
 
     public function test_server_resources_and_prompts_return_readable_context(): void
@@ -273,6 +328,14 @@ class ContentOperationsMcpServerTest extends TestCase
             'category_id' => 3,
         ])->assertOk()->assertSee([
             'generateBlogDraft',
+            'getAiJobStatus',
+            'Do not publish',
+        ]);
+        ContentOperationsServer::prompt(DraftRewritePrompt::class, [
+            'post_id' => '55',
+            'scope' => 'section',
+        ])->assertOk()->assertSee([
+            'rewritePostDraft',
             'getAiJobStatus',
             'Do not publish',
         ]);

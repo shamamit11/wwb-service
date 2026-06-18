@@ -252,28 +252,25 @@ Result:
 
 - the admin draft review page is no longer blocked by a missing service contract
 
+### 16. Draft Rewrite And Section Regeneration
+
+Implemented:
+
+- post-level draft rewrite workflow
+- paragraph and section-level regeneration support
+- admin API contract for queued rewrites
+- MCP tool and prompt for safe rewrite operations
+- AI job and generation-step tracking for rewrite runs
+
+Source history:
+
+- `WB-SVC-058`
+
 ## What Is Still Missing In This Phase
 
 These are the main service-side items still worth doing **before declaring the AI-assisted publishing phase fully closed**.
 
-### 1. Draft Rewrite / Section Regeneration Tools
-
-Status:
-
-- not implemented as a first-class workflow
-
-Why it matters:
-
-- `docs/ROADMAP.md` lists draft rewrite or section regeneration as a **Should Have** item for this phase
-- current flow can generate a draft, but cannot selectively regenerate weak sections through a dedicated contract
-
-Recommended next service work:
-
-- add rewrite/regenerate endpoints or MCP tools
-- support paragraph/section-level regeneration from an existing draft
-- track rewrite operations through AI jobs/generation steps
-
-### 2. Explicit Metadata Suggestion Workflow
+### 1. Explicit Metadata Suggestion Workflow
 
 Status:
 
@@ -289,7 +286,11 @@ Recommended next service work:
 - add a metadata suggestion service for title, excerpt, meta title, meta description, focus keyword, and possibly schema hints
 - keep outputs review-only and non-publishing
 
-### 3. Additional Editorial Variants / Generation Modes
+Backlog task:
+
+- `WB-SVC-059`
+
+### 2. Additional Editorial Variants / Generation Modes
 
 Status:
 
@@ -304,7 +305,11 @@ Recommended next service work:
 
 - allow prompt/template-driven draft modes such as tutorial, comparison, opinionated analysis, checklist, etc.
 
-### 4. AI-Assisted Title / Excerpt Refinement As A Separate Tool
+Backlog task:
+
+- `WB-SVC-060`
+
+### 3. AI-Assisted Title / Excerpt Refinement As A Separate Tool
 
 Status:
 
@@ -322,6 +327,10 @@ Recommended next service work:
   - excerpt suggestions
   - alternate headline variations
 
+Backlog task:
+
+- `WB-SVC-061`
+
 ## Recommended “Next” Work Inside This Phase
 
 If the goal is to finish the current AI-assisted publishing phase cleanly on the service side, the highest-value next order is:
@@ -330,6 +339,12 @@ If the goal is to finish the current AI-assisted publishing phase cleanly on the
 2. Metadata suggestion workflow
 3. Title and excerpt refinement workflow
 4. Optional multi-mode draft generation
+
+Mapped backlog:
+
+- `WB-SVC-059`
+- `WB-SVC-061`
+- `WB-SVC-060`
 
 ## Items That Should Move To The Next Phase
 
