@@ -2,8 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Infrastructure\Ai\Data\AiUsageData;
+use App\Infrastructure\Ai\Data\GenerateTextRequest;
+use App\Infrastructure\Ai\Data\TextGenerationResult;
+use App\Models\AiPromptTemplate;
+use App\Models\AiPromptTemplateVersion;
 use App\Models\ContentBrief;
 use App\Models\ContentTopic;
+use App\Models\KnowledgeBaseEntry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,6 +28,8 @@ class ContentBriefApiTest extends TestCase
 
     public function test_admin_can_generate_review_update_and_approve_content_briefs_from_approved_topics(): void
     {
+        $this->seedPromptAndFakeAgent();
+
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
 
@@ -39,6 +48,20 @@ class ContentBriefApiTest extends TestCase
             'approved_at' => now(),
         ]);
 
+        KnowledgeBaseEntry::query()->create([
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'title' => 'Editorial QA',
+            'slug' => 'editorial-qa',
+            'entry_type' => KnowledgeBaseEntry::TYPE_REFERENCE,
+            'status' => KnowledgeBaseEntry::STATUS_ACTIVE,
+            'summary' => 'Use explicit editorial QA gates.',
+            'content_markdown' => 'Detailed QA notes.',
+            'source_url' => null,
+            'featured_media_id' => null,
+            'metadata' => null,
+        ]);
+
         $generateResponse = $this->withToken($token)->postJson("/api/v1/admin/content-topics/{$topic->id}/generate-brief");
 
         $generateResponse->assertCreated()
@@ -47,8 +70,8 @@ class ContentBriefApiTest extends TestCase
             ->assertJsonPath('data.status', ContentBrief::STATUS_DRAFT)
             ->assertJsonPath('data.primary_keyword', 'ai editorial checklist')
             ->assertJsonPath('data.search_intent', 'informational')
-            ->assertJsonCount(5, 'data.headings')
-            ->assertJsonCount(3, 'data.faq_suggestions')
+            ->assertJsonCount(2, 'data.headings')
+            ->assertJsonCount(1, 'data.faq_suggestions')
             ->assertJsonCount(2, 'data.image_suggestions')
             ->assertJsonPath('data.can_generate_draft', false);
 
@@ -132,6 +155,8 @@ class ContentBriefApiTest extends TestCase
 
     public function test_content_brief_validation_errors_use_consistent_json_shape(): void
     {
+        $this->seedPromptAndFakeAgent();
+
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
 
@@ -163,7 +188,74 @@ class ContentBriefApiTest extends TestCase
                 'message',
                 'error_code',
                 'errors' => ['headings.1', 'status'],
-                'meta' => ['request_id'],
+            'meta' => ['request_id'],
             ]);
+    }
+
+    private function seedPromptAndFakeAgent(): void
+    {
+        $template = AiPromptTemplate::query()->create([
+            'name' => 'Content Brief Default',
+            'key' => 'content_brief_default',
+            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            'description' => 'Default brief prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $version = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $template->id,
+            'version' => 1,
+            'system_prompt' => 'Build a structured brief for {{topic_title}}.',
+            'user_prompt' => 'Knowledge {{knowledge_context}} Existing {{existing_post_context}} Links {{internal_link_context}}',
+            'output_schema' => ['type' => 'object'],
+            'variables' => ['topic_title', 'knowledge_context', 'existing_post_context', 'internal_link_context'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $template->update(['active_version_id' => $version->id]);
+
+        $fakeClient = new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: json_encode([
+                        'recommended_title' => 'AI Editorial Checklists for Content Teams',
+                        'slug' => 'ai-editorial-checklists-for-content-teams',
+                        'meta_title' => 'AI Editorial Checklists for Content Teams',
+                        'meta_description' => 'A practical brief for editorial teams building AI review checklists.',
+                        'intro_angle' => 'Use editorial checklists to review AI-assisted publishing safely.',
+                        'target_audience' => 'Editorial leads and content operators',
+                        'outline' => [
+                            ['heading' => 'Why AI editorial checklists matter', 'purpose' => 'Frame the workflow'],
+                            ['heading' => 'A practical checklist framework', 'purpose' => 'Give the implementation plan'],
+                        ],
+                        'heading_structure' => [
+                            'Why AI editorial checklists matter',
+                            'A practical checklist framework',
+                        ],
+                        'faq_suggestions' => [
+                            ['question' => 'What should an editorial AI checklist include?', 'answer_focus' => 'Review gates and policy checks'],
+                        ],
+                        'internal_link_suggestions' => [
+                            ['title' => 'Editorial QA', 'url' => '/knowledge/editorial-qa', 'reason' => 'QA overlap'],
+                        ],
+                        'image_ideas' => [
+                            'Checklist board',
+                            'Approval workflow diagram',
+                        ],
+                        'alt_text_suggestions' => [
+                            'Editorial checklist board with AI review steps',
+                            'Diagram of approval workflow for AI-assisted content',
+                        ],
+                    ], JSON_THROW_ON_ERROR),
+                    provider: 'openai',
+                    model: 'gpt-5-mini',
+                    usage: new AiUsageData(promptTokens: 100, completionTokens: 60),
+                );
+            }
+        };
+
+        $this->app->instance(AiClient::class, $fakeClient);
     }
 }

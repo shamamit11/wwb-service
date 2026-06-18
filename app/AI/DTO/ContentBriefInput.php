@@ -5,15 +5,22 @@ namespace App\AI\DTO;
 final readonly class ContentBriefInput extends AgentInput
 {
     /**
+     * @param  list<string>  $secondaryKeywords
      * @param  list<string>  $knowledgeBaseContext
-     * @param  list<string>  $internalContentContext
+     * @param  list<array<string, mixed>>  $existingPostContext
+     * @param  list<array<string, mixed>>  $internalLinkContext
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
-        public string $topic,
+        public int $contentTopicId,
+        public string $topicTitle,
         public string $cluster,
+        public ?string $primaryKeyword = null,
+        public array $secondaryKeywords = [],
+        public ?string $searchIntent = null,
         public array $knowledgeBaseContext = [],
-        public array $internalContentContext = [],
+        public array $existingPostContext = [],
+        public array $internalLinkContext = [],
         public ?string $editorialIntent = null,
         ?string $provider = null,
         ?string $model = null,

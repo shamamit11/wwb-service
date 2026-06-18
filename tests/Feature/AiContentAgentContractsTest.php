@@ -6,6 +6,8 @@ use App\AI\Contracts\ContentAgentInterface;
 use App\AI\DTO\AgentErrorData;
 use App\AI\DTO\AgentInput;
 use App\AI\DTO\AgentResult;
+use App\AI\DTO\ContentBriefInput;
+use App\AI\DTO\ContentBriefResult;
 use App\AI\DTO\TopicDiscoveryInput;
 use App\AI\DTO\TopicDiscoveryResult;
 use App\AI\DTO\TopicSuggestionData;
@@ -46,18 +48,24 @@ class AiContentAgentContractsTest extends TestCase
 
     public function test_agent_result_success_can_wrap_structured_output_and_usage_metadata(): void
     {
-        $parsed = new TopicDiscoveryResult([
-            new TopicSuggestionData(
-                title: 'AI Prompt Versioning for Editorial Teams',
-                slug: 'ai-prompt-versioning-for-editorial-teams',
-                cluster: 'ai_tools',
-                priorityScore: '94.00',
-            ),
-        ]);
+        $parsed = new ContentBriefResult(
+            recommendedTitle: 'AI Prompt Versioning for Editorial Teams',
+            slug: 'ai-prompt-versioning-for-editorial-teams',
+            metaTitle: 'AI Prompt Versioning for Editorial Teams',
+            metaDescription: 'A structured brief for editorial prompt versioning.',
+            introAngle: 'Use prompt versioning as an editorial operations control.',
+            targetAudience: 'Editorial teams',
+            outline: [['heading' => 'Why prompt versioning matters', 'purpose' => 'Frame the problem']],
+            headingStructure: ['Why prompt versioning matters'],
+            faqSuggestions: [['question' => 'Why version prompts?', 'answer_focus' => 'Operational control']],
+            internalLinkSuggestions: [['title' => 'Prompt Ops', 'url' => '/prompt-ops']],
+            imageIdeas: ['Editorial prompt workflow diagram'],
+            altTextSuggestions: ['Diagram of prompt review workflow'],
+        );
 
         $result = AgentResult::success(
-            agent: 'topic-discovery',
-            rawResponse: '{"topics":[{"title":"AI Prompt Versioning for Editorial Teams"}]}',
+            agent: 'content-brief',
+            rawResponse: '{"recommended_title":"AI Prompt Versioning for Editorial Teams"}',
             parsedResponse: $parsed,
             usage: new AiUsageData(promptTokens: 120, completionTokens: 80),
             provider: 'openai',
@@ -69,8 +77,8 @@ class AiContentAgentContractsTest extends TestCase
         $this->assertFalse($result->isFailure());
         $this->assertSame(AiRunStatus::SUCCESS, $result->status);
         $this->assertSame(120, $result->usage?->promptTokens);
-        $this->assertInstanceOf(TopicDiscoveryResult::class, $result->parsedResponse);
-        $this->assertSame('AI Prompt Versioning for Editorial Teams', $result->parsedResponse?->topics[0]->title);
+        $this->assertInstanceOf(ContentBriefResult::class, $result->parsedResponse);
+        $this->assertSame('AI Prompt Versioning for Editorial Teams', $result->parsedResponse?->recommendedTitle);
         $this->assertSame(42, $result->metadata['job_id']);
     }
 
@@ -87,24 +95,25 @@ class AiContentAgentContractsTest extends TestCase
             {
                 return AgentResult::success(
                     agent: $this->name(),
-                    rawResponse: ['topics' => [['title' => 'AI Queue Idempotency']]],
-                    parsedResponse: new TopicDiscoveryResult([
-                        new TopicSuggestionData(
-                            title: 'AI Queue Idempotency',
-                            slug: 'ai-queue-idempotency',
-                            cluster: 'developer_ai',
-                        ),
-                    ]),
+                    rawResponse: ['recommended_title' => 'AI Queue Idempotency'],
+                    parsedResponse: new ContentBriefResult(
+                        recommendedTitle: 'AI Queue Idempotency',
+                        slug: 'ai-queue-idempotency',
+                        outline: [['heading' => 'Idempotency basics', 'purpose' => 'Explain the concept']],
+                        headingStructure: ['Idempotency basics'],
+                    ),
                 );
             }
         };
 
-        $result = $agent->run(new TopicDiscoveryInput(
+        $result = $agent->run(new ContentBriefInput(
+            contentTopicId: 7,
+            topicTitle: 'AI Queue Idempotency',
             cluster: 'developer_ai',
         ));
 
         $this->assertTrue($result->isSuccessful());
-        $this->assertSame('AI Queue Idempotency', $result->parsedResponse?->topics[0]->title);
+        $this->assertSame('AI Queue Idempotency', $result->parsedResponse?->recommendedTitle);
     }
 
     public function test_failed_or_partial_runs_capture_error_details_without_silent_failure(): void
