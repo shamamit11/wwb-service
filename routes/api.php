@@ -186,6 +186,8 @@ Route::prefix('v1')->group(function (): void {
                 ->names('api.v1.admin.posts');
             Route::post('posts/{post}/suggest-metadata', [AdminPostController::class, 'suggestMetadata'])
                 ->name('api.v1.admin.posts.suggest-metadata');
+            Route::post('posts/{post}/refine-title-excerpt', [AdminPostController::class, 'refineTitleExcerpt'])
+                ->name('api.v1.admin.posts.refine-title-excerpt');
             Route::post('posts/{post}/rewrite', [AdminPostController::class, 'rewrite'])
                 ->name('api.v1.admin.posts.rewrite');
             Route::post('posts/{post}/publish', [AdminPostController::class, 'publish'])

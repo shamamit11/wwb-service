@@ -12,6 +12,7 @@ use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 use App\Modules\Ai\Data\QueuePostMetadataSuggestionData;
 use App\Modules\Ai\Data\QueuePostRewriteData;
+use App\Modules\Ai\Data\QueuePostTitleExcerptRefinementData;
 use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
 use RuntimeException;
 
@@ -23,6 +24,7 @@ class AiWorkflowOrchestrator
         private readonly DraftGenerationWorkflow $drafts,
         private readonly DraftRewriteWorkflow $rewrites,
         private readonly MetadataSuggestionWorkflow $metadata,
+        private readonly TitleExcerptRefinementWorkflow $titleExcerptRefinements,
     ) {}
 
     public function dispatchTopicDiscovery(DiscoverContentTopicsData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
@@ -75,9 +77,19 @@ class AiWorkflowOrchestrator
         return $this->metadata->queue($post, $data, $retryOfAiJobId, $attempts);
     }
 
+    public function queuePostTitleExcerptRefinement(Post $post, QueuePostTitleExcerptRefinementData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
+    {
+        return $this->titleExcerptRefinements->queue($post, $data, $retryOfAiJobId, $attempts);
+    }
+
     public function runQueuedPostMetadataSuggestions(int $aiJobId): void
     {
         $this->metadata->runQueued($aiJobId);
+    }
+
+    public function runQueuedPostTitleExcerptRefinement(int $aiJobId): void
+    {
+        $this->titleExcerptRefinements->runQueued($aiJobId);
     }
 
     public function retry(AiJob $job): AiJob
@@ -92,6 +104,7 @@ class AiWorkflowOrchestrator
             AiPromptTemplate::TYPE_BLOG_WRITER => $this->retryBlogWriter($job),
             AiPromptTemplate::TYPE_EDITOR => $this->retryEditor($job),
             AiPromptTemplate::TYPE_SEO_OPTIMIZER => $this->retrySeoOptimizer($job),
+            AiPromptTemplate::TYPE_EDITORIAL_REFINER => $this->retryEditorialRefiner($job),
             default => throw new RuntimeException("AI job retry is not supported for type [{$job->type}]."),
         };
     }
@@ -208,6 +221,27 @@ class AiWorkflowOrchestrator
         }
 
         return $this->queuePostMetadataSuggestions($post, new QueuePostMetadataSuggestionData(
+            instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
+            promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
+        ), (int) $job->id, $job->attempts + 1);
+    }
+
+    private function retryEditorialRefiner(AiJob $job): AiJob
+    {
+        $payload = is_array($job->input_payload) ? $job->input_payload : [];
+        $postId = $payload['post_id'] ?? $job->entity_id;
+
+        if (! is_int($postId) && ! (is_string($postId) && ctype_digit($postId))) {
+            throw new RuntimeException("Retry title/excerpt refinement job [{$job->id}] is missing a valid [post_id] value.");
+        }
+
+        $post = Post::query()->find((int) $postId);
+
+        if (! $post instanceof Post) {
+            throw new RuntimeException("Post [{$postId}] could not be found.");
+        }
+
+        return $this->queuePostTitleExcerptRefinement($post, new QueuePostTitleExcerptRefinementData(
             instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
             promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
         ), (int) $job->id, $job->attempts + 1);

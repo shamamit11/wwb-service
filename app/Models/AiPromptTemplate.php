@@ -33,6 +33,8 @@ class AiPromptTemplate extends Model
 
     public const TYPE_SEO_OPTIMIZER = 'seo_optimizer';
 
+    public const TYPE_EDITORIAL_REFINER = 'editorial_refiner';
+
     public const TYPE_PUBLISHING = 'publishing';
 
     public const STATUSES = [
@@ -47,6 +49,7 @@ class AiPromptTemplate extends Model
         self::TYPE_BLOG_WRITER,
         self::TYPE_EDITOR,
         self::TYPE_SEO_OPTIMIZER,
+        self::TYPE_EDITORIAL_REFINER,
         self::TYPE_PUBLISHING,
     ];
 

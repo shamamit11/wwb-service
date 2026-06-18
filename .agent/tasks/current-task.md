@@ -2,19 +2,15 @@
 
 ## Task Summary
 
-Implement `WB-SVC-061` by adding explicit AI title and excerpt refinement tools for editors.
+No active service task. `WB-SVC-061` is complete.
 
 ## Requested Outcome
 
-- add a dedicated refinement workflow for title suggestions, excerpt suggestions, and alternate headline variants
-- expose the workflow through admin API and MCP
-- keep the workflow review-only and non-publishing
-- track refinement runs through `ai_jobs` and `ai_generation_steps`
+- none active
 
 ## Scope Boundaries
 
-- in scope: service-side workflow, DTOs, validation, API contract, MCP updates, AI job execution, and tests
-- out of scope: admin UI implementation, auto-applying suggestions, publishing behavior, and newsletter work
+- waiting for the next requested task
 
 ## Context Files Loaded
 
@@ -35,37 +31,38 @@ Implement `WB-SVC-061` by adding explicit AI title and excerpt refinement tools 
 
 ## Plan
 
-1. Inspect the existing post metadata and rewrite workflows to identify the cleanest place for title/excerpt refinement orchestration.
-2. Add the refinement contract, workflow plumbing, MCP exposure, and test coverage while keeping suggestions review-only.
-3. Validate with focused tests and full `php artisan test`, then archive/commit/push.
+1. Wait for the next requested task.
 
 ## Changed Files
 
 - `PHASE2.md`
 - `.agent/tasks/current-task.md`
-- `app/AI/Agents/BlogWriterAgent.php`
-- `app/AI/DTO/BlogDraftInput.php`
-- `app/AI/Enums/BlogDraftGenerationMode.php`
-- `app/Http/Requests/Api/V1/Admin/GenerateBlogDraftRequest.php`
-- `app/Mcp/Prompts/BlogDraftPrompt.php`
-- `app/Mcp/Tools/GenerateBlogDraftTool.php`
-- `app/Modules/Ai/Data/QueueBlogDraftGenerationData.php`
+- `app/AI/Agents/TitleExcerptRefinementAgent.php`
+- `app/AI/DTO/PostTitleExcerptRefinementInput.php`
+- `app/AI/DTO/PostTitleExcerptRefinementResult.php`
+- `app/Http/Controllers/Api/V1/Admin/PostController.php`
+- `app/Http/Requests/Api/V1/Admin/QueuePostTitleExcerptRefinementRequest.php`
+- `app/Jobs/AI/GeneratePostTitleExcerptRefinementJob.php`
+- `app/Mcp/Prompts/TitleExcerptRefinementPrompt.php`
+- `app/Mcp/Servers/ContentOperationsServer.php`
+- `app/Mcp/Tools/RefinePostTitleExcerptTool.php`
+- `app/Models/AiPromptTemplate.php`
+- `app/Modules/Ai/Data/QueuePostTitleExcerptRefinementData.php`
 - `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
-- `app/Modules/Ai/Services/DraftGenerationWorkflow.php`
-- `app/Modules/Posts/Services/GenerateBlogDraftFromBriefService.php`
-- `tests/Feature/AiContentAgentContractsTest.php`
-- `tests/Feature/BlogWriterAgentTest.php`
-- `tests/Feature/ContentBriefApiTest.php`
+- `app/Modules/Ai/Services/QueuePostTitleExcerptRefinementService.php`
+- `app/Modules/Ai/Services/RunPostTitleExcerptRefinementService.php`
+- `app/Modules/Ai/Services/SuggestPostTitleExcerptRefinementService.php`
+- `app/Modules/Ai/Services/TitleExcerptRefinementWorkflow.php`
+- `routes/api.php`
 - `tests/Feature/ContentOperationsMcpServerTest.php`
-- `tests/Feature/GenerateBlogDraftJobTest.php`
+- `tests/Feature/PostApiTest.php`
+- `tests/Feature/PostTitleExcerptRefinementWorkflowTest.php`
 
 ## Validation
 
-- `php artisan test tests/Feature/BlogWriterAgentTest.php`
-- `php artisan test tests/Feature/ContentBriefApiTest.php`
+- `php artisan test tests/Feature/PostTitleExcerptRefinementWorkflowTest.php`
+- `php artisan test tests/Feature/PostApiTest.php --filter=title_excerpt_refinement`
 - `php artisan test tests/Feature/ContentOperationsMcpServerTest.php`
-- `php artisan test tests/Feature/GenerateBlogDraftJobTest.php`
-- `php artisan test tests/Feature/AiContentAgentContractsTest.php`
 - `php artisan test`
 
 ## Risks Or Follow-Ups
@@ -75,4 +72,5 @@ Implement `WB-SVC-061` by adding explicit AI title and excerpt refinement tools 
 ## Completion Notes
 
 - `WB-SVC-060` completed and archived in `.agent/tasks/completed/2026-06-18-wb-svc-060-implement-editorial-generation-modes-for-draft-creation.md`
-- implementation for `WB-SVC-061` not started yet
+- `WB-SVC-061` completed and archived in `.agent/tasks/completed/2026-06-18-wb-svc-061-implement-ai-title-and-excerpt-refinement-tools.md`
+- the remaining in-phase AI-assisted publishing service backlog is clear; next work is outside this closed scope unless new requirements are added

@@ -295,41 +295,35 @@ Source history:
 
 - `WB-SVC-060`
 
-## What Is Still Missing In This Phase
+### 19. Title And Excerpt Refinement
 
-These are the main service-side items still worth doing **before declaring the AI-assisted publishing phase fully closed**.
+Implemented:
 
-### 1. AI-Assisted Title / Excerpt Refinement As A Separate Tool
+- review-only title and excerpt refinement workflow for existing posts and drafts
+- recommended title and excerpt suggestions plus alternate headline and excerpt variations
+- additive admin API contract for queued title/excerpt refinement runs
+- MCP tool and prompt support for editor-facing refinement workflows
+- dedicated AI prompt type and retry-safe job tracking for refinement runs
 
-Status:
-
-- not exposed as a dedicated workflow
-
-Why it matters:
-
-- roadmap lists AI-assisted title and excerpt generation as a **Could Have**
-- draft creation may produce these implicitly, but there is no dedicated refinement contract for editors
-
-Recommended next service work:
-
-- add post-level refinement actions for:
-  - title suggestions
-  - excerpt suggestions
-  - alternate headline variations
-
-Backlog task:
+Source history:
 
 - `WB-SVC-061`
+
+## What Is Still Missing In This Phase
+
+No remaining service-side blockers were found inside the scoped **AI-assisted publishing** phase.
+
+The core MVP and the documented “should have / could have” service items are now implemented for this phase.
 
 ## Recommended “Next” Work Inside This Phase
 
-If the goal is to finish the current AI-assisted publishing phase cleanly on the service side, the next remaining service item is:
+This phase is functionally closed on the service side.
 
-1. Title and excerpt refinement workflow
+The next meaningful work should come from:
 
-Mapped backlog:
-
-- `WB-SVC-061`
+1. Newsletter module and newsletter generation agent backlog
+2. Admin UI implementation for the AI-assisted workflows
+3. Next-phase agents such as image generation and broader publishing automation
 
 ## Items That Should Move To The Next Phase
 

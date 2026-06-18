@@ -7,6 +7,7 @@ use App\Mcp\ContentMcpRegistration;
 use App\Mcp\Prompts\BlogDraftPrompt;
 use App\Mcp\Prompts\DraftRewritePrompt;
 use App\Mcp\Prompts\MetadataSuggestionPrompt;
+use App\Mcp\Prompts\TitleExcerptRefinementPrompt;
 use App\Mcp\Resources\KnowledgeBaseEntriesResource;
 use App\Mcp\Resources\RecentAiJobsResource;
 use App\Mcp\Servers\ContentOperationsServer;
@@ -15,6 +16,7 @@ use App\Mcp\Tools\GenerateBlogDraftTool;
 use App\Mcp\Tools\GenerateContentBriefTool;
 use App\Mcp\Tools\GetAiJobStatusTool;
 use App\Mcp\Tools\ListContentTopicsTool;
+use App\Mcp\Tools\RefinePostTitleExcerptTool;
 use App\Mcp\Tools\RewritePostDraftTool;
 use App\Mcp\Tools\SearchKnowledgeBaseTool;
 use App\Mcp\Tools\SuggestPostMetadataTool;
@@ -290,6 +292,16 @@ class ContentOperationsMcpServerTest extends TestCase
                 ->where('job.input_payload.instructions', 'Tighten metadata and improve click-through rate.')
                 ->etc();
         });
+        ContentOperationsServer::tool(RefinePostTitleExcerptTool::class, [
+            'post_id' => (string) $draftPost->id,
+            'instructions' => 'Make the title more distinctive and tighten the excerpt.',
+        ])->assertOk()->assertStructuredContent(function ($json) use ($draftPost): void {
+            $json->where('queued', true)
+                ->where('job.status', AiJob::STATUS_QUEUED)
+                ->where('job.entity_id', $draftPost->id)
+                ->where('job.input_payload.instructions', 'Make the title more distinctive and tighten the excerpt.')
+                ->etc();
+        });
 
         $jobId = (int) AiJob::query()->value('id');
 
@@ -305,6 +317,7 @@ class ContentOperationsMcpServerTest extends TestCase
         Queue::assertPushed(\App\Jobs\AI\GenerateBlogDraftJob::class, 1);
         Queue::assertPushed(\App\Jobs\AI\GeneratePostRewriteJob::class, 1);
         Queue::assertPushed(\App\Jobs\AI\GeneratePostMetadataSuggestionsJob::class, 1);
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostTitleExcerptRefinementJob::class, 1);
     }
 
     public function test_server_resources_and_prompts_return_readable_context(): void
@@ -361,6 +374,13 @@ class ContentOperationsMcpServerTest extends TestCase
             'post_id' => '55',
         ])->assertOk()->assertSee([
             'suggestPostMetadata',
+            'getAiJobStatus',
+            'review-only',
+        ]);
+        ContentOperationsServer::prompt(TitleExcerptRefinementPrompt::class, [
+            'post_id' => '55',
+        ])->assertOk()->assertSee([
+            'refinePostTitleExcerpt',
             'getAiJobStatus',
             'review-only',
         ]);

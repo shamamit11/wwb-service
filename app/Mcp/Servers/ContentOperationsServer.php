@@ -7,6 +7,7 @@ use App\Mcp\Prompts\ContentBriefPrompt;
 use App\Mcp\Prompts\DraftRewritePrompt;
 use App\Mcp\Prompts\MetadataSuggestionPrompt;
 use App\Mcp\Prompts\SeoReviewPrompt;
+use App\Mcp\Prompts\TitleExcerptRefinementPrompt;
 use App\Mcp\Prompts\TopicDiscoveryPrompt;
 use App\Mcp\Resources\ApprovedTopicsResource;
 use App\Mcp\Resources\KnowledgeBaseEntriesResource;
@@ -17,6 +18,7 @@ use App\Mcp\Tools\GenerateBlogDraftTool;
 use App\Mcp\Tools\GenerateContentBriefTool;
 use App\Mcp\Tools\GetAiJobStatusTool;
 use App\Mcp\Tools\ListContentTopicsTool;
+use App\Mcp\Tools\RefinePostTitleExcerptTool;
 use App\Mcp\Tools\RewritePostDraftTool;
 use App\Mcp\Tools\SearchKnowledgeBaseTool;
 use App\Mcp\Tools\SuggestPostMetadataTool;
@@ -28,7 +30,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 #[Name('WideWebBlog Content Operations')]
 #[Version('1.0.0')]
 #[Instructions(
-    'Use this server for safe editorial content workflows only. It can read knowledge-base context, list and create topic suggestions, generate content briefs, queue blog drafts, queue draft rewrites, queue metadata suggestion runs, and inspect AI job status. It never publishes posts and should follow the same approval rules as the admin API.'
+    'Use this server for safe editorial content workflows only. It can read knowledge-base context, list and create topic suggestions, generate content briefs, queue blog drafts, queue draft rewrites, queue metadata suggestion runs, queue title/excerpt refinement runs, and inspect AI job status. It never publishes posts and should follow the same approval rules as the admin API.'
 )]
 class ContentOperationsServer extends Server
 {
@@ -40,6 +42,7 @@ class ContentOperationsServer extends Server
         GenerateBlogDraftTool::class,
         RewritePostDraftTool::class,
         SuggestPostMetadataTool::class,
+        RefinePostTitleExcerptTool::class,
         GetAiJobStatusTool::class,
     ];
 
@@ -56,6 +59,7 @@ class ContentOperationsServer extends Server
         BlogDraftPrompt::class,
         DraftRewritePrompt::class,
         MetadataSuggestionPrompt::class,
+        TitleExcerptRefinementPrompt::class,
         SeoReviewPrompt::class,
     ];
 }

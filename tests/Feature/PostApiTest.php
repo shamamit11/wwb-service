@@ -274,6 +274,33 @@ class PostApiTest extends TestCase
         Queue::assertPushed(\App\Jobs\AI\GeneratePostMetadataSuggestionsJob::class, 1);
     }
 
+    public function test_admin_can_queue_title_excerpt_refinement(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($admin, $category, [
+            'title' => 'AI Draft Post',
+            'slug' => 'ai-draft-post',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/refine-title-excerpt", [
+            'instructions' => 'Make the title sharper and the excerpt more compelling.',
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', 'editorial_refiner')
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'post')
+            ->assertJsonPath('data.entity_id', $post->id)
+            ->assertJsonPath('data.input_payload.post_id', $post->id)
+            ->assertJsonPath('data.input_payload.instructions', 'Make the title sharper and the excerpt more compelling.');
+
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostTitleExcerptRefinementJob::class, 1);
+    }
+
     public function test_admin_post_list_supports_filters_and_sorting(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
