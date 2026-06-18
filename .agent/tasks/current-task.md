@@ -1,52 +1,66 @@
-# Task Template
+# Task Record
 
 ## Task Summary
 
-Describe the task in one sentence.
+Review the current non-newsletter AI content engine phase state and document what is implemented versus what remains.
 
 ## Requested Outcome
 
-- target result
-- explicit acceptance criteria
+- audit repo docs and completed task records for the current AI phase
+- exclude Newsletter module and Newsletter agent from the phase assessment
+- defer other agents such as image generation to a later phase
+- create `PHASE2.md` with implementation status and next steps
 
 ## Scope Boundaries
 
-- what is in scope
-- what is out of scope
+- in scope: service repo docs, task archives, and phase summary documentation
+- out of scope: implementing new service features, sibling app changes, newsletter planning details beyond exclusion
 
 ## Context Files Loaded
 
 - `.agent/INDEX.md`
 - `.agent/tasks/current-task.md`
-
-Add only the extra docs actually used.
+- `docs/AI_CONTENT_ENGINE.md`
+- `docs/AI_AGENTS.md`
+- `docs/PROMPT_MANAGEMENT.md`
+- `docs/AI_JOB_LIFECYCLE.md`
+- `docs/ROADMAP.md`
+- `docs/TASKS.md`
+- `.agent/MEMORY.md`
+- `.agent/knowledge-base/ai-content.md`
 
 ## Repository Files Inspected
 
-- list only the files or directories actually inspected
+- `WB_SERVICE_AI_AGENTS_TASKS.md`
+- `.agent/tasks/completed/`
+- `PHASE2.md`
 
 ## Plan
 
-1. First implementation step
-2. Validation step
-3. Completion step
+1. Review roadmap, AI docs, and completed task archives for delivered scope.
+2. Compare implemented items against the current AI phase, excluding newsletter and future-phase agents.
+3. Write `PHASE2.md` with status, gaps, and recommended next steps.
 
 ## Changed Files
 
-- add each created or modified file
+- `.agent/tasks/current-task.md`
+- `PHASE2.md`
 
 ## Validation
 
-- commands run
-- results
-- gaps not validated
+- `git status --short --branch`
+- manual review of AI docs and completed task records
+- no code or test validation required for this documentation-only task
 
 ## Risks Or Follow-Ups
 
-- residual risk
-- future cleanup or improvements
+- `PHASE2.md` reflects the current documentation and archived task records; if undocumented implementation exists elsewhere, the phase summary may underreport it.
+- Remaining items identified for this phase should be turned into explicit backlog tasks before implementation.
 
 ## Completion Notes
 
-- summary of what was finished
-- handover note if not complete
+- Summary: Added `PHASE2.md` to summarize the implemented non-newsletter AI content engine scope and the remaining in-phase service work.
+- Changed files: `.agent/tasks/current-task.md`, `PHASE2.md`
+- Validation run: documentation review and git status check
+- Risks: summary depends on the accuracy of existing docs and completed task archives
+- Follow-ups: convert remaining in-phase gaps into concrete service tasks when ready
