@@ -62,6 +62,14 @@ class Media extends Model
     }
 
     /**
+     * @return BelongsTo<AiJob, $this>
+     */
+    public function generatedByAiJob(): BelongsTo
+    {
+        return $this->belongsTo(AiJob::class, 'generated_by_ai_job_id');
+    }
+
+    /**
      * @return HasMany<Post, $this>
      */
     public function featuredOnPosts(): HasMany

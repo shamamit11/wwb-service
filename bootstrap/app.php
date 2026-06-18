@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException;
 use App\Modules\Media\Exceptions\MediaInUseException;
 use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
 use App\Support\ApiErrorResponse;
@@ -131,6 +132,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 [
                     'status' => [$exception->currentStatus],
                     'action' => [$exception->action],
+                ],
+            );
+        });
+
+        $exceptions->render(function (AiJobRetryNotAllowedException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->currentStatus],
                 ],
             );
         });
