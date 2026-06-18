@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
+use App\Http\Controllers\Api\V1\Admin\AdminPasswordController;
 use App\Http\Controllers\Api\V1\Admin\AiJobController as AdminAiJobController;
 use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
@@ -58,6 +59,8 @@ Route::prefix('v1')->group(function (): void {
         ->group(function (): void {
             Route::get('me', AdminStatusController::class)
                 ->name('api.v1.admin.me');
+            Route::post('change-password', AdminPasswordController::class)
+                ->name('api.v1.admin.change-password');
 
             Route::get('ai-jobs', [AdminAiJobController::class, 'index'])
                 ->name('api.v1.admin.ai-jobs.index');
