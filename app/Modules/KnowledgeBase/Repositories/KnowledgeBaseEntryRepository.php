@@ -4,6 +4,7 @@ namespace App\Modules\KnowledgeBase\Repositories;
 
 use App\Models\KnowledgeBaseEntry;
 use App\Modules\KnowledgeBase\Data\CreateKnowledgeBaseEntryData;
+use App\Modules\KnowledgeBase\Data\KnowledgeContextQueryData;
 use App\Modules\KnowledgeBase\Data\KnowledgeBaseEntryFiltersData;
 use App\Modules\KnowledgeBase\Data\UpdateKnowledgeBaseEntryData;
 use Illuminate\Database\Eloquent\Collection;
@@ -33,4 +34,9 @@ interface KnowledgeBaseEntryRepository
      * @return Collection<int, KnowledgeBaseEntry>
      */
     public function searchAdmin(KnowledgeBaseEntryFiltersData $filters): Collection;
+
+    /**
+     * @return Collection<int, KnowledgeBaseEntry>
+     */
+    public function findActiveForContext(KnowledgeContextQueryData $query): Collection;
 }
