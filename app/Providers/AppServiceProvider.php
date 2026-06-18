@@ -17,6 +17,8 @@ use App\Modules\Categories\Repositories\CategoryRepository;
 use App\Modules\Categories\Repositories\EloquentCategoryRepository;
 use App\Modules\ContentTopics\Repositories\ContentTopicRepository;
 use App\Modules\ContentTopics\Repositories\EloquentContentTopicRepository;
+use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
+use App\Modules\ContentBriefs\Repositories\EloquentContentBriefRepository;
 use App\Modules\Homepage\Repositories\EloquentHomepageRepository;
 use App\Modules\Homepage\Repositories\HomepageRepository;
 use App\Modules\KnowledgeBase\Repositories\EloquentKnowledgeBaseEntryRepository;
@@ -61,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AiJobCostRepository::class, EloquentAiJobCostRepository::class);
         $this->app->bind(AiPromptTemplateRepository::class, EloquentAiPromptTemplateRepository::class);
         $this->app->bind(CategoryRepository::class, EloquentCategoryRepository::class);
+        $this->app->bind(ContentBriefRepository::class, EloquentContentBriefRepository::class);
         $this->app->bind(ContentTopicRepository::class, EloquentContentTopicRepository::class);
         $this->app->bind(HomepageRepository::class, EloquentHomepageRepository::class);
         $this->app->bind(KnowledgeBaseEntryRepository::class, EloquentKnowledgeBaseEntryRepository::class);

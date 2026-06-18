@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\AiJobController as AdminAiJobController;
 use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ContentBriefController as AdminContentBriefController;
 use App\Http\Controllers\Api\V1\Admin\ContentTopicController as AdminContentTopicController;
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
@@ -86,12 +87,22 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.content-topics.update');
             Route::delete('content-topics/{contentTopic}', [AdminContentTopicController::class, 'destroy'])
                 ->name('api.v1.admin.content-topics.destroy');
+            Route::post('content-topics/{contentTopic}/generate-brief', [AdminContentTopicController::class, 'generateBrief'])
+                ->name('api.v1.admin.content-topics.generate-brief');
             Route::post('content-topics/{contentTopic}/approve', [AdminContentTopicController::class, 'approve'])
                 ->name('api.v1.admin.content-topics.approve');
             Route::post('content-topics/{contentTopic}/reject', [AdminContentTopicController::class, 'reject'])
                 ->name('api.v1.admin.content-topics.reject');
             Route::post('content-topics/{contentTopic}/mark-used', [AdminContentTopicController::class, 'markUsed'])
                 ->name('api.v1.admin.content-topics.mark-used');
+            Route::get('content-briefs', [AdminContentBriefController::class, 'index'])
+                ->name('api.v1.admin.content-briefs.index');
+            Route::get('content-briefs/{contentBrief}', [AdminContentBriefController::class, 'show'])
+                ->name('api.v1.admin.content-briefs.show');
+            Route::patch('content-briefs/{contentBrief}', [AdminContentBriefController::class, 'update'])
+                ->name('api.v1.admin.content-briefs.update');
+            Route::post('content-briefs/{contentBrief}/approve', [AdminContentBriefController::class, 'approve'])
+                ->name('api.v1.admin.content-briefs.approve');
 
             Route::get('homepage', [AdminHomepageController::class, 'show'])
                 ->name('api.v1.admin.homepage.show');

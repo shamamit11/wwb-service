@@ -1,6 +1,8 @@
 <?php
 
 use App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException;
+use App\Modules\ContentBriefs\Exceptions\ContentBriefGenerationNotAllowedException;
+use App\Modules\ContentBriefs\Exceptions\InvalidContentBriefStateTransitionException;
 use App\Modules\ContentTopics\Exceptions\DuplicateContentTopicException;
 use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionException;
 use App\Modules\Media\Exceptions\MediaInUseException;
@@ -170,6 +172,40 @@ return Application::configure(basePath: dirname(__DIR__))
                 [
                     'title' => [$exception->title],
                     'cluster' => [$exception->cluster],
+                ],
+            );
+        });
+
+        $exceptions->render(function (ContentBriefGenerationNotAllowedException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->topicStatus],
+                    'action' => ['generate-brief'],
+                ],
+            );
+        });
+
+        $exceptions->render(function (InvalidContentBriefStateTransitionException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'CONFLICT',
+                409,
+                [
+                    'status' => [$exception->currentStatus],
+                    'action' => [$exception->action],
                 ],
             );
         });

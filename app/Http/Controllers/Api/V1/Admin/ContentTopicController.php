@@ -7,8 +7,10 @@ use App\Http\Requests\Api\V1\Admin\ListContentTopicsRequest;
 use App\Http\Requests\Api\V1\Admin\StoreContentTopicRequest;
 use App\Http\Requests\Api\V1\Admin\TransitionContentTopicRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateContentTopicRequest;
+use App\Http\Resources\Api\V1\ContentBriefResource;
 use App\Http\Resources\Api\V1\ContentTopicResource;
 use App\Models\ContentTopic;
+use App\Modules\ContentBriefs\Services\GenerateContentBriefFromTopicService;
 use App\Modules\ContentTopics\Services\ApproveContentTopicService;
 use App\Modules\ContentTopics\Services\CreateContentTopicService;
 use App\Modules\ContentTopics\Services\DeleteContentTopicService;
@@ -85,5 +87,16 @@ class ContentTopicController extends Controller
         MarkContentTopicUsedService $service,
     ): ContentTopicResource {
         return new ContentTopicResource($service->handle($contentTopic, $request->notes()));
+    }
+
+    public function generateBrief(
+        ContentTopic $contentTopic,
+        GenerateContentBriefFromTopicService $service,
+    ): JsonResponse {
+        $result = $service->handle($contentTopic);
+
+        return (new ContentBriefResource($result->brief))
+            ->response()
+            ->setStatusCode($result->wasCreated ? Response::HTTP_CREATED : Response::HTTP_OK);
     }
 }

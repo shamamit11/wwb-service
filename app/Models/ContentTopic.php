@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'title',
@@ -90,5 +91,13 @@ class ContentTopic extends Model
     public function canGenerateContentBrief(): bool
     {
         return $this->isApproved();
+    }
+
+    /**
+     * @return HasOne<ContentBrief, $this>
+     */
+    public function contentBrief(): HasOne
+    {
+        return $this->hasOne(ContentBrief::class, 'content_topic_id');
     }
 }
