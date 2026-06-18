@@ -21,6 +21,8 @@ interface PostRepository
 
     public function findById(int $id): ?Post;
 
+    public function findBySourceContentBriefId(int $contentBriefId): ?Post;
+
     public function findBySlug(string $slug): ?Post;
 
     public function findPublishedBySlug(string $slug): ?Post;

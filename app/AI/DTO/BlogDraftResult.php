@@ -5,16 +5,23 @@ namespace App\AI\DTO;
 final readonly class BlogDraftResult extends AgentOutput
 {
     /**
-     * @param  list<array<string, mixed>>  $blocks
-     * @param  array<string, mixed>  $seoDraft
-     * @param  list<array<string, mixed>>  $imageSuggestions
+     * @param  list<array<string, mixed>>  $contentBlocks
+     * @param  list<array<string, mixed>>  $faqSuggestions
+     * @param  list<string>  $suggestedTags
+     * @param  list<string>  $imagePlacementNotes
+     * @param  list<string>  $altTextSuggestions
      */
     public function __construct(
         public string $title,
-        public string $markdown,
-        public array $blocks,
+        public string $slug,
+        public string $markdownBody,
         public ?string $excerpt = null,
-        public array $seoDraft = [],
-        public array $imageSuggestions = [],
+        public array $contentBlocks = [],
+        public ?string $seoTitle = null,
+        public ?string $metaDescription = null,
+        public array $faqSuggestions = [],
+        public array $suggestedTags = [],
+        public array $imagePlacementNotes = [],
+        public array $altTextSuggestions = [],
     ) {}
 }

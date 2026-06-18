@@ -87,6 +87,14 @@ class EloquentPostRepository implements PostRepository
             ->find($id);
     }
 
+    public function findBySourceContentBriefId(int $contentBriefId): ?Post
+    {
+        return Post::query()
+            ->with($this->relations())
+            ->where('meta->source_content_brief_id', $contentBriefId)
+            ->first();
+    }
+
     public function findBySlug(string $slug): ?Post
     {
         return Post::query()

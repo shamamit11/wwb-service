@@ -1,0 +1,472 @@
+<?php
+
+namespace App\AI\Agents;
+
+use App\AI\Contracts\ContentAgentInterface;
+use App\AI\DTO\AgentErrorData;
+use App\AI\DTO\AgentInput;
+use App\AI\DTO\AgentResult;
+use App\AI\DTO\BlogDraftInput;
+use App\AI\DTO\BlogDraftResult;
+use App\AI\Tools\FindInternalLinksTool;
+use App\AI\Tools\SavePostDraftTool;
+use App\AI\Tools\SearchExistingPostsTool;
+use App\Enums\ContentBlockType;
+use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Models\AiPromptTemplate;
+use App\Modules\Ai\Data\CreateAiGenerationStepData;
+use App\Modules\Ai\Data\CreateAiJobData;
+use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
+use App\Modules\Ai\Services\RecordAiUsageService;
+use App\Modules\Ai\Services\RenderAiPromptTemplateService;
+use App\Modules\Ai\Services\TrackAiJobService;
+use RuntimeException;
+use Throwable;
+
+class BlogWriterAgent implements ContentAgentInterface
+{
+    private const DEFAULT_PROMPT_KEY = 'blog_writer_default';
+
+    public function __construct(
+        private readonly AiClient $aiClient,
+        private readonly AiPromptTemplateRepository $promptTemplates,
+        private readonly RenderAiPromptTemplateService $renderPrompt,
+        private readonly TrackAiJobService $trackAiJob,
+        private readonly RecordAiUsageService $recordAiUsage,
+        private readonly SearchExistingPostsTool $searchExistingPosts,
+        private readonly FindInternalLinksTool $findInternalLinks,
+        private readonly SavePostDraftTool $savePostDraft,
+    ) {}
+
+    public function name(): string
+    {
+        return 'BlogWriterAgent';
+    }
+
+    public function run(AgentInput $input): AgentResult
+    {
+        if (! $input instanceof BlogDraftInput) {
+            throw new RuntimeException('BlogWriterAgent requires a BlogDraftInput instance.');
+        }
+
+        $contextualInput = $this->hydrateContext($input);
+
+        $job = $this->trackAiJob->createJob(new CreateAiJobData(
+            type: AiPromptTemplate::TYPE_BLOG_WRITER,
+            status: \App\Models\AiJob::STATUS_PENDING,
+            entityType: 'content_brief',
+            entityId: $contextualInput->contentBriefId,
+            provider: $this->resolveProvider($contextualInput),
+            model: $this->resolveModel($contextualInput),
+            inputPayload: $this->buildJobInputPayload($contextualInput),
+        ));
+
+        $job = $this->trackAiJob->queueJob($job);
+        $job = $this->trackAiJob->startJob($job);
+
+        $step = $this->trackAiJob->createStep(new CreateAiGenerationStepData(
+            aiJobId: (int) $job->id,
+            agentName: $this->name(),
+            inputPayload: $this->buildJobInputPayload($contextualInput),
+        ));
+        $step = $this->trackAiJob->startStep($step);
+
+        try {
+            $promptTemplate = $this->resolvePromptTemplate($contextualInput);
+            $renderedPrompt = $this->renderPrompt->render($promptTemplate, $this->buildPromptVariables($contextualInput));
+
+            if ($renderedPrompt->missingVariables !== []) {
+                throw new RuntimeException('Prompt template is missing required variables: '.implode(', ', $renderedPrompt->missingVariables));
+            }
+
+            $response = $this->aiClient->generateText($contextualInput->toGenerateTextRequest(
+                systemPrompt: $renderedPrompt->systemPrompt,
+                prompt: $renderedPrompt->userPrompt,
+            ));
+
+            $parsedResponse = $this->parseResponse($response->content, $contextualInput);
+            $post = $this->savePostDraft->save(
+                contentBriefId: $contextualInput->contentBriefId,
+                contentTopicId: $contextualInput->contentTopicId,
+                primaryKeyword: $contextualInput->primaryKeyword,
+                secondaryKeywords: $contextualInput->secondaryKeywords,
+                searchIntent: $contextualInput->searchIntent,
+                result: $parsedResponse,
+                metadata: $contextualInput->metadata,
+            );
+
+            $usagePayload = $response->usage->toArray();
+            $outputPayload = [
+                'post_id' => (int) $post->id,
+                'title' => $parsedResponse->title,
+                'slug' => $post->slug,
+                'block_count' => count($parsedResponse->contentBlocks),
+                'faq_suggestions' => $parsedResponse->faqSuggestions,
+                'suggested_tags' => $parsedResponse->suggestedTags,
+                'image_placement_notes' => $parsedResponse->imagePlacementNotes,
+                'alt_text_suggestions' => $parsedResponse->altTextSuggestions,
+            ];
+
+            $step = $this->trackAiJob->completeStep($step, $outputPayload, $usagePayload);
+            $job = $this->trackAiJob->completeJob($job, $outputPayload, $usagePayload);
+            $this->recordAiUsage->recordForStep($job, $step, $response->usage, $response->provider, $response->model);
+
+            return AgentResult::success(
+                agent: $this->name(),
+                rawResponse: $this->decodeJson($response->content) ?? $response->content,
+                parsedResponse: $parsedResponse,
+                usage: $response->usage,
+                provider: $response->provider,
+                model: $response->model,
+                metadata: [
+                    'job_id' => (int) $job->id,
+                    'step_id' => (int) $step->id,
+                    'post_id' => (int) $post->id,
+                ],
+            );
+        } catch (Throwable $throwable) {
+            $error = AgentErrorData::fromThrowable($throwable);
+
+            $this->trackAiJob->failStep($step, $error->message, ['error' => $error->toArray()]);
+            $this->trackAiJob->failJob($job, $error->message, ['error' => $error->toArray()]);
+
+            return AgentResult::failed(
+                agent: $this->name(),
+                error: $error,
+                provider: $job->provider,
+                model: $job->model,
+                metadata: [
+                    'job_id' => (int) $job->id,
+                    'step_id' => (int) $step->id,
+                ],
+            );
+        }
+    }
+
+    private function hydrateContext(BlogDraftInput $input): BlogDraftInput
+    {
+        $existingPostContext = $input->existingPostContext !== []
+            ? $input->existingPostContext
+            : $this->searchExistingPosts->search(
+                title: $input->title,
+                primaryKeyword: $input->primaryKeyword,
+                secondaryKeywords: $input->secondaryKeywords,
+                excerpt: $input->introAngle,
+            );
+
+        $internalLinkContext = $input->internalLinkContext !== []
+            ? $input->internalLinkContext
+            : $this->findInternalLinks->suggest(
+                title: $input->title,
+                primaryKeyword: $input->primaryKeyword,
+                secondaryKeywords: $input->secondaryKeywords,
+                excerpt: $input->introAngle,
+            );
+
+        return new BlogDraftInput(
+            contentBriefId: $input->contentBriefId,
+            contentTopicId: $input->contentTopicId,
+            title: $input->title,
+            slug: $input->slug,
+            primaryKeyword: $input->primaryKeyword,
+            secondaryKeywords: $input->secondaryKeywords,
+            searchIntent: $input->searchIntent,
+            introAngle: $input->introAngle,
+            targetAudience: $input->targetAudience,
+            outline: $input->outline,
+            headingStructure: $input->headingStructure,
+            faqSuggestions: $input->faqSuggestions,
+            knowledgeBaseContext: $input->knowledgeBaseContext,
+            existingPostContext: $existingPostContext,
+            internalLinkContext: $internalLinkContext,
+            imageSuggestions: $input->imageSuggestions,
+            provider: $input->provider,
+            model: $input->model,
+            timeoutSeconds: $input->timeoutSeconds,
+            retryTimes: $input->retryTimes,
+            retrySleepMilliseconds: $input->retrySleepMilliseconds,
+            metadata: $input->metadata,
+        );
+    }
+
+    private function resolvePromptTemplate(BlogDraftInput $input): AiPromptTemplate
+    {
+        $promptKey = $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY;
+        $promptKey = is_string($promptKey) && $promptKey !== '' ? $promptKey : self::DEFAULT_PROMPT_KEY;
+
+        $template = $this->promptTemplates->findByKey($promptKey)
+            ?? $this->promptTemplates->findActiveByType(AiPromptTemplate::TYPE_BLOG_WRITER);
+
+        if (! $template instanceof AiPromptTemplate || ! $template->activeVersion) {
+            throw new RuntimeException('No active blog writer prompt template is configured.');
+        }
+
+        return $template;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildPromptVariables(BlogDraftInput $input): array
+    {
+        return [
+            'title' => $input->title,
+            'slug' => $input->slug,
+            'primary_keyword' => $input->primaryKeyword,
+            'secondary_keywords' => $input->secondaryKeywords,
+            'search_intent' => $input->searchIntent,
+            'intro_angle' => $input->introAngle,
+            'target_audience' => $input->targetAudience,
+            'outline' => $input->outline,
+            'heading_structure' => $input->headingStructure,
+            'faq_suggestions' => $input->faqSuggestions,
+            'knowledge_context' => $input->knowledgeBaseContext,
+            'existing_post_context' => $input->existingPostContext,
+            'internal_link_context' => $input->internalLinkContext,
+            'image_suggestions' => $input->imageSuggestions,
+        ];
+    }
+
+    private function parseResponse(string $rawContent, BlogDraftInput $input): BlogDraftResult
+    {
+        $decoded = $this->decodeJson($rawContent);
+
+        if (! is_array($decoded)) {
+            throw new RuntimeException('Blog writer response was not valid JSON.');
+        }
+
+        $title = $this->normalizeString($decoded['title'] ?? null) ?? $input->title;
+        $slug = $this->normalizeString($decoded['slug'] ?? null) ?? $input->slug;
+        $markdownBody = $this->normalizeString($decoded['markdown_body'] ?? null);
+
+        if ($markdownBody === null) {
+            throw new RuntimeException('Blog writer response did not include markdown_body.');
+        }
+
+        $contentBlocks = $this->normalizeContentBlocks($decoded['content_blocks'] ?? []);
+
+        if ($contentBlocks === []) {
+            throw new RuntimeException('Blog writer response did not include any valid content_blocks.');
+        }
+
+        $faqSuggestions = $this->normalizeFaqSuggestions($decoded['faq_suggestions'] ?? []);
+
+        if ($faqSuggestions !== [] && ! $this->containsFaqBlock($contentBlocks)) {
+            $contentBlocks[] = [
+                'block_type' => ContentBlockType::FAQ->value,
+                'sort_order' => count($contentBlocks) + 1,
+                'content' => [
+                    'items' => array_map(
+                        static fn (array $faq): array => [
+                            'question' => $faq['question'],
+                            'answer_markdown' => $faq['answer_markdown'],
+                        ],
+                        $faqSuggestions,
+                    ),
+                ],
+            ];
+        }
+
+        return new BlogDraftResult(
+            title: $title,
+            slug: (string) \Illuminate\Support\Str::slug($slug),
+            markdownBody: $markdownBody,
+            excerpt: $this->normalizeString($decoded['excerpt'] ?? null),
+            contentBlocks: $contentBlocks,
+            seoTitle: $this->normalizeString($decoded['seo_title'] ?? null),
+            metaDescription: $this->normalizeString($decoded['meta_description'] ?? null),
+            faqSuggestions: $faqSuggestions,
+            suggestedTags: $this->normalizeStringList($decoded['suggested_tags'] ?? []),
+            imagePlacementNotes: $this->normalizeStringList($decoded['image_placement_notes'] ?? []),
+            altTextSuggestions: $this->normalizeStringList($decoded['alt_text_suggestions'] ?? []),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildJobInputPayload(BlogDraftInput $input): array
+    {
+        return [
+            'content_brief_id' => $input->contentBriefId,
+            'content_topic_id' => $input->contentTopicId,
+            'title' => $input->title,
+            'slug' => $input->slug,
+            'primary_keyword' => $input->primaryKeyword,
+            'secondary_keywords' => $input->secondaryKeywords,
+            'search_intent' => $input->searchIntent,
+            'intro_angle' => $input->introAngle,
+            'target_audience' => $input->targetAudience,
+            'outline' => $input->outline,
+            'heading_structure' => $input->headingStructure,
+            'faq_suggestions' => $input->faqSuggestions,
+            'knowledge_context' => $input->knowledgeBaseContext,
+            'existing_post_context' => $input->existingPostContext,
+            'internal_link_context' => $input->internalLinkContext,
+            'image_suggestions' => $input->imageSuggestions,
+            'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
+        ];
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeContentBlocks(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $blocks = [];
+
+        foreach (array_values($value) as $index => $blockPayload) {
+            if (! is_array($blockPayload)) {
+                continue;
+            }
+
+            $blockType = $this->normalizeString($blockPayload['block_type'] ?? $blockPayload['type'] ?? null);
+            $content = $blockPayload['content'] ?? null;
+
+            if ($blockType === null || ! is_array($content)) {
+                continue;
+            }
+
+            $sortOrder = $blockPayload['sort_order'] ?? ($index + 1);
+            $sortOrder = is_numeric($sortOrder) ? max(1, (int) $sortOrder) : ($index + 1);
+
+            $blocks[] = [
+                'block_type' => $blockType,
+                'sort_order' => $sortOrder,
+                'content' => $content,
+            ];
+        }
+
+        usort($blocks, static fn (array $left, array $right): int => $left['sort_order'] <=> $right['sort_order']);
+
+        return array_values(array_map(
+            static fn (array $block, int $index): array => [
+                'block_type' => $block['block_type'],
+                'sort_order' => $index + 1,
+                'content' => $block['content'],
+            ],
+            $blocks,
+            array_keys($blocks),
+        ));
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return list<array{question:string,answer_markdown:string}>
+     */
+    private function normalizeFaqSuggestions(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach ($value as $faqPayload) {
+            if (! is_array($faqPayload)) {
+                continue;
+            }
+
+            $question = $this->normalizeString($faqPayload['question'] ?? null);
+            $answer = $this->normalizeString($faqPayload['answer_markdown'] ?? $faqPayload['answer'] ?? $faqPayload['answer_focus'] ?? null);
+
+            if ($question === null || $answer === null) {
+                continue;
+            }
+
+            $items[] = [
+                'question' => $question,
+                'answer_markdown' => $answer,
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $blocks
+     */
+    private function containsFaqBlock(array $blocks): bool
+    {
+        foreach ($blocks as $block) {
+            if (($block['block_type'] ?? null) === ContentBlockType::FAQ->value) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeJson(string $rawContent): ?array
+    {
+        try {
+            $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * @param  mixed  $value
+     */
+    private function normalizeString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $normalized = trim($value);
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return list<string>
+     */
+    private function normalizeStringList(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (mixed $item): ?string => $this->normalizeString($item),
+            $value,
+        )));
+    }
+
+    private function resolveProvider(BlogDraftInput $input): ?string
+    {
+        return $input->provider
+            ?? config('ai.service.default_provider')
+            ?? config('ai.default');
+    }
+
+    private function resolveModel(BlogDraftInput $input): ?string
+    {
+        if (is_string($input->model) && $input->model !== '') {
+            return $input->model;
+        }
+
+        $provider = $this->resolveProvider($input);
+
+        if (! is_string($provider) || $provider === '') {
+            return null;
+        }
+
+        $model = config("ai.service.providers.{$provider}.text_model");
+
+        return is_string($model) && $model !== '' ? $model : null;
+    }
+}

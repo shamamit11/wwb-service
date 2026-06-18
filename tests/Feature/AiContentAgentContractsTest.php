@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\AI\Contracts\ContentAgentInterface;
 use App\AI\DTO\AgentErrorData;
 use App\AI\DTO\AgentInput;
+use App\AI\DTO\BlogDraftInput;
+use App\AI\DTO\BlogDraftResult;
 use App\AI\DTO\AgentResult;
 use App\AI\DTO\ContentBriefInput;
 use App\AI\DTO\ContentBriefResult;
@@ -19,12 +21,19 @@ class AiContentAgentContractsTest extends TestCase
 {
     public function test_agent_input_can_build_text_generation_request(): void
     {
-        $input = new TopicDiscoveryInput(
-            cluster: 'ai_tools',
-            targetCount: 5,
-            audience: 'Technical content leads',
-            existingTopics: ['Prompt versioning'],
-            knowledgeContext: ['Use database-backed prompts.'],
+        $input = new BlogDraftInput(
+            contentBriefId: 12,
+            contentTopicId: 7,
+            title: 'AI Prompt Versioning for Editorial Teams',
+            slug: 'ai-prompt-versioning-for-editorial-teams',
+            primaryKeyword: 'ai prompt versioning',
+            secondaryKeywords: ['prompt ops'],
+            searchIntent: 'informational',
+            introAngle: 'Use prompt versioning as an editorial control.',
+            outline: [['heading' => 'Why prompt versioning matters', 'purpose' => 'Frame the problem']],
+            headingStructure: ['Why prompt versioning matters'],
+            faqSuggestions: [['question' => 'Why version prompts?', 'answer_markdown' => 'To keep reviewable changes.']],
+            knowledgeBaseContext: ['Use database-backed prompts.'],
             provider: 'openai',
             model: 'gpt-5-mini',
             timeoutSeconds: 20,
@@ -48,18 +57,19 @@ class AiContentAgentContractsTest extends TestCase
 
     public function test_agent_result_success_can_wrap_structured_output_and_usage_metadata(): void
     {
-        $parsed = new ContentBriefResult(
-            recommendedTitle: 'AI Prompt Versioning for Editorial Teams',
+        $parsed = new BlogDraftResult(
+            title: 'AI Prompt Versioning for Editorial Teams',
             slug: 'ai-prompt-versioning-for-editorial-teams',
-            metaTitle: 'AI Prompt Versioning for Editorial Teams',
-            metaDescription: 'A structured brief for editorial prompt versioning.',
-            introAngle: 'Use prompt versioning as an editorial operations control.',
-            targetAudience: 'Editorial teams',
-            outline: [['heading' => 'Why prompt versioning matters', 'purpose' => 'Frame the problem']],
-            headingStructure: ['Why prompt versioning matters'],
-            faqSuggestions: [['question' => 'Why version prompts?', 'answer_focus' => 'Operational control']],
-            internalLinkSuggestions: [['title' => 'Prompt Ops', 'url' => '/prompt-ops']],
-            imageIdeas: ['Editorial prompt workflow diagram'],
+            markdownBody: '# AI Prompt Versioning for Editorial Teams',
+            excerpt: 'A practical draft for editorial prompt versioning.',
+            contentBlocks: [
+                ['block_type' => 'heading', 'sort_order' => 1, 'content' => ['text' => 'AI Prompt Versioning for Editorial Teams', 'level' => 1]],
+            ],
+            seoTitle: 'AI Prompt Versioning for Editorial Teams',
+            metaDescription: 'A practical draft for editorial prompt versioning.',
+            faqSuggestions: [['question' => 'Why version prompts?', 'answer_markdown' => 'To keep reviewable changes.']],
+            suggestedTags: ['Prompt Ops'],
+            imagePlacementNotes: ['Use a workflow diagram after the intro.'],
             altTextSuggestions: ['Diagram of prompt review workflow'],
         );
 
@@ -77,8 +87,8 @@ class AiContentAgentContractsTest extends TestCase
         $this->assertFalse($result->isFailure());
         $this->assertSame(AiRunStatus::SUCCESS, $result->status);
         $this->assertSame(120, $result->usage?->promptTokens);
-        $this->assertInstanceOf(ContentBriefResult::class, $result->parsedResponse);
-        $this->assertSame('AI Prompt Versioning for Editorial Teams', $result->parsedResponse?->recommendedTitle);
+        $this->assertInstanceOf(BlogDraftResult::class, $result->parsedResponse);
+        $this->assertSame('AI Prompt Versioning for Editorial Teams', $result->parsedResponse?->title);
         $this->assertSame(42, $result->metadata['job_id']);
     }
 
