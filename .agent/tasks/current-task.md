@@ -2,19 +2,19 @@
 
 ## Task Summary
 
-Implement `WB-SVC-059` by adding an explicit AI metadata suggestion workflow for existing drafts and posts.
+Implement `WB-SVC-060` by adding explicit editorial generation modes for AI draft creation.
 
 ## Requested Outcome
 
-- add a dedicated metadata suggestion service for title, excerpt, meta title, meta description, and focus keyword
-- expose the workflow through admin API and MCP
-- keep all outputs review-only and non-publishing
-- track metadata suggestion runs through `ai_jobs` and `ai_generation_steps`
+- add a mode-aware draft generation contract for supported article styles
+- expose the mode selection through admin API and MCP
+- keep the default generation path backward compatible when no mode is provided
+- ensure mode selection changes prompt/template behavior without changing draft-only review rules
 
 ## Scope Boundaries
 
-- in scope: service-side workflow, DTOs, request validation, API route, MCP tool/prompt, AI job execution, persistence, and tests
-- out of scope: admin UI implementation, auto-application of suggestions, publishing behavior, and later generation-mode/title-refinement tasks
+- in scope: service-side workflow, DTOs, validation, API route updates if needed, MCP updates if needed, AI workflow plumbing, and tests
+- out of scope: admin UI implementation, title/excerpt refinement tooling, publishing behavior, and newsletter work
 
 ## Context Files Loaded
 
@@ -28,8 +28,8 @@ Implement `WB-SVC-059` by adding an explicit AI metadata suggestion workflow for
 
 ## Plan
 
-1. Inspect the existing SEO metadata, post, and AI workflow services to find the cleanest place for metadata suggestion orchestration.
-2. Add the metadata suggestion workflow, queue path, admin API contract, MCP surface, and tests.
+1. Inspect the existing blog draft generation DTOs, workflow, and prompt rendering path to determine the cleanest place for mode-aware generation.
+2. Add the generation-mode contract, workflow plumbing, and test coverage while preserving the default draft path.
 3. Validate with focused tests and full `php artisan test`, then archive/commit/push.
 
 ## Changed Files
@@ -42,7 +42,7 @@ Implement `WB-SVC-059` by adding an explicit AI metadata suggestion workflow for
 
 ## Risks Or Follow-Ups
 
-- metadata suggestions should remain review-only by default; auto-applying them would need a separate editorial action
+- generation modes should stay prompt/template driven; if the service starts branching into deeply different persistence rules, that should be a later design decision
 
 ## Completion Notes
 

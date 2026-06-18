@@ -266,31 +266,25 @@ Source history:
 
 - `WB-SVC-058`
 
+### 17. Explicit Metadata Suggestion Workflow
+
+Implemented:
+
+- review-only metadata suggestion workflow for existing posts and drafts
+- title, excerpt, meta title, meta description, and focus keyword suggestions
+- admin API contract for queued metadata suggestion runs
+- MCP tool and prompt for metadata suggestion workflows
+- AI job and generation-step tracking for metadata suggestion runs
+
+Source history:
+
+- `WB-SVC-059`
+
 ## What Is Still Missing In This Phase
 
 These are the main service-side items still worth doing **before declaring the AI-assisted publishing phase fully closed**.
 
-### 1. Explicit Metadata Suggestion Workflow
-
-Status:
-
-- partially implied, but not implemented as a dedicated service workflow/API
-
-Why it matters:
-
-- the roadmap lists metadata suggestion support as a **Should Have**
-- prompts and agents can inform SEO-related output, but there is no clear standalone “suggest metadata for this draft/post” contract
-
-Recommended next service work:
-
-- add a metadata suggestion service for title, excerpt, meta title, meta description, focus keyword, and possibly schema hints
-- keep outputs review-only and non-publishing
-
-Backlog task:
-
-- `WB-SVC-059`
-
-### 2. Additional Editorial Variants / Generation Modes
+### 1. Additional Editorial Variants / Generation Modes
 
 Status:
 
@@ -309,7 +303,7 @@ Backlog task:
 
 - `WB-SVC-060`
 
-### 3. AI-Assisted Title / Excerpt Refinement As A Separate Tool
+### 2. AI-Assisted Title / Excerpt Refinement As A Separate Tool
 
 Status:
 
@@ -336,13 +330,11 @@ Backlog task:
 If the goal is to finish the current AI-assisted publishing phase cleanly on the service side, the highest-value next order is:
 
 1. Draft rewrite / section regeneration workflow
-2. Metadata suggestion workflow
-3. Title and excerpt refinement workflow
-4. Optional multi-mode draft generation
+2. Title and excerpt refinement workflow
+3. Optional multi-mode draft generation
 
 Mapped backlog:
 
-- `WB-SVC-059`
 - `WB-SVC-061`
 - `WB-SVC-060`
 

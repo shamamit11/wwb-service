@@ -247,6 +247,33 @@ class PostApiTest extends TestCase
         Queue::assertPushed(\App\Jobs\AI\GeneratePostRewriteJob::class, 1);
     }
 
+    public function test_admin_can_queue_post_metadata_suggestions(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($admin, $category, [
+            'title' => 'AI Draft Post',
+            'slug' => 'ai-draft-post',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/suggest-metadata", [
+            'instructions' => 'Improve CTR and tighten the excerpt.',
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', 'seo_optimizer')
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'post')
+            ->assertJsonPath('data.entity_id', $post->id)
+            ->assertJsonPath('data.input_payload.post_id', $post->id)
+            ->assertJsonPath('data.input_payload.instructions', 'Improve CTR and tighten the excerpt.');
+
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostMetadataSuggestionsJob::class, 1);
+    }
+
     public function test_admin_post_list_supports_filters_and_sorting(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

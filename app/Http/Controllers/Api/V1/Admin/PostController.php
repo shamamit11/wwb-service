@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\ListPostsRequest;
 use App\Http\Requests\Api\V1\Admin\PublishPostRequest;
+use App\Http\Requests\Api\V1\Admin\QueuePostMetadataSuggestionRequest;
 use App\Http\Requests\Api\V1\Admin\QueuePostRewriteRequest;
 use App\Http\Requests\Api\V1\Admin\SchedulePostRequest;
 use App\Http\Requests\Api\V1\Admin\StorePostRequest;
@@ -13,6 +14,7 @@ use App\Http\Requests\Api\V1\Admin\UpdatePostRequest;
 use App\Http\Resources\Api\V1\AiJobResource;
 use App\Http\Resources\Api\V1\PostResource;
 use App\Models\Post;
+use App\Modules\Ai\Services\QueuePostMetadataSuggestionService;
 use App\Modules\Ai\Services\QueuePostRewriteService;
 use App\Modules\Posts\Services\CreatePostService;
 use App\Modules\Posts\Services\DeletePostService;
@@ -97,6 +99,16 @@ class PostController extends Controller
         QueuePostRewriteRequest $request,
         Post $post,
         QueuePostRewriteService $service,
+    ): JsonResponse {
+        return (new AiJobResource($service->handle($post, $request->toData())))
+            ->response()
+            ->setStatusCode(Response::HTTP_ACCEPTED);
+    }
+
+    public function suggestMetadata(
+        QueuePostMetadataSuggestionRequest $request,
+        Post $post,
+        QueuePostMetadataSuggestionService $service,
     ): JsonResponse {
         return (new AiJobResource($service->handle($post, $request->toData())))
             ->response()

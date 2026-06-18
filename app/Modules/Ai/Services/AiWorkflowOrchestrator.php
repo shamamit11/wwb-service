@@ -10,6 +10,7 @@ use App\Models\ContentTopic;
 use App\Models\Post;
 use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
+use App\Modules\Ai\Data\QueuePostMetadataSuggestionData;
 use App\Modules\Ai\Data\QueuePostRewriteData;
 use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
 use RuntimeException;
@@ -21,6 +22,7 @@ class AiWorkflowOrchestrator
         private readonly ContentBriefWorkflow $contentBriefs,
         private readonly DraftGenerationWorkflow $drafts,
         private readonly DraftRewriteWorkflow $rewrites,
+        private readonly MetadataSuggestionWorkflow $metadata,
     ) {}
 
     public function dispatchTopicDiscovery(DiscoverContentTopicsData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
@@ -68,6 +70,16 @@ class AiWorkflowOrchestrator
         $this->rewrites->runQueued($aiJobId);
     }
 
+    public function queuePostMetadataSuggestions(Post $post, QueuePostMetadataSuggestionData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
+    {
+        return $this->metadata->queue($post, $data, $retryOfAiJobId, $attempts);
+    }
+
+    public function runQueuedPostMetadataSuggestions(int $aiJobId): void
+    {
+        $this->metadata->runQueued($aiJobId);
+    }
+
     public function retry(AiJob $job): AiJob
     {
         if (! $job->canRetry()) {
@@ -79,6 +91,7 @@ class AiWorkflowOrchestrator
             AiPromptTemplate::TYPE_CONTENT_BRIEF => $this->retryContentBrief($job),
             AiPromptTemplate::TYPE_BLOG_WRITER => $this->retryBlogWriter($job),
             AiPromptTemplate::TYPE_EDITOR => $this->retryEditor($job),
+            AiPromptTemplate::TYPE_SEO_OPTIMIZER => $this->retrySeoOptimizer($job),
             default => throw new RuntimeException("AI job retry is not supported for type [{$job->type}]."),
         };
     }
@@ -173,6 +186,27 @@ class AiWorkflowOrchestrator
         return $this->queuePostRewrite($post, new QueuePostRewriteData(
             scope: $this->rewrites->normalizeScope($payload['scope'] ?? null),
             targetBlockIds: is_array($payload['target_block_ids'] ?? null) ? array_values(array_map(static fn (mixed $id): int => (int) $id, $payload['target_block_ids'])) : [],
+            instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
+            promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
+        ), (int) $job->id, $job->attempts + 1);
+    }
+
+    private function retrySeoOptimizer(AiJob $job): AiJob
+    {
+        $payload = is_array($job->input_payload) ? $job->input_payload : [];
+        $postId = $payload['post_id'] ?? $job->entity_id;
+
+        if (! is_int($postId) && ! (is_string($postId) && ctype_digit($postId))) {
+            throw new RuntimeException("Retry metadata suggestion job [{$job->id}] is missing a valid [post_id] value.");
+        }
+
+        $post = Post::query()->find((int) $postId);
+
+        if (! $post instanceof Post) {
+            throw new RuntimeException("Post [{$postId}] could not be found.");
+        }
+
+        return $this->queuePostMetadataSuggestions($post, new QueuePostMetadataSuggestionData(
             instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
             promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
         ), (int) $job->id, $job->attempts + 1);
