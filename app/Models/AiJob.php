@@ -101,6 +101,15 @@ class AiJob extends Model
         return $this->hasMany(Media::class, 'generated_by_ai_job_id');
     }
 
+    /**
+     * @return HasMany<AiJobCost, $this>
+     */
+    public function costs(): HasMany
+    {
+        return $this->hasMany(AiJobCost::class)
+            ->orderBy('id');
+    }
+
     public function canRetry(): bool
     {
         return $this->status === self::STATUS_FAILED;

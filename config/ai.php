@@ -160,6 +160,35 @@ return [
             'times' => (int) env('AI_RETRY_TIMES', 2),
             'sleep_ms' => (int) env('AI_RETRY_SLEEP_MS', 250),
         ],
+        'pricing' => [
+            'default_currency' => env('AI_COST_CURRENCY', 'USD'),
+            'providers' => [
+                'openai' => [
+                    'models' => [
+                        'gpt-5-mini' => [
+                            'input_per_1k_tokens' => env('AI_PRICING_OPENAI_GPT5_MINI_INPUT_PER_1K', '0'),
+                            'output_per_1k_tokens' => env('AI_PRICING_OPENAI_GPT5_MINI_OUTPUT_PER_1K', '0'),
+                        ],
+                    ],
+                ],
+                'anthropic' => [
+                    'models' => [
+                        'claude-3-5-sonnet' => [
+                            'input_per_1k_tokens' => env('AI_PRICING_ANTHROPIC_CLAUDE35_SONNET_INPUT_PER_1K', '0'),
+                            'output_per_1k_tokens' => env('AI_PRICING_ANTHROPIC_CLAUDE35_SONNET_OUTPUT_PER_1K', '0'),
+                        ],
+                    ],
+                ],
+                'gemini' => [
+                    'models' => [
+                        'gemini-2.5-pro' => [
+                            'input_per_1k_tokens' => env('AI_PRICING_GEMINI_25_PRO_INPUT_PER_1K', '0'),
+                            'output_per_1k_tokens' => env('AI_PRICING_GEMINI_25_PRO_OUTPUT_PER_1K', '0'),
+                        ],
+                    ],
+                ],
+            ],
+        ],
         'providers' => [
             'openai' => [
                 'text_model' => env('OPENAI_TEXT_MODEL'),

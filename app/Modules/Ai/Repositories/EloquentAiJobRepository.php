@@ -55,7 +55,7 @@ class EloquentAiJobRepository implements AiJobRepository
     public function findById(int $id): ?AiJob
     {
         return AiJob::query()
-            ->with(['steps', 'retryOf', 'retries'])
+            ->with(['costs', 'steps.costs', 'retryOf', 'retries'])
             ->withCount('steps')
             ->find($id);
     }
@@ -68,12 +68,14 @@ class EloquentAiJobRepository implements AiJobRepository
         [$sortColumn, $descending] = $this->normalizeSort($filters->sort);
 
         return AiJob::query()
-            ->with('retryOf')
+            ->with(['costs', 'retryOf'])
             ->withCount('steps')
             ->when($filters->status, fn ($query, string $status) => $query->where('status', $status))
             ->when($filters->type, fn ($query, string $type) => $query->where('type', $type))
             ->when($filters->entityType, fn ($query, string $entityType) => $query->where('entity_type', $entityType))
             ->when($filters->entityId, fn ($query, int $entityId) => $query->where('entity_id', $entityId))
+            ->when($filters->provider, fn ($query, string $provider) => $query->where('provider', $provider))
+            ->when($filters->model, fn ($query, string $model) => $query->where('model', $model))
             ->orderBy($sortColumn, $descending ? 'desc' : 'asc')
             ->orderByDesc('id')
             ->get();
@@ -81,7 +83,7 @@ class EloquentAiJobRepository implements AiJobRepository
 
     private function refresh(AiJob $job): AiJob
     {
-        return $job->refresh()->load(['steps', 'retryOf', 'retries'])->loadCount('steps');
+        return $job->refresh()->load(['costs', 'steps.costs', 'retryOf', 'retries'])->loadCount('steps');
     }
 
     /**

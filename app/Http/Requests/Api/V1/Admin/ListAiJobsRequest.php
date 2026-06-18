@@ -24,6 +24,8 @@ class ListAiJobsRequest extends FormRequest
             'type' => ['nullable', 'string', 'max:120'],
             'entity_type' => ['nullable', 'string', 'max:120'],
             'entity_id' => ['nullable', 'integer', 'min:1'],
+            'provider' => ['nullable', 'string', 'max:120'],
+            'model' => ['nullable', 'string', 'max:160'],
             'sort' => ['nullable', 'string', Rule::in([
                 'attempts',
                 '-attempts',
@@ -43,7 +45,7 @@ class ListAiJobsRequest extends FormRequest
 
     public function toData(): AiJobFiltersData
     {
-        /** @var array{status?:string|null,type?:string|null,entity_type?:string|null,entity_id?:int|null,sort?:string|null} $validated */
+        /** @var array{status?:string|null,type?:string|null,entity_type?:string|null,entity_id?:int|null,provider?:string|null,model?:string|null,sort?:string|null} $validated */
         $validated = $this->validated();
 
         return new AiJobFiltersData(
@@ -51,6 +53,8 @@ class ListAiJobsRequest extends FormRequest
             type: $validated['type'] ?? null,
             entityType: $validated['entity_type'] ?? null,
             entityId: $validated['entity_id'] ?? null,
+            provider: $validated['provider'] ?? null,
+            model: $validated['model'] ?? null,
             sort: $validated['sort'] ?? '-created_at',
         );
     }

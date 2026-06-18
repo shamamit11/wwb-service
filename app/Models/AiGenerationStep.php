@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'ai_job_id',
@@ -59,5 +60,14 @@ class AiGenerationStep extends Model
     public function aiJob(): BelongsTo
     {
         return $this->belongsTo(AiJob::class);
+    }
+
+    /**
+     * @return HasMany<AiJobCost, $this>
+     */
+    public function costs(): HasMany
+    {
+        return $this->hasMany(AiJobCost::class)
+            ->orderBy('id');
     }
 }

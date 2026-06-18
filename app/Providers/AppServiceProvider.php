@@ -6,8 +6,10 @@ use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\LaravelAiClient;
 use App\Models\User;
 use App\Modules\Ai\Repositories\AiGenerationStepRepository;
+use App\Modules\Ai\Repositories\AiJobCostRepository;
 use App\Modules\Ai\Repositories\AiJobRepository;
 use App\Modules\Ai\Repositories\EloquentAiGenerationStepRepository;
+use App\Modules\Ai\Repositories\EloquentAiJobCostRepository;
 use App\Modules\Ai\Repositories\EloquentAiJobRepository;
 use App\Modules\Categories\Repositories\CategoryRepository;
 use App\Modules\Categories\Repositories\EloquentCategoryRepository;
@@ -52,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AiClient::class, LaravelAiClient::class);
         $this->app->bind(AiGenerationStepRepository::class, EloquentAiGenerationStepRepository::class);
         $this->app->bind(AiJobRepository::class, EloquentAiJobRepository::class);
+        $this->app->bind(AiJobCostRepository::class, EloquentAiJobCostRepository::class);
         $this->app->bind(CategoryRepository::class, EloquentCategoryRepository::class);
         $this->app->bind(HomepageRepository::class, EloquentHomepageRepository::class);
         $this->app->bind(KnowledgeBaseEntryRepository::class, EloquentKnowledgeBaseEntryRepository::class);

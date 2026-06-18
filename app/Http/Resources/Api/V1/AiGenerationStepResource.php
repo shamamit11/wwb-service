@@ -21,6 +21,7 @@ class AiGenerationStepResource extends ApiResource
             'output_payload' => $this->resource->output_payload,
             'usage_payload' => $this->resource->usage_payload,
             'error_message' => $this->resource->error_message,
+            'costs' => AiJobCostResource::collection($this->whenLoaded('costs')),
             'started_at' => $this->resource->started_at?->toISOString(),
             'completed_at' => $this->resource->completed_at?->toISOString(),
             'failed_at' => $this->resource->failed_at?->toISOString(),

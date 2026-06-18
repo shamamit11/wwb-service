@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AiGenerationStep;
 use App\Models\AiJob;
+use App\Models\AiJobCost;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -66,19 +67,38 @@ class AiJobApiTest extends TestCase
             'failed_at' => now(),
         ]);
 
-        $this->withToken($token)->getJson('/api/v1/admin/ai-jobs?status=failed')
+        AiJobCost::query()->create([
+            'ai_job_id' => $failed->id,
+            'ai_generation_step_id' => null,
+            'provider' => 'openai',
+            'model' => 'gpt-5-mini',
+            'input_tokens' => 180,
+            'output_tokens' => 55,
+            'total_tokens' => 235,
+            'estimated_cost' => '0.00420000',
+            'actual_cost' => null,
+            'currency' => 'USD',
+            'metadata' => ['scope' => 'job_aggregate'],
+        ]);
+
+        $this->withToken($token)->getJson('/api/v1/admin/ai-jobs?status=failed&provider=openai&model=gpt-5-mini')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $failed->id)
             ->assertJsonPath('data.0.steps_count', 1)
-            ->assertJsonPath('data.0.can_retry', true);
+            ->assertJsonPath('data.0.can_retry', true)
+            ->assertJsonPath('data.0.cost_summary.total_tokens', 235)
+            ->assertJsonPath('data.0.cost_summary.currency', 'USD');
 
         $this->withToken($token)->getJson("/api/v1/admin/ai-jobs/{$failed->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $failed->id)
             ->assertJsonPath('data.error_message', 'Provider timeout.')
             ->assertJsonPath('data.steps.0.agent_name', 'BlogWriterAgent')
-            ->assertJsonPath('data.steps.0.status', AiGenerationStep::STATUS_FAILED);
+            ->assertJsonPath('data.steps.0.status', AiGenerationStep::STATUS_FAILED)
+            ->assertJsonPath('data.costs.0.provider', 'openai')
+            ->assertJsonPath('data.costs.0.model', 'gpt-5-mini')
+            ->assertJsonPath('data.cost_summary.estimated_cost', '0.00420000');
 
         $retryResponse = $this->withToken($token)->postJson("/api/v1/admin/ai-jobs/{$failed->id}/retry");
 
