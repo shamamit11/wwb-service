@@ -20,6 +20,7 @@ final readonly class BlogDraftInput extends AgentInput
         public int $contentTopicId,
         public string $title,
         public string $slug,
+        public ?string $generationMode = null,
         public ?string $primaryKeyword = null,
         public array $secondaryKeywords = [],
         public ?string $searchIntent = null,

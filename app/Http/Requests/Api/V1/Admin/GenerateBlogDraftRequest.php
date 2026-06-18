@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\Models\Post;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,6 +27,7 @@ class GenerateBlogDraftRequest extends FormRequest
             'featured_media_id' => ['sometimes', 'nullable', 'integer', 'exists:media,id'],
             'visibility' => ['sometimes', 'string', Rule::in(Post::VISIBILITIES)],
             'prompt_template_key' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'generation_mode' => ['sometimes', 'nullable', 'string', Rule::in(BlogDraftGenerationMode::values())],
         ];
     }
 
@@ -41,6 +43,7 @@ class GenerateBlogDraftRequest extends FormRequest
             featuredMediaId: isset($validated['featured_media_id']) ? (int) $validated['featured_media_id'] : null,
             visibility: isset($validated['visibility']) ? (string) $validated['visibility'] : Post::VISIBILITY_PUBLIC,
             promptTemplateKey: $validated['prompt_template_key'] ?? null,
+            generationMode: isset($validated['generation_mode']) ? (string) $validated['generation_mode'] : null,
         );
     }
 }

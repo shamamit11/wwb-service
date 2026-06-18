@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\Mcp\Support\SerializesMcpPayloads;
 use App\Models\Post;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
@@ -36,6 +37,7 @@ class GenerateBlogDraftTool extends Tool
             'featured_media_id' => ['sometimes', 'nullable', 'integer', 'exists:media,id'],
             'visibility' => ['sometimes', 'string', 'in:'.implode(',', Post::VISIBILITIES)],
             'prompt_template_key' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'generation_mode' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', BlogDraftGenerationMode::values())],
         ]);
 
         $brief = $this->readBrief->handle((int) $validated['content_brief_id']);
@@ -46,6 +48,7 @@ class GenerateBlogDraftTool extends Tool
             featuredMediaId: isset($validated['featured_media_id']) ? (int) $validated['featured_media_id'] : null,
             visibility: $validated['visibility'] ?? Post::VISIBILITY_PUBLIC,
             promptTemplateKey: $validated['prompt_template_key'] ?? null,
+            generationMode: $validated['generation_mode'] ?? null,
         ));
 
         return Response::structured([
@@ -64,6 +67,7 @@ class GenerateBlogDraftTool extends Tool
             'featured_media_id' => $schema->integer()->description('Optional featured media ID.'),
             'visibility' => $schema->string()->description('Draft visibility.'),
             'prompt_template_key' => $schema->string()->description('Optional prompt template override.'),
+            'generation_mode' => $schema->string()->description('Optional editorial mode: tutorial, comparison, opinionated_analysis, or checklist.'),
         ];
     }
 }

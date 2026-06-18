@@ -165,6 +165,7 @@ class AiWorkflowOrchestrator
             featuredMediaId: isset($payload['featured_media_id']) && $payload['featured_media_id'] !== null ? (int) $payload['featured_media_id'] : null,
             visibility: is_string($payload['visibility'] ?? null) ? $payload['visibility'] : \App\Models\Post::VISIBILITY_PUBLIC,
             promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
+            generationMode: is_string($payload['generation_mode'] ?? null) ? $payload['generation_mode'] : null,
         ), (int) $job->id, $job->attempts + 1);
     }
 

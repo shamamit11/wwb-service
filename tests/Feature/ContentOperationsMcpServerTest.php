@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\Mcp\ContentMcpRegistration;
 use App\Mcp\Prompts\BlogDraftPrompt;
 use App\Mcp\Prompts\DraftRewritePrompt;
@@ -258,10 +259,12 @@ class ContentOperationsMcpServerTest extends TestCase
             'content_brief_id' => $brief->id,
             'category_id' => $category->id,
             'author_user_id' => $admin->id,
+            'generation_mode' => BlogDraftGenerationMode::Comparison->value,
         ])->assertOk()->assertStructuredContent(function ($json) use ($brief): void {
             $json->where('queued', true)
                 ->where('job.status', AiJob::STATUS_QUEUED)
                 ->where('job.entity_id', $brief->id)
+                ->where('job.input_payload.generation_mode', BlogDraftGenerationMode::Comparison->value)
                 ->etc();
         });
         $targetBlockId = (int) $draftPost->blocks()->where('sort_order', 2)->value('id');
@@ -339,9 +342,11 @@ class ContentOperationsMcpServerTest extends TestCase
         ContentOperationsServer::prompt(BlogDraftPrompt::class, [
             'content_brief_id' => 12,
             'category_id' => 3,
+            'generation_mode' => BlogDraftGenerationMode::Checklist->value,
         ])->assertOk()->assertSee([
             'generateBlogDraft',
             'getAiJobStatus',
+            BlogDraftGenerationMode::Checklist->value,
             'Do not publish',
         ]);
         ContentOperationsServer::prompt(DraftRewritePrompt::class, [

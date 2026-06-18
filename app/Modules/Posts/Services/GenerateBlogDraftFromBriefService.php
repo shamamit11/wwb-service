@@ -29,6 +29,7 @@ class GenerateBlogDraftFromBriefService
         string $visibility = Post::VISIBILITY_PUBLIC,
         ?int $aiJobId = null,
         ?string $promptTemplateKey = null,
+        ?string $generationMode = null,
     ): GeneratedBlogDraftData {
         $existing = $this->posts->findBySourceContentBriefId((int) $brief->id);
 
@@ -54,6 +55,7 @@ class GenerateBlogDraftFromBriefService
             contentTopicId: (int) $topic->id,
             title: $brief->title,
             slug: $brief->slug,
+            generationMode: $generationMode,
             primaryKeyword: $brief->primary_keyword,
             secondaryKeywords: $brief->secondary_keywords ?? [],
             searchIntent: $brief->search_intent,
@@ -82,6 +84,7 @@ class GenerateBlogDraftFromBriefService
                 'featured_media_id' => $featuredMediaId,
                 'visibility' => $visibility,
                 'prompt_template_key' => $promptTemplateKey,
+                'generation_mode' => $generationMode,
             ], static fn (mixed $value): bool => $value !== null),
         ));
 

@@ -8,6 +8,7 @@ use App\AI\DTO\AgentInput;
 use App\AI\DTO\AgentResult;
 use App\AI\DTO\BlogDraftInput;
 use App\AI\DTO\BlogDraftResult;
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\AI\Tools\FindInternalLinksTool;
 use App\AI\Tools\SavePostDraftTool;
 use App\AI\Tools\SearchExistingPostsTool;
@@ -159,6 +160,7 @@ class BlogWriterAgent implements ContentAgentInterface
             contentTopicId: $input->contentTopicId,
             title: $input->title,
             slug: $input->slug,
+            generationMode: $input->generationMode,
             primaryKeyword: $input->primaryKeyword,
             secondaryKeywords: $input->secondaryKeywords,
             searchIntent: $input->searchIntent,
@@ -182,10 +184,14 @@ class BlogWriterAgent implements ContentAgentInterface
 
     private function resolvePromptTemplate(BlogDraftInput $input): AiPromptTemplate
     {
-        $promptKey = $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY;
-        $promptKey = is_string($promptKey) && $promptKey !== '' ? $promptKey : self::DEFAULT_PROMPT_KEY;
+        $promptKey = $input->metadata['prompt_template_key'] ?? null;
+        $promptKey = is_string($promptKey) && $promptKey !== '' ? $promptKey : null;
 
-        $template = $this->promptTemplates->findByKey($promptKey)
+        $template = $promptKey !== null
+            ? $this->promptTemplates->findByKey($promptKey)
+            : $this->resolveModeSpecificPromptTemplate($input);
+
+        $template ??= $this->promptTemplates->findByKey(self::DEFAULT_PROMPT_KEY)
             ?? $this->promptTemplates->findActiveByType(AiPromptTemplate::TYPE_BLOG_WRITER);
 
         if (! $template instanceof AiPromptTemplate || ! $template->activeVersion) {
@@ -200,9 +206,13 @@ class BlogWriterAgent implements ContentAgentInterface
      */
     private function buildPromptVariables(BlogDraftInput $input): array
     {
+        $generationMode = $this->resolveGenerationMode($input);
+
         return [
             'title' => $input->title,
             'slug' => $input->slug,
+            'generation_mode' => $generationMode?->value,
+            'generation_mode_guidance' => $generationMode?->guidance(),
             'primary_keyword' => $input->primaryKeyword,
             'secondary_keywords' => $input->secondaryKeywords,
             'search_intent' => $input->searchIntent,
@@ -283,6 +293,7 @@ class BlogWriterAgent implements ContentAgentInterface
             'content_topic_id' => $input->contentTopicId,
             'title' => $input->title,
             'slug' => $input->slug,
+            'generation_mode' => $input->generationMode,
             'primary_keyword' => $input->primaryKeyword,
             'secondary_keywords' => $input->secondaryKeywords,
             'search_intent' => $input->searchIntent,
@@ -297,6 +308,24 @@ class BlogWriterAgent implements ContentAgentInterface
             'image_suggestions' => $input->imageSuggestions,
             'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
+    }
+
+    private function resolveModeSpecificPromptTemplate(BlogDraftInput $input): ?AiPromptTemplate
+    {
+        $mode = $this->resolveGenerationMode($input);
+
+        if (! $mode instanceof BlogDraftGenerationMode) {
+            return null;
+        }
+
+        return $this->promptTemplates->findByKey($mode->promptKey());
+    }
+
+    private function resolveGenerationMode(BlogDraftInput $input): ?BlogDraftGenerationMode
+    {
+        return is_string($input->generationMode) && $input->generationMode !== ''
+            ? BlogDraftGenerationMode::tryFrom($input->generationMode)
+            : null;
     }
 
     /**

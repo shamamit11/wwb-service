@@ -48,6 +48,7 @@ class DraftGenerationWorkflow
                 'featured_media_id' => $data->featuredMediaId,
                 'visibility' => $data->visibility,
                 'prompt_template_key' => $data->promptTemplateKey,
+                'generation_mode' => $data->generationMode,
             ],
             attempts: max(1, $attempts),
             retryOfAiJobId: $retryOfAiJobId,
@@ -97,6 +98,7 @@ class DraftGenerationWorkflow
                 visibility: $this->normalizeVisibility($payload['visibility'] ?? null),
                 aiJobId: (int) $job->id,
                 promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
+                generationMode: is_string($payload['generation_mode'] ?? null) ? $payload['generation_mode'] : null,
             );
         } catch (Throwable $throwable) {
             $job = $this->jobs->findById($aiJobId);

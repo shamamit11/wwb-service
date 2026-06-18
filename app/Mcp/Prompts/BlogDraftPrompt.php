@@ -18,11 +18,17 @@ class BlogDraftPrompt extends Prompt
         $validated = $request->validate([
             'content_brief_id' => ['required', 'integer', 'min:1'],
             'category_id' => ['required', 'integer', 'min:1'],
+            'generation_mode' => ['sometimes', 'nullable', 'string'],
         ]);
+
+        $modeLine = is_string($validated['generation_mode'] ?? null) && $validated['generation_mode'] !== ''
+            ? 'Prefer the `'.$validated['generation_mode'].'` generation mode when queuing the draft.'
+            : 'Use the default editorial generation mode unless a stronger article format is required.';
 
         $text = implode("\n", [
             'Prepare a draft workflow for content brief #'.$validated['content_brief_id'].'.',
             'Use `searchKnowledgeBase` for editorial references that should shape the draft.',
+            $modeLine,
             'Queue the draft with `generateBlogDraft`, providing category #'.$validated['category_id'].'.',
             'Track execution with `getAiJobStatus` until the draft workflow finishes.',
             'Do not publish, schedule, or expose the draft as live content.',
@@ -36,6 +42,7 @@ class BlogDraftPrompt extends Prompt
         return [
             new Argument('content_brief_id', 'Approved brief ID to draft from.', true),
             new Argument('category_id', 'Category ID for the queued draft.', true),
+            new Argument('generation_mode', 'Optional editorial mode such as tutorial, comparison, opinionated_analysis, or checklist.', false),
         ];
     }
 }

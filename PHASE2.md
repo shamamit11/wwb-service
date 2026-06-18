@@ -280,30 +280,26 @@ Source history:
 
 - `WB-SVC-059`
 
+### 18. Editorial Generation Modes
+
+Implemented:
+
+- explicit `generation_mode` support for draft creation
+- supported editorial modes for tutorial, comparison, opinionated analysis, and checklist drafts
+- additive admin API contract for mode-aware draft queueing
+- MCP tool and prompt support for selecting generation modes
+- retry-safe AI job payload tracking for mode-aware draft runs
+- mode-specific prompt template selection when matching templates exist
+
+Source history:
+
+- `WB-SVC-060`
+
 ## What Is Still Missing In This Phase
 
 These are the main service-side items still worth doing **before declaring the AI-assisted publishing phase fully closed**.
 
-### 1. Additional Editorial Variants / Generation Modes
-
-Status:
-
-- not implemented as an explicit feature
-
-Why it matters:
-
-- roadmap lists “multiple generation modes for article types” as a **Could Have**
-- current workflow is oriented to a single draft-generation path
-
-Recommended next service work:
-
-- allow prompt/template-driven draft modes such as tutorial, comparison, opinionated analysis, checklist, etc.
-
-Backlog task:
-
-- `WB-SVC-060`
-
-### 2. AI-Assisted Title / Excerpt Refinement As A Separate Tool
+### 1. AI-Assisted Title / Excerpt Refinement As A Separate Tool
 
 Status:
 
@@ -327,16 +323,13 @@ Backlog task:
 
 ## Recommended “Next” Work Inside This Phase
 
-If the goal is to finish the current AI-assisted publishing phase cleanly on the service side, the highest-value next order is:
+If the goal is to finish the current AI-assisted publishing phase cleanly on the service side, the next remaining service item is:
 
-1. Draft rewrite / section regeneration workflow
-2. Title and excerpt refinement workflow
-3. Optional multi-mode draft generation
+1. Title and excerpt refinement workflow
 
 Mapped backlog:
 
 - `WB-SVC-061`
-- `WB-SVC-060`
 
 ## Items That Should Move To The Next Phase
 
