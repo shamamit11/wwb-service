@@ -36,6 +36,7 @@ Confirm whether `bootstrap/cache` should be tracked in git and identify the corr
 
 - `.agent/tasks/current-task.md`
 - `.gitignore`
+- `app/Providers/AppServiceProvider.php`
 - `bootstrap/cache/.gitignore`
 - `config/octane.php`
 - `storage/framework/cache/.gitignore`
@@ -49,6 +50,7 @@ Confirm whether `bootstrap/cache` should be tracked in git and identify the corr
 - confirmed local `bootstrap/cache` contains generated cache files
 - verified `.gitignore` now preserves placeholder files for `bootstrap/cache`, `storage/logs`, and required `storage/framework/*` directories
 - verified `config/octane.php` sets `state_file` to `bootstrap/cache/octane-server-state.json`
+- verified Scramble docs middleware no longer includes `RestrictedDocsAccess`, making `/docs/api` public
 
 ## Risks Or Follow-Ups
 
@@ -59,3 +61,4 @@ Confirm whether `bootstrap/cache` should be tracked in git and identify the corr
 
 - repo patched so required runtime directories are represented in git via placeholder `.gitignore` files
 - Octane state file path is now explicit and targets `bootstrap/cache/octane-server-state.json`
+- Scramble docs are now public in all environments by removing the package's restricted-access middleware
