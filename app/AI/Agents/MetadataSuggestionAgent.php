@@ -8,6 +8,7 @@ use App\AI\DTO\AgentInput;
 use App\AI\DTO\AgentResult;
 use App\AI\DTO\PostMetadataSuggestionInput;
 use App\AI\DTO\PostMetadataSuggestionResult;
+use App\AI\Support\DecodesJsonResponse;
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
@@ -22,6 +23,8 @@ use Throwable;
 
 class MetadataSuggestionAgent implements ContentAgentInterface
 {
+    use DecodesJsonResponse;
+
     private const DEFAULT_PROMPT_KEY = 'post_metadata_suggestion_default';
 
     public function __construct(
@@ -183,20 +186,6 @@ class MetadataSuggestionAgent implements ContentAgentInterface
             'instructions' => $input->instructions,
             'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decodeJson(string $rawContent): ?array
-    {
-        try {
-            $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable) {
-            return null;
-        }
-
-        return is_array($decoded) ? $decoded : null;
     }
 
     private function normalizeString(mixed $value): ?string

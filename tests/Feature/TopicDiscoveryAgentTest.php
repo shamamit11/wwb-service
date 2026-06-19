@@ -203,4 +203,60 @@ class TopicDiscoveryAgentTest extends TestCase
 
         $this->assertDatabaseCount('ai_job_costs', 2);
     }
+
+    public function test_topic_discovery_agent_accepts_markdown_fenced_json_output(): void
+    {
+        config()->set('ai.service.default_provider', 'openai');
+        config()->set('ai.service.providers.openai.text_model', 'gpt-5-mini');
+
+        $template = AiPromptTemplate::query()->create([
+            'name' => 'Topic Discovery Default',
+            'key' => 'topic_discovery_default',
+            'type' => AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
+            'description' => 'Default topic discovery prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $version = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $template->id,
+            'version' => 1,
+            'system_prompt' => 'Return JSON only.',
+            'user_prompt' => 'Cluster {{cluster}}',
+            'output_schema' => ['type' => 'object', 'required' => ['topics']],
+            'variables' => ['cluster'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $template->update(['active_version_id' => $version->id]);
+
+        $fakeClient = new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: <<<'TEXT'
+Here is the result:
+
+```json
+{"topics":[{"title":"AI Topic Monitoring for Editorial Teams","primary_keyword":"ai topic monitoring","secondary_keywords":["editorial observability"],"search_intent":"informational","priority_score":87,"difficulty_note":"Manageable.","summary":"A valid topic wrapped in markdown fences."}]}
+```
+TEXT,
+                    provider: 'openai',
+                    model: 'gpt-5-mini',
+                    usage: new AiUsageData(promptTokens: 40, completionTokens: 25),
+                );
+            }
+        };
+
+        $this->app->instance(AiClient::class, $fakeClient);
+
+        $result = app(TopicDiscoveryAgent::class)->run(new TopicDiscoveryInput(
+            cluster: ContentTopic::CLUSTER_AI_TOOLS,
+            targetCount: 1,
+        ));
+
+        $this->assertTrue($result->isSuccessful());
+        $this->assertSame('AI Topic Monitoring for Editorial Teams', $result->parsedResponse?->topics[0]->title);
+        $this->assertCount(1, $result->metadata['saved_topic_ids']);
+    }
 }

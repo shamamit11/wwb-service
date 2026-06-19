@@ -8,6 +8,7 @@ use App\AI\DTO\AgentInput;
 use App\AI\DTO\AgentResult;
 use App\AI\DTO\ContentBriefInput;
 use App\AI\DTO\ContentBriefResult;
+use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\FindInternalLinksTool;
 use App\AI\Tools\SaveContentBriefTool;
 use App\AI\Tools\SearchExistingPostsTool;
@@ -25,6 +26,8 @@ use Throwable;
 
 class ContentBriefAgent implements ContentAgentInterface
 {
+    use DecodesJsonResponse;
+
     private const DEFAULT_PROMPT_KEY = 'content_brief_default';
 
     public function __construct(
@@ -257,20 +260,6 @@ class ContentBriefAgent implements ContentAgentInterface
             'editorial_intent' => $input->editorialIntent,
             'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decodeJson(string $rawContent): ?array
-    {
-        try {
-            $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable) {
-            return null;
-        }
-
-        return is_array($decoded) ? $decoded : null;
     }
 
     /**
