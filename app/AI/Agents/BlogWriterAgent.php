@@ -9,6 +9,7 @@ use App\AI\DTO\AgentResult;
 use App\AI\DTO\BlogDraftInput;
 use App\AI\DTO\BlogDraftResult;
 use App\AI\Enums\BlogDraftGenerationMode;
+use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\FindInternalLinksTool;
 use App\AI\Tools\SavePostDraftTool;
 use App\AI\Tools\SearchExistingPostsTool;
@@ -27,6 +28,8 @@ use Throwable;
 
 class BlogWriterAgent implements ContentAgentInterface
 {
+    use DecodesJsonResponse;
+
     private const DEFAULT_PROMPT_KEY = 'blog_writer_default';
 
     public function __construct(
@@ -420,20 +423,6 @@ class BlogWriterAgent implements ContentAgentInterface
         }
 
         return false;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decodeJson(string $rawContent): ?array
-    {
-        try {
-            $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable) {
-            return null;
-        }
-
-        return is_array($decoded) ? $decoded : null;
     }
 
     /**

@@ -9,6 +9,7 @@ use App\AI\DTO\AgentResult;
 use App\AI\DTO\TopicDiscoveryInput;
 use App\AI\DTO\TopicDiscoveryResult;
 use App\AI\DTO\TopicSuggestionData;
+use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\CheckDuplicateTopicTool;
 use App\AI\Tools\SaveTopicIdeaTool;
 use App\Infrastructure\Ai\Contracts\AiClient;
@@ -27,6 +28,8 @@ use Throwable;
 
 class TopicDiscoveryAgent implements ContentAgentInterface
 {
+    use DecodesJsonResponse;
+
     private const DEFAULT_PROMPT_KEY = 'topic_discovery_default';
 
     public function __construct(
@@ -280,20 +283,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             'knowledge_context' => array_values($input->knowledgeContext),
             'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decodeJson(string $rawContent): ?array
-    {
-        try {
-            $decoded = json_decode($rawContent, true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable) {
-            return null;
-        }
-
-        return is_array($decoded) ? $decoded : null;
     }
 
     /**
