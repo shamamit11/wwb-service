@@ -14,5 +14,6 @@ final readonly class QueueBlogDraftGenerationData extends DataTransferObject
         public ?int $featuredMediaId = null,
         public string $visibility = Post::VISIBILITY_PUBLIC,
         public ?string $promptTemplateKey = null,
+        public ?string $generationMode = null,
     ) {}
 }

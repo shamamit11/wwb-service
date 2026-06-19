@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminApiAuthTest extends TestCase
@@ -51,6 +52,13 @@ class AdminApiAuthTest extends TestCase
         $this->getJson('/api/v1/admin/me')
             ->assertStatus(401)
             ->assertJsonPath('error_code', 'UNAUTHORIZED');
+
+        $this->postJson('/api/v1/admin/change-password', [
+            'current_password' => 'password',
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertStatus(401)
+            ->assertJsonPath('error_code', 'UNAUTHORIZED');
     }
 
     public function test_non_admin_user_cannot_access_protected_admin_endpoint(): void
@@ -87,5 +95,54 @@ class AdminApiAuthTest extends TestCase
             ->assertJsonPath('data.revoked', true);
 
         $this->assertCount(0, $admin->fresh()->tokens);
+    }
+
+    public function test_authenticated_admin_can_change_their_password(): void
+    {
+        $admin = User::factory()->create([
+            'email' => 'admin@example.com',
+            'password' => 'password',
+            'is_admin' => true,
+        ]);
+
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/v1/admin/change-password', [
+                'current_password' => 'password',
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.password_changed', true);
+
+        $this->assertTrue(Hash::check('new-password-123', (string) $admin->fresh()->password));
+    }
+
+    public function test_change_password_validates_current_password_and_confirmation(): void
+    {
+        $admin = User::factory()->create([
+            'password' => 'password',
+            'is_admin' => true,
+        ]);
+
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/v1/admin/change-password', [
+                'current_password' => 'wrong-password',
+                'password' => 'short',
+                'password_confirmation' => 'different',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('error_code', 'VALIDATION_ERROR')
+            ->assertJsonStructure([
+                'message',
+                'error_code',
+                'errors' => [
+                    'current_password',
+                    'password',
+                ],
+            ]);
     }
 }

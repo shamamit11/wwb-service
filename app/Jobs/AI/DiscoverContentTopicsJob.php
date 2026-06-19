@@ -2,8 +2,7 @@
 
 namespace App\Jobs\AI;
 
-use App\Modules\Ai\Data\DiscoverContentTopicsData;
-use App\Modules\Ai\Services\RunTopicDiscoveryService;
+use App\Modules\Ai\Services\AiWorkflowOrchestrator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -13,15 +12,8 @@ class DiscoverContentTopicsJob implements ShouldQueue
 
     public int $tries = 3;
 
-    /**
-     * @param  array<string, mixed>  $metadata
-     */
     public function __construct(
-        public string $cluster,
-        public int $count = 10,
-        public ?string $audience = null,
-        public ?string $promptTemplateKey = null,
-        public array $metadata = [],
+        public int $aiJobId,
     ) {
         $this->onQueue('ai');
     }
@@ -34,14 +26,8 @@ class DiscoverContentTopicsJob implements ShouldQueue
         return [60, 300, 900];
     }
 
-    public function handle(RunTopicDiscoveryService $service): void
+    public function handle(AiWorkflowOrchestrator $service): void
     {
-        $service->handle(new DiscoverContentTopicsData(
-            cluster: $this->cluster,
-            count: $this->count,
-            audience: $this->audience,
-            promptTemplateKey: $this->promptTemplateKey,
-            metadata: $this->metadata,
-        ));
+        $service->runQueuedTopicDiscovery($this->aiJobId);
     }
 }

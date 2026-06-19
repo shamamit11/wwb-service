@@ -17,6 +17,7 @@ use App\Models\ContentTopic;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
+use App\Modules\Ai\Repositories\AiJobRepository;
 use App\Modules\Ai\Services\RecordAiUsageService;
 use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
@@ -31,6 +32,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     public function __construct(
         private readonly AiClient $aiClient,
         private readonly AiPromptTemplateRepository $promptTemplates,
+        private readonly AiJobRepository $jobs,
         private readonly RenderAiPromptTemplateService $renderPrompt,
         private readonly TrackAiJobService $trackAiJob,
         private readonly RecordAiUsageService $recordAiUsage,
@@ -49,17 +51,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             throw new RuntimeException('TopicDiscoveryAgent requires a TopicDiscoveryInput instance.');
         }
 
-        $job = $this->trackAiJob->createJob(new CreateAiJobData(
-            type: AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
-            status: \App\Models\AiJob::STATUS_PENDING,
-            entityType: 'content_topic_batch',
-            provider: $this->resolveProvider($input),
-            model: $this->resolveModel($input),
-            inputPayload: $this->buildJobInputPayload($input),
-        ));
-
-        $job = $this->trackAiJob->queueJob($job);
-        $job = $this->trackAiJob->startJob($job);
+        $job = $this->resolveOrCreateJob($input);
 
         $step = $this->trackAiJob->createStep(new CreateAiGenerationStepData(
             aiJobId: (int) $job->id,
@@ -368,5 +360,33 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         $model = config("ai.service.providers.{$provider}.text_model");
 
         return is_string($model) && $model !== '' ? $model : null;
+    }
+
+    private function resolveOrCreateJob(TopicDiscoveryInput $input): \App\Models\AiJob
+    {
+        $existingJobId = $input->metadata['ai_job_id'] ?? null;
+
+        if (is_int($existingJobId) || (is_string($existingJobId) && ctype_digit($existingJobId))) {
+            $job = $this->jobs->findById((int) $existingJobId);
+
+            if ($job === null) {
+                throw new RuntimeException("Queued AI job [{$existingJobId}] could not be found.");
+            }
+
+            return $this->trackAiJob->startJob($job);
+        }
+
+        $job = $this->trackAiJob->createJob(new CreateAiJobData(
+            type: AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
+            status: \App\Models\AiJob::STATUS_PENDING,
+            entityType: 'content_topic_batch',
+            provider: $this->resolveProvider($input),
+            model: $this->resolveModel($input),
+            inputPayload: $this->buildJobInputPayload($input),
+        ));
+
+        $job = $this->trackAiJob->queueJob($job);
+
+        return $this->trackAiJob->startJob($job);
     }
 }

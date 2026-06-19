@@ -6,6 +6,7 @@ use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use App\Infrastructure\Ai\Data\GenerateTextRequest;
 use App\Infrastructure\Ai\Data\TextGenerationResult;
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\Models\AiGenerationStep;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
@@ -55,6 +56,26 @@ class BlogWriterAgentTest extends TestCase
         ]);
 
         $template->update(['active_version_id' => $version->id]);
+
+        $modeTemplate = AiPromptTemplate::query()->create([
+            'name' => 'Blog Writer Tutorial',
+            'key' => BlogDraftGenerationMode::Tutorial->promptKey(),
+            'type' => AiPromptTemplate::TYPE_BLOG_WRITER,
+            'description' => 'Tutorial-specific blog writer prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $modeVersion = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $modeTemplate->id,
+            'version' => 1,
+            'system_prompt' => 'Write a tutorial-style draft for {{title}}.',
+            'user_prompt' => 'Mode {{generation_mode}} Guidance {{generation_mode_guidance}} Knowledge {{knowledge_context}} Existing {{existing_post_context}} Outline {{outline}}',
+            'output_schema' => ['type' => 'object', 'required' => ['title', 'slug', 'markdown_body', 'content_blocks']],
+            'variables' => ['title', 'generation_mode', 'generation_mode_guidance', 'knowledge_context', 'existing_post_context', 'outline'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $modeTemplate->update(['active_version_id' => $modeVersion->id]);
 
         $author = User::factory()->create(['is_admin' => true]);
         $category = Category::query()->create([
@@ -219,10 +240,13 @@ class BlogWriterAgentTest extends TestCase
             brief: $brief->fresh('topic'),
             authorUserId: (int) $author->id,
             categoryId: (int) $category->id,
+            generationMode: BlogDraftGenerationMode::Tutorial->value,
         );
 
         $this->assertTrue($generated->wasGenerated);
         $this->assertNotNull($fakeClient->request);
+        $this->assertSame('Write a tutorial-style draft for AI Editorial Review Checklists for Content Teams.', $fakeClient->request?->systemPrompt);
+        $this->assertStringContainsString(BlogDraftGenerationMode::Tutorial->guidance(), $fakeClient->request?->prompt ?? '');
         $this->assertStringContainsString('Editorial QA: Use explicit QA gates before publication.', $fakeClient->request?->prompt ?? '');
         $this->assertStringContainsString('Editorial QA for Content Teams', $fakeClient->request?->prompt ?? '');
 
@@ -246,6 +270,10 @@ class BlogWriterAgentTest extends TestCase
             'status' => AiJob::STATUS_COMPLETED,
             'entity_type' => 'content_brief',
             'entity_id' => $brief->id,
+        ]);
+        $this->assertDatabaseHas('ai_generation_steps', [
+            'agent_name' => 'BlogWriterAgent',
+            'input_payload->generation_mode' => BlogDraftGenerationMode::Tutorial->value,
         ]);
 
         $this->assertDatabaseHas('ai_generation_steps', [

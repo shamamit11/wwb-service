@@ -200,6 +200,10 @@ return [
                 'text_model' => env('GEMINI_TEXT_MODEL'),
             ],
         ],
+        'mcp' => [
+            'enabled' => env('AI_MCP_ENABLED', false),
+            'path' => env('AI_MCP_PATH', 'mcp/content-operations'),
+        ],
     ],
 
 ];

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use App\Infrastructure\Ai\Data\GenerateTextRequest;
@@ -209,6 +210,7 @@ class ContentBriefApiTest extends TestCase
 
         $this->withToken($token)->postJson("/api/v1/admin/content-briefs/{$brief->id}/generate-draft", [
             'category_id' => $category->id,
+            'generation_mode' => BlogDraftGenerationMode::Checklist->value,
         ])->assertAccepted()
             ->assertJsonPath('data.type', AiPromptTemplate::TYPE_BLOG_WRITER)
             ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
@@ -216,7 +218,8 @@ class ContentBriefApiTest extends TestCase
             ->assertJsonPath('data.entity_id', $brief->id)
             ->assertJsonPath('data.input_payload.content_brief_id', $brief->id)
             ->assertJsonPath('data.input_payload.category_id', $category->id)
-            ->assertJsonPath('data.input_payload.author_user_id', null);
+            ->assertJsonPath('data.input_payload.author_user_id', null)
+            ->assertJsonPath('data.input_payload.generation_mode', BlogDraftGenerationMode::Checklist->value);
 
         $job = AiJob::query()->latest('id')->firstOrFail();
 
@@ -317,6 +320,67 @@ class ContentBriefApiTest extends TestCase
                 'error_code',
                 'errors' => ['headings.1', 'status'],
             'meta' => ['request_id'],
+            ]);
+    }
+
+    public function test_generate_draft_rejects_unknown_generation_mode(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'Mode Validation Topic',
+            'slug' => 'mode-validation-topic',
+            'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
+            'primary_keyword' => 'mode validation',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '65.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_MANUAL,
+            'status' => ContentTopic::STATUS_APPROVED,
+            'notes' => null,
+            'approved_at' => now(),
+        ]);
+
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'Mode Validation Brief',
+            'slug' => 'mode-validation-brief',
+            'meta_title' => null,
+            'meta_description' => null,
+            'primary_keyword' => 'mode validation',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro', 'purpose' => 'Frame the topic']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+
+        $category = \App\Models\Category::query()->create([
+            'name' => 'AI Workflows',
+            'slug' => 'ai-workflows-validation',
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/content-briefs/{$brief->id}/generate-draft", [
+            'category_id' => $category->id,
+            'generation_mode' => 'longform_manifesto',
+        ])->assertStatus(422)
+            ->assertJsonPath('error_code', 'VALIDATION_ERROR')
+            ->assertJsonStructure([
+                'message',
+                'error_code',
+                'errors' => ['generation_mode'],
+                'meta' => ['request_id'],
             ]);
     }
 

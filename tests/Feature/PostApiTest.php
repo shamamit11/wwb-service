@@ -3,12 +3,16 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\ContentBrief;
+use App\Models\ContentTopic;
 use App\Models\Media;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\Template;
 use App\Models\User;
+use App\Models\AiJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -159,6 +163,169 @@ class PostApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_create_post_when_paragraph_block_uses_admin_string_array_payload(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+
+        $response = $this->withToken($token)->postJson('/api/v1/admin/posts', [
+            'title' => 'Paragraph Payload Compatibility',
+            'category_id' => $category->id,
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'blocks' => [
+                [
+                    'block_type' => 'paragraph',
+                    'sort_order' => 1,
+                    'content' => ['Paragraph content submitted as text.'],
+                ],
+            ],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.blocks.0.block_type', 'paragraph')
+            ->assertJsonPath('data.blocks.0.content_markdown', 'Paragraph content submitted as text.');
+    }
+
+    public function test_admin_can_queue_draft_rewrite_for_ai_generated_draft_posts(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Draft Topic',
+            'slug' => 'ai-draft-topic',
+            'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
+            'primary_keyword' => 'ai draft topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '88.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'status' => ContentTopic::STATUS_USED,
+            'notes' => null,
+            'approved_at' => now(),
+            'used_at' => now(),
+        ]);
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Draft Brief',
+            'slug' => 'ai-draft-brief',
+            'meta_title' => null,
+            'meta_description' => null,
+            'primary_keyword' => 'ai draft topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro', 'purpose' => 'Frame the topic']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_USED,
+            'approved_at' => now(),
+        ]);
+        $post = $this->createPost($admin, $category, [
+            'title' => 'AI Draft Post',
+            'slug' => 'ai-draft-post',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'meta' => [
+                'source_content_brief_id' => (int) $brief->id,
+                'source_content_topic_id' => (int) $brief->content_topic_id,
+                'generated_by' => 'BlogWriterAgent',
+            ],
+        ]);
+        $post->blocks()->createMany([
+            [
+                'block_type' => 'heading',
+                'sort_order' => 1,
+                'content_markdown' => '# AI Draft Post',
+                'plain_text_cache' => 'AI Draft Post',
+                'settings' => ['level' => 1],
+            ],
+            [
+                'block_type' => 'paragraph',
+                'sort_order' => 2,
+                'content_markdown' => 'Original paragraph.',
+                'plain_text_cache' => 'Original paragraph.',
+                'settings' => [],
+            ],
+        ]);
+        $targetBlockId = (int) $post->blocks()->where('sort_order', 2)->value('id');
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/rewrite", [
+            'scope' => 'paragraph',
+            'target_block_ids' => [$targetBlockId],
+            'instructions' => 'Make this paragraph more concrete.',
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', 'editor')
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'post')
+            ->assertJsonPath('data.entity_id', $post->id)
+            ->assertJsonPath('data.input_payload.post_id', $post->id)
+            ->assertJsonPath('data.input_payload.scope', 'paragraph')
+            ->assertJsonPath('data.input_payload.target_block_ids.0', $targetBlockId);
+
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostRewriteJob::class, 1);
+    }
+
+    public function test_admin_can_queue_post_metadata_suggestions(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($admin, $category, [
+            'title' => 'AI Draft Post',
+            'slug' => 'ai-draft-post',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/suggest-metadata", [
+            'instructions' => 'Improve CTR and tighten the excerpt.',
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', 'seo_optimizer')
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'post')
+            ->assertJsonPath('data.entity_id', $post->id)
+            ->assertJsonPath('data.input_payload.post_id', $post->id)
+            ->assertJsonPath('data.input_payload.instructions', 'Improve CTR and tighten the excerpt.');
+
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostMetadataSuggestionsJob::class, 1);
+    }
+
+    public function test_admin_can_queue_title_excerpt_refinement(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($admin, $category, [
+            'title' => 'AI Draft Post',
+            'slug' => 'ai-draft-post',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/posts/{$post->id}/refine-title-excerpt", [
+            'instructions' => 'Make the title sharper and the excerpt more compelling.',
+        ])->assertAccepted()
+            ->assertJsonPath('data.type', 'editorial_refiner')
+            ->assertJsonPath('data.status', AiJob::STATUS_QUEUED)
+            ->assertJsonPath('data.entity_type', 'post')
+            ->assertJsonPath('data.entity_id', $post->id)
+            ->assertJsonPath('data.input_payload.post_id', $post->id)
+            ->assertJsonPath('data.input_payload.instructions', 'Make the title sharper and the excerpt more compelling.');
+
+        Queue::assertPushed(\App\Jobs\AI\GeneratePostTitleExcerptRefinementJob::class, 1);
+    }
+
     public function test_admin_post_list_supports_filters_and_sorting(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -196,11 +363,67 @@ class PostApiTest extends TestCase
             'published_at' => null,
             'excerpt' => 'Internal planning note',
         ]);
+        $aiJob = AiJob::query()->create([
+            'type' => 'blog_writer',
+            'status' => 'completed',
+            'entity_type' => 'content_brief',
+            'entity_id' => 10,
+            'input_payload' => [],
+            'output_payload' => [],
+            'usage_payload' => [],
+            'attempts' => 1,
+        ]);
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Draft Topic',
+            'slug' => 'ai-draft-topic',
+            'cluster' => 'ai_tools',
+            'primary_keyword' => 'ai draft topic',
+            'secondary_keywords' => ['ai draft'],
+            'search_intent' => 'informational',
+            'priority_score' => '88.00',
+            'difficulty_note' => 'Medium',
+            'source' => 'ai_suggested',
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Draft Brief',
+            'slug' => 'ai-draft-brief',
+            'meta_title' => 'AI Draft Brief',
+            'meta_description' => 'Brief for AI draft review',
+            'primary_keyword' => 'ai draft brief',
+            'secondary_keywords' => ['ai draft review'],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+        $aiDraft = $this->createPost($admin, $aiCategory, [
+            'title' => 'AI Draft Review',
+            'slug' => 'ai-draft-review',
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_INTERNAL,
+            'is_featured' => false,
+            'published_at' => null,
+            'excerpt' => 'Generated draft',
+            'meta' => [
+                'source_content_brief_id' => $brief->id,
+                'source_content_topic_id' => $topic->id,
+                'ai_job_id' => $aiJob->id,
+                'generated_by' => 'BlogWriterAgent',
+            ],
+        ]);
 
         $this->withToken($token)->getJson('/api/v1/admin/posts?status=draft')
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $alpha->id);
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $alpha->id, 'slug' => 'alpha-systems'])
+            ->assertJsonFragment(['id' => $aiDraft->id, 'slug' => 'ai-draft-review']);
 
         $this->withToken($token)->getJson('/api/v1/admin/posts?category_slug=seo')
             ->assertOk()
@@ -223,9 +446,39 @@ class PostApiTest extends TestCase
 
         $this->withToken($token)->getJson('/api/v1/admin/posts?sort=title')
             ->assertOk()
-            ->assertJsonPath('data.0.id', $alpha->id)
-            ->assertJsonPath('data.1.id', $beta->id)
-            ->assertJsonPath('data.2.id', $gamma->id);
+            ->assertJsonPath('data.0.id', $aiDraft->id)
+            ->assertJsonPath('data.1.id', $alpha->id)
+            ->assertJsonPath('data.2.id', $beta->id)
+            ->assertJsonPath('data.3.id', $gamma->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?is_ai_generated=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id)
+            ->assertJsonPath('data.0.is_ai_generated', true)
+            ->assertJsonPath('data.0.source_content_brief_id', $brief->id)
+            ->assertJsonPath('data.0.source_content_topic_id', $topic->id)
+            ->assertJsonPath('data.0.generated_by_ai_job_id', $aiJob->id)
+            ->assertJsonPath('data.0.generated_by', 'BlogWriterAgent');
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?source_content_brief_id='.$brief->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?source_content_topic_id='.$topic->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?generated_by_ai_job_id='.$aiJob->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $aiDraft->id);
+
+        $this->withToken($token)->getJson('/api/v1/admin/posts?is_ai_generated=0')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_admin_post_validation_errors_use_consistent_json_shape(): void

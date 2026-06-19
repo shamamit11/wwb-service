@@ -1,312 +1,188 @@
-# AI Content Engine Specification: Wide Web Blog
+# AI Content Engine
 
-## Document Purpose
+## Purpose
 
-This document defines the AI content engine for Wide Web Blog. The engine supports AI-assisted publishing while preserving human editorial control.
+This document explains the AI content engine that currently ships in the `widewebblog/service` repository.
 
-## Non-Negotiable Rule
+Phase 3 is an editorial acceleration layer. It helps staff discover topics, create briefs, and draft posts faster, but it does not replace human approval.
 
-AI must never directly publish content.
+## MVP Rules
 
-AI may only create:
+- AI never publishes posts directly.
+- Topic discovery creates suggested topics only.
+- Only approved topics can generate content briefs.
+- Only approved content briefs can generate blog drafts.
+- Generated posts remain drafts until an admin reviews and publishes them through the normal post lifecycle.
+- Image generation is not part of this phase. AI may suggest image ideas, placement notes, and alt text, but image creation and selection stay manual.
 
-- topic suggestions
-- content briefs
-- draft posts
-- SEO metadata suggestions
-- FAQs
-- tags
-- image ideas, placement notes, and alt text suggestions
-
-All generated output must remain draft or review-only until explicitly approved by an admin.
-
-## System Goals
-
-- accelerate editorial ideation and drafting
-- preserve original human judgment
-- reduce repetitive publishing work
-- support multiple providers through a stable abstraction
-- keep AI operations traceable, retryable, and cost-aware
-
-## High-Level Architecture
+## MVP Flow
 
 ```mermaid
 flowchart LR
-    A["Knowledge Base Context"] --> B["Prompt Management"]
-    B --> C["AI Orchestration Layer"]
-    C --> D["Provider Abstraction"]
-    D --> E["OpenAI"]
-    D --> F["Anthropic"]
-    D --> G["Gemini"]
-    C --> H["AI Jobs"]
-    H --> I["AI Generation Steps"]
-    C --> J["Draft Posts / Suggestions"]
-    C --> K["Token & Cost Tracking"]
+    A["Knowledge Base Context"] --> B["TopicDiscoveryAgent"]
+    B --> C["Suggested Topics"]
+    C --> D["Admin Approval"]
+    D --> E["ContentBriefAgent"]
+    E --> F["Content Briefs"]
+    F --> G["Admin Approval"]
+    G --> H["BlogWriterAgent"]
+    H --> I["Draft Posts"]
+    I --> J["Human Review And Publish"]
 ```
 
-## AI Provider Abstraction
+## Main Building Blocks
 
-The provider layer should expose internal contracts rather than vendor-specific method calls.
+### Knowledge Base Context
 
-### Required Capabilities
+Knowledge Base entries provide grounding context for agents. The current service uses `KnowledgeContextService` to:
 
-- text generation
-- structured generation or normalized response extraction
-- token and usage reporting
+- search active entries
+- apply optional metadata filters
+- format prompt-safe context with size limits
 
-### Contract Goals
+This context supports topic discovery and content brief generation. It is used as reference material, not as content that AI may overwrite.
 
-- swap providers without changing domain services
-- isolate provider-specific payloads
-- normalize result structure
+### Agents
 
-## Prompt Management
+The MVP includes three agents:
 
-Prompt management should be a first-class subsystem, not hidden in code constants.
+- `TopicDiscoveryAgent`
+- `ContentBriefAgent`
+- `BlogWriterAgent`
 
-### Prompt Requirements
+These agents operate through workflow services and internal tools rather than directly mutating domain state on their own.
 
-- prompt templates by workflow type
-- versioning
-- categories
-- optional provider-specific overrides
-- editable admin management later
+### Internal AI Tools
 
-### Prompt Categories
+The current internal tool set supports:
+
+- duplicate topic checks
+- saving suggested topics
+- saving content briefs
+- saving post drafts
+- searching existing posts
+- finding internal links
+
+These tools help keep persistence logic inside services and repositories instead of inside prompts or agent classes.
+
+### Workflow Orchestration
+
+`AiWorkflowOrchestrator` coordinates the three workflow paths:
 
 - topic discovery
-- content brief
-- blog writer
-- editor
-- seo optimizer
-- publishing
+- content brief generation
+- draft generation
 
-## Topic Discovery Agent
+The orchestrator delegates to:
 
-### Purpose
+- `TopicDiscoveryWorkflow`
+- `ContentBriefWorkflow`
+- `DraftGenerationWorkflow`
 
-Generate topic suggestions aligned with content pillars and category focus.
+This keeps workflow logic out of controllers and centralizes retry-safe behavior.
 
-### Inputs
+## Admin Placeholders
 
-- content pillars
-- existing topics
-- published content map
-- knowledge base context
+The current backend already exposes the service surface that future admin UI screens can use.
 
-### Outputs
+### Topic Queue Placeholder
 
-- suggested topics
-- optional category mapping
-- optional discovery score
+Topic Queue is backed by `content_topics` and admin routes for:
 
-### Rules
+- listing topics
+- creating manual topics
+- approving topics
+- rejecting topics
+- marking topics used
+- generating briefs from approved topics
 
-- write to topic queue only
-- no direct draft creation without approval step
+Topic discovery can also be queued through the admin AI jobs endpoint:
 
-## Content Brief Agent
+- `POST /api/v1/admin/ai-jobs/topic-discovery`
 
-### Purpose
+### Content Brief Placeholder
 
-Turn approved topics into structured article plans before draft generation.
+Content Briefs are backed by `content_briefs` and admin routes for:
 
-### Inputs
+- listing briefs
+- reading briefs
+- updating briefs
+- approving briefs
+- generating draft jobs from approved briefs
 
-- approved topic
-- knowledge base context
-- pillar and cluster guidance
-- existing internal content context
+### AI Jobs Placeholder
 
-### Outputs
+AI Jobs are backed by `ai_jobs` and admin routes for:
 
-- recommended article angle
-- section structure
-- internal link suggestions
-- SEO intent hints
-- image ideas and alt text suggestions
+- listing jobs
+- reading a job
+- queueing topic discovery
+- retrying failed jobs
 
-### Rules
+This is the operational placeholder for future admin observability, retries, and audit workflows.
 
-- brief should be inspectable before draft generation
-- brief output should be structured, not raw HTML
-- only approved topics can generate briefs
+### Prompt Management Placeholder
 
-## Blog Writer Agent
+Prompt templates are backed by `ai_prompt_templates` and `ai_prompt_template_versions` and already expose admin APIs for:
 
-### Purpose
+- list
+- create
+- read
+- update
+- add version
+- activate version
 
-Generate draft post content from approved content briefs.
+The future admin UI can sit on top of this contract without changing the core backend flow.
 
-### Inputs
+## Queue And Execution Model
 
-- approved content brief
-- prompt template
-- knowledge base context
+Long-running AI work uses the `ai` queue.
 
-### Outputs
+Expected execution model:
 
-- markdown body
-- draft post blocks
-- optional excerpt
-- editable SEO draft fields
+1. Admin or scheduler triggers a workflow.
+2. The workflow creates an `ai_jobs` record.
+3. The queue job is dispatched.
+4. The agent runs through provider-agnostic AI client abstractions.
+5. Generation steps, usage, and errors are recorded.
+6. Domain records are updated only when business rules allow it.
 
-### Rules
+## Retry And Safety Expectations
 
-- draft only
-- no auto-publish
-- raw generated HTML is not the source of truth
-- output should map into structured content blocks
-- only approved briefs can generate drafts
-- image handling stays manual in MVP
+- Retries are explicit and tracked.
+- Failed jobs can be retried from the AI jobs flow.
+- Retry paths must not create duplicate topics, briefs, or posts.
+- Existing domain state should be reused where possible instead of recreated.
 
-## Scheduled Jobs
+## Provider And Prompt Boundaries
 
-Scheduler should support:
+Provider details stay behind internal AI client abstractions.
 
-- periodic topic discovery
-- queued draft generation for approved items
-- refresh recommendation analysis later
+Prompts are database-backed and versioned. Agent classes should not hardcode workflow prompts.
 
-### Scheduling Rules
+The current provider model is flexible, but the editorial workflow assumptions are fixed:
 
-- all scheduled AI operations must create tracked AI job records
-- scheduled operations must respect feature flags and provider availability
+- draft-first
+- human-reviewed
+- auditable
+- retryable
 
-## Queue Flow
+## What Is Not In Scope In This Phase
 
-Recommended queue separation:
-
-- `ai` for AI text jobs
-- `media` for future image or asset jobs
-- `default` for supporting orchestration
-
-### Flow
-
-1. User or scheduler triggers workflow.
-2. AI job record is created.
-3. Job is pushed to queue.
-4. Provider abstraction executes call.
-5. AI generation step is recorded.
-6. Normalized output is stored.
-7. Draft or suggestion records are updated.
-8. Cost and usage are stored.
-
-## AI Job Tracking
-
-Each AI job should track:
-
-- job type
-- target type and ID
-- provider
-- model
-- prompt template/version
-- status
-- attempts
-- started/completed timestamps
-- input snapshot
-- output snapshot
-- error message if failed
-
-Each AI generation step should track:
-
-- parent job
-- agent name
-- status
-- input snapshot
-- output snapshot
-- usage metadata
-- error message if failed
-
-Statuses:
-
-- `pending`
-- `queued`
-- `processing`
-- `completed`
-- `failed`
-- `cancelled`
-- `reviewed`
-
-## Token / Cost Tracking
-
-The engine should store:
-
-- input tokens
-- output tokens
-- cached tokens when provided
-- estimated cost
-- billed cost when available
-- provider
-- model
-
-Track cost per call and per job so multi-step workflows remain attributable.
-
-## Error Handling
-
-The system should handle:
-
-- provider timeouts
-- malformed provider responses
-- rate limits
-- missing prompt configuration
-- validation failures when mapping generated output
-
-### Error Rules
-
-- failures must not corrupt post state
-- failed jobs must retain enough context for inspection
-- user-facing errors should be readable and actionable
-
-## Retry Behavior
-
-- retries should be explicit and tracked
-- use capped retries for provider failures
-- do not duplicate draft creation on retry
-- idempotency should be enforced at job orchestration level where practical
-
-## Human Review Workflow
-
-1. Topic suggestion is created.
-2. Admin approves topic.
-3. Content brief is generated and reviewed.
-4. Draft content is generated.
-5. Admin edits and validates content.
-6. SEO suggestions, tags, and image notes are reviewed.
-7. Only then may the post move through normal publish workflow.
-
-## Provider Notes
-
-### OpenAI
-
-- first likely provider for draft generation and structured assistance
-
-### Anthropic
-
-- strong candidate for reasoning-heavy generation or editorial synthesis
-
-### Gemini
-
-- useful for provider diversity and future experimentation
-
-The engine should keep these interchangeable at orchestration level.
-
-## Suggested Admin Touchpoints
-
-- topic queue
-- content briefs
-- AI jobs screen
-- prompt management
-- post editor suggestion panels
-- SEO suggestion panels
-
-## Security And Governance
-
-- never expose provider secrets in admin UI
-- log enough to debug, not enough to create unnecessary data risk
-- treat AI output as untrusted until reviewed
-- use feature flags for experimental AI workflows
+- autonomous publishing
+- AI-generated images
+- direct public frontend AI interaction
+- replacing editorial approval with model decisions
 
 ## Summary
 
-The AI content engine should function as an editorial acceleration layer, not an autonomous publisher. Its job is to move work safely through topic suggestions, content briefs, draft posts, metadata suggestions, and image notes while keeping all final editorial and publishing decisions in human hands.
+The AI content engine is a controlled editorial pipeline:
+
+- discover topics
+- approve topics
+- generate briefs
+- approve briefs
+- generate drafts
+- review and publish manually
+
+That sequence is the current source of truth for future agents working in this repository.

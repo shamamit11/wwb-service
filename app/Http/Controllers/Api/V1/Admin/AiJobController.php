@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Admin\DiscoverContentTopicsRequest;
 use App\Http\Requests\Api\V1\Admin\ListAiJobsRequest;
 use App\Http\Requests\Api\V1\Admin\RetryAiJobRequest;
 use App\Http\Resources\Api\V1\AiJobResource;
 use App\Models\AiJob;
 use App\Modules\Ai\Services\ListAdminAiJobsService;
+use App\Modules\Ai\Services\QueueTopicDiscoveryService;
 use App\Modules\Ai\Services\ReadAiJobService;
 use App\Modules\Ai\Services\RetryAiJobService;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +30,15 @@ class AiJobController extends Controller
         ReadAiJobService $service,
     ): AiJobResource {
         return new AiJobResource($service->handle((int) $aiJob->id));
+    }
+
+    public function queueTopicDiscovery(
+        DiscoverContentTopicsRequest $request,
+        QueueTopicDiscoveryService $service,
+    ): JsonResponse {
+        return (new AiJobResource($service->handle($request->toData())))
+            ->response()
+            ->setStatusCode(Response::HTTP_ACCEPTED);
     }
 
     public function retry(

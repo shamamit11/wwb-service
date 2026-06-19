@@ -8,7 +8,9 @@ use App\Models\Post;
 use App\Models\Tag;
 use App\Models\Template;
 use App\Models\User;
+use App\Models\AiJob;
 use App\Modules\Posts\Data\CreatePostData;
+use App\Modules\Posts\Data\PostFiltersData;
 use App\Modules\Posts\Data\UpdatePostData;
 use App\Modules\Posts\Repositories\PostRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -234,6 +236,88 @@ class PostRepositoryTest extends TestCase
             $featuredPublished->id,
             $repository->findPublishedBySlug('featured-published-post')?->id,
         );
+    }
+
+    public function test_repository_supports_ai_provenance_filters_for_admin_review(): void
+    {
+        $repository = app(PostRepository::class);
+        $author = User::factory()->create(['is_admin' => true]);
+        $category = $this->createCategory($author, 'AI Agents', 'ai-agents');
+        $aiJob = AiJob::query()->create([
+            'type' => 'blog_writer',
+            'status' => 'completed',
+            'entity_type' => 'content_brief',
+            'entity_id' => 25,
+            'input_payload' => [],
+            'output_payload' => [],
+            'usage_payload' => [],
+            'attempts' => 1,
+        ]);
+
+        $manual = $repository->create(new CreatePostData(
+            authorUserId: $author->id,
+            categoryId: $category->id,
+            templateId: null,
+            featuredMediaId: null,
+            title: 'Manual Draft',
+            slug: 'manual-draft',
+            excerpt: null,
+            status: Post::STATUS_DRAFT,
+            visibility: Post::VISIBILITY_INTERNAL,
+            publishedAt: null,
+            scheduledFor: null,
+            contentVersion: 1,
+            readingTimeMinutes: null,
+            wordCount: null,
+            isFeatured: false,
+            meta: null,
+            tagIds: [],
+        ));
+
+        $ai = $repository->create(new CreatePostData(
+            authorUserId: $author->id,
+            categoryId: $category->id,
+            templateId: null,
+            featuredMediaId: null,
+            title: 'AI Draft',
+            slug: 'ai-draft',
+            excerpt: null,
+            status: Post::STATUS_DRAFT,
+            visibility: Post::VISIBILITY_INTERNAL,
+            publishedAt: null,
+            scheduledFor: null,
+            contentVersion: 1,
+            readingTimeMinutes: null,
+            wordCount: null,
+            isFeatured: false,
+            meta: [
+                'source_content_brief_id' => 11,
+                'source_content_topic_id' => 22,
+                'ai_job_id' => $aiJob->id,
+                'generated_by' => 'BlogWriterAgent',
+            ],
+            tagIds: [],
+        ));
+
+        $this->assertSame([$ai->id], $repository->searchAdmin(new PostFiltersData(
+            isAiGenerated: true,
+        ))->modelKeys());
+
+        $this->assertSame([$manual->id], $repository->searchAdmin(new PostFiltersData(
+            isAiGenerated: false,
+        ))->modelKeys());
+
+        $this->assertSame([$ai->id], $repository->searchAdmin(new PostFiltersData(
+            sourceContentBriefId: 11,
+        ))->modelKeys());
+
+        $this->assertSame([$ai->id], $repository->searchAdmin(new PostFiltersData(
+            sourceContentTopicId: 22,
+        ))->modelKeys());
+
+        $this->assertSame([$ai->id], $repository->searchAdmin(new PostFiltersData(
+            generatedByAiJobId: (int) $aiJob->id,
+        ))->modelKeys());
     }
 
     public function test_repository_delete_soft_deletes_post_and_detaches_tags(): void

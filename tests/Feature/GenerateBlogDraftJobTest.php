@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use App\Infrastructure\Ai\Data\GenerateTextRequest;
@@ -165,6 +166,7 @@ class GenerateBlogDraftJobTest extends TestCase
                 'template_id' => null,
                 'featured_media_id' => null,
                 'visibility' => Post::VISIBILITY_PUBLIC,
+                'generation_mode' => BlogDraftGenerationMode::Checklist->value,
             ],
         ));
 
@@ -181,6 +183,10 @@ class GenerateBlogDraftJobTest extends TestCase
             'ai_job_id' => $job->id,
             'agent_name' => 'BlogWriterAgent',
             'status' => AiGenerationStep::STATUS_COMPLETED,
+        ]);
+        $this->assertDatabaseHas('ai_generation_steps', [
+            'ai_job_id' => $job->id,
+            'input_payload->generation_mode' => BlogDraftGenerationMode::Checklist->value,
         ]);
         $this->assertDatabaseHas('content_briefs', [
             'id' => $brief->id,
@@ -203,6 +209,7 @@ class GenerateBlogDraftJobTest extends TestCase
                 'template_id' => null,
                 'featured_media_id' => null,
                 'visibility' => Post::VISIBILITY_PUBLIC,
+                'generation_mode' => BlogDraftGenerationMode::Checklist->value,
             ],
             attempts: 2,
             retryOfAiJobId: (int) $job->id,

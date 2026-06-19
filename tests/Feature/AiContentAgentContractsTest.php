@@ -10,6 +10,7 @@ use App\AI\DTO\BlogDraftResult;
 use App\AI\DTO\AgentResult;
 use App\AI\DTO\ContentBriefInput;
 use App\AI\DTO\ContentBriefResult;
+use App\AI\Enums\BlogDraftGenerationMode;
 use App\AI\DTO\TopicDiscoveryInput;
 use App\AI\DTO\TopicDiscoveryResult;
 use App\AI\DTO\TopicSuggestionData;
@@ -26,6 +27,7 @@ class AiContentAgentContractsTest extends TestCase
             contentTopicId: 7,
             title: 'AI Prompt Versioning for Editorial Teams',
             slug: 'ai-prompt-versioning-for-editorial-teams',
+            generationMode: BlogDraftGenerationMode::Tutorial->value,
             primaryKeyword: 'ai prompt versioning',
             secondaryKeywords: ['prompt ops'],
             searchIntent: 'informational',
@@ -53,6 +55,7 @@ class AiContentAgentContractsTest extends TestCase
         $this->assertSame(20, $request->timeoutSeconds);
         $this->assertSame(2, $request->retryTimes);
         $this->assertSame(500, $request->retrySleepMilliseconds);
+        $this->assertSame(BlogDraftGenerationMode::Tutorial->value, $input->generationMode);
     }
 
     public function test_agent_result_success_can_wrap_structured_output_and_usage_metadata(): void

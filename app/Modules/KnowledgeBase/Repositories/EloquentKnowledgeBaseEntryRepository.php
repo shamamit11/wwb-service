@@ -4,6 +4,7 @@ namespace App\Modules\KnowledgeBase\Repositories;
 
 use App\Models\KnowledgeBaseEntry;
 use App\Modules\KnowledgeBase\Data\CreateKnowledgeBaseEntryData;
+use App\Modules\KnowledgeBase\Data\KnowledgeContextQueryData;
 use App\Modules\KnowledgeBase\Data\KnowledgeBaseEntryFiltersData;
 use App\Modules\KnowledgeBase\Data\UpdateKnowledgeBaseEntryData;
 use Illuminate\Database\Eloquent\Collection;
@@ -119,6 +120,24 @@ class EloquentKnowledgeBaseEntryRepository implements KnowledgeBaseEntryReposito
     }
 
     /**
+     * @return Collection<int, KnowledgeBaseEntry>
+     */
+    public function findActiveForContext(KnowledgeContextQueryData $query): Collection
+    {
+        return KnowledgeBaseEntry::query()
+            ->with($this->relations())
+            ->where('status', KnowledgeBaseEntry::STATUS_ACTIVE)
+            ->when(
+                $query->entryTypes !== [],
+                fn ($builder) => $builder->whereIn('entry_type', $this->normalizeEntryTypes($query->entryTypes))
+            )
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->limit(max(1, min(100, $query->candidatePoolSize)))
+            ->get();
+    }
+
+    /**
      * @return list<string>
      */
     private function relations(): array
@@ -140,5 +159,17 @@ class EloquentKnowledgeBaseEntryRepository implements KnowledgeBaseEntryReposito
         }
 
         return [$field, $descending];
+    }
+
+    /**
+     * @param  list<string>  $entryTypes
+     * @return list<string>
+     */
+    private function normalizeEntryTypes(array $entryTypes): array
+    {
+        return array_values(array_intersect(
+            KnowledgeBaseEntry::ENTRY_TYPES,
+            array_values(array_filter($entryTypes, static fn (mixed $entryType): bool => is_string($entryType) && $entryType !== '')),
+        ));
     }
 }

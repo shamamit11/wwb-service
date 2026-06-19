@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Jobs\AI\DiscoverContentTopicsJob;
-use App\Modules\Ai\Services\RunTopicDiscoveryService;
+use App\Modules\Ai\Data\DiscoverContentTopicsData;
+use App\Modules\Ai\Services\AiWorkflowOrchestrator;
+use App\Modules\Ai\Repositories\AiJobRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Mockery;
@@ -23,18 +25,23 @@ class TopicDiscoveryExecutionTest extends TestCase
         ])->assertSuccessful();
 
         Bus::assertDispatched(DiscoverContentTopicsJob::class, function (DiscoverContentTopicsJob $job): bool {
-            return $job->cluster === 'ai_tools'
-                && $job->count === 10
+            return $job->aiJobId > 0
                 && $job->queue === 'ai';
         });
+
+        $this->assertDatabaseHas('ai_jobs', [
+            'type' => \App\Models\AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
+            'status' => \App\Models\AiJob::STATUS_QUEUED,
+            'entity_type' => 'content_topic_batch',
+        ]);
     }
 
     public function test_command_can_run_topic_discovery_synchronously(): void
     {
-        $service = Mockery::mock(RunTopicDiscoveryService::class);
-        $service->shouldReceive('handle')
+        $service = Mockery::mock(AiWorkflowOrchestrator::class);
+        $service->shouldReceive('runTopicDiscovery')
             ->once()
-            ->with(Mockery::on(fn ($data): bool => $data->cluster === 'seo' && $data->count === 3))
+            ->with(Mockery::on(fn ($data): bool => $data instanceof DiscoverContentTopicsData && $data->cluster === 'seo' && $data->count === 3))
             ->andReturn(new \App\AI\DTO\AgentResult(
                 agent: 'TopicDiscoveryAgent',
                 status: \App\AI\Enums\AiRunStatus::SUCCESS,
@@ -44,7 +51,7 @@ class TopicDiscoveryExecutionTest extends TestCase
                 ],
             ));
 
-        $this->app->instance(RunTopicDiscoveryService::class, $service);
+        $this->app->instance(AiWorkflowOrchestrator::class, $service);
 
         $this->artisan('ai:discover-topics', [
             '--cluster' => 'seo',
@@ -108,12 +115,50 @@ class TopicDiscoveryExecutionTest extends TestCase
 
         $this->app->instance(\App\Infrastructure\Ai\Contracts\AiClient::class, $fakeClient);
 
-        $job = new DiscoverContentTopicsJob(cluster: 'ai_tools', count: 1);
-        $job->handle(app(RunTopicDiscoveryService::class));
-        $job->handle(app(RunTopicDiscoveryService::class));
+        $jobRecord = app(AiJobRepository::class)->create(new \App\Modules\Ai\Data\CreateAiJobData(
+            type: \App\Models\AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
+            status: \App\Models\AiJob::STATUS_QUEUED,
+            entityType: 'content_topic_batch',
+            inputPayload: [
+                'cluster' => 'ai_tools',
+                'count' => 1,
+                'audience' => null,
+                'prompt_template_key' => null,
+                'metadata' => [],
+            ],
+        ));
+
+        $job = new DiscoverContentTopicsJob(aiJobId: (int) $jobRecord->id);
+        $job->handle(app(AiWorkflowOrchestrator::class));
+
+        $retryJobRecord = app(AiJobRepository::class)->create(new \App\Modules\Ai\Data\CreateAiJobData(
+            type: \App\Models\AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
+            status: \App\Models\AiJob::STATUS_QUEUED,
+            entityType: 'content_topic_batch',
+            inputPayload: [
+                'cluster' => 'ai_tools',
+                'count' => 1,
+                'audience' => null,
+                'prompt_template_key' => null,
+                'metadata' => [],
+            ],
+            attempts: 2,
+            retryOfAiJobId: (int) $jobRecord->id,
+        ));
+
+        $retryJob = new DiscoverContentTopicsJob(aiJobId: (int) $retryJobRecord->id);
+        $retryJob->handle(app(AiWorkflowOrchestrator::class));
 
         $this->assertSame(2, $fakeClient->calls);
         $this->assertDatabaseCount('content_topics', 1);
+        $this->assertDatabaseHas('ai_jobs', [
+            'id' => $jobRecord->id,
+            'status' => \App\Models\AiJob::STATUS_COMPLETED,
+        ]);
+        $this->assertDatabaseHas('ai_jobs', [
+            'id' => $retryJobRecord->id,
+            'status' => \App\Models\AiJob::STATUS_COMPLETED,
+        ]);
         $this->assertDatabaseHas('content_topics', [
             'title' => 'AI Tool Playbooks for Editorial Teams',
             'cluster' => 'ai_tools',

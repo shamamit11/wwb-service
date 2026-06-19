@@ -27,6 +27,11 @@ class SearchExistingPostsTool
             excerpt: $excerpt,
             tagNames: $secondaryKeywords,
             focusKeyword: $primaryKeyword,
-        ), $limit)->map(static fn ($candidate) => $candidate->toArray())->all();
+        ), $limit * 2)
+            ->filter(static fn ($candidate): bool => $candidate->contentType === 'post')
+            ->take($limit)
+            ->map(static fn ($candidate) => $candidate->toArray())
+            ->values()
+            ->all();
     }
 }
