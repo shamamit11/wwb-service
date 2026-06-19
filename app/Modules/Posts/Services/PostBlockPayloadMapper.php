@@ -61,7 +61,7 @@ class PostBlockPayloadMapper
      */
     private function mapParagraph(PostBlockPayloadData $block, array $content): CreatePostBlockData
     {
-        $markdown = $this->nullableString($content['markdown'] ?? null);
+        $markdown = $this->nullableString($this->resolveMarkdownLikeContent($content));
 
         return $this->build(
             block: $block,
@@ -91,7 +91,7 @@ class PostBlockPayloadMapper
      */
     private function mapQuote(PostBlockPayloadData $block, array $content): CreatePostBlockData
     {
-        $markdown = $this->nullableString($content['quote_markdown'] ?? null);
+        $markdown = $this->nullableString($content['quote_markdown'] ?? $this->resolveMarkdownLikeContent($content));
 
         return $this->build(
             block: $block,
@@ -129,7 +129,7 @@ class PostBlockPayloadMapper
      */
     private function mapCode(PostBlockPayloadData $block, array $content): CreatePostBlockData
     {
-        $code = $this->nullableString($content['code'] ?? null);
+        $code = $this->nullableString($content['code'] ?? $this->resolveMarkdownLikeContent($content));
 
         return $this->build(
             block: $block,
@@ -181,7 +181,7 @@ class PostBlockPayloadMapper
      */
     private function mapCallout(PostBlockPayloadData $block, array $content): CreatePostBlockData
     {
-        $markdown = $this->nullableString($content['markdown'] ?? null);
+        $markdown = $this->nullableString($this->resolveMarkdownLikeContent($content));
 
         return $this->build(
             block: $block,
@@ -218,6 +218,18 @@ class PostBlockPayloadMapper
         $string = trim((string) $value);
 
         return $string === '' ? null : $string;
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function resolveMarkdownLikeContent(array $content): mixed
+    {
+        return $content['markdown']
+            ?? $content['text']
+            ?? $content['content']
+            ?? $content['content_markdown']
+            ?? null;
     }
 
     private function toPlainText(mixed $value): ?string

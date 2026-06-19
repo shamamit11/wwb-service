@@ -39,18 +39,54 @@ class PostBlockPayloadValidator
 
         match ($block->blockType) {
             ContentBlockType::HEADING->value => $this->requireNonEmptyString($content['text'] ?? null, "Heading block text is required at index {$index}."),
-            ContentBlockType::PARAGRAPH->value, ContentBlockType::CALLOUT->value => $this->requireNonEmptyString($content['markdown'] ?? null, "Markdown content is required at index {$index}."),
+            ContentBlockType::PARAGRAPH->value, ContentBlockType::CALLOUT->value => $this->requireNonEmptyString(
+                $this->resolveMarkdownLikeContent($content),
+                "Markdown content is required at index {$index}.",
+            ),
             ContentBlockType::IMAGE->value => $this->requireAnyNonEmptyString([
                 $content['url'] ?? null,
                 $content['caption'] ?? null,
                 $content['alt_text'] ?? null,
             ], "Image block content is required at index {$index}."),
-            ContentBlockType::QUOTE->value => $this->requireNonEmptyString($content['quote_markdown'] ?? null, "Quote markdown is required at index {$index}."),
+            ContentBlockType::QUOTE->value => $this->requireNonEmptyString(
+                $this->resolveQuoteContent($content),
+                "Quote markdown is required at index {$index}.",
+            ),
             ContentBlockType::LIST->value => $this->requireNonEmptyArray($content['items'] ?? null, "List items are required at index {$index}."),
-            ContentBlockType::CODE->value => $this->requireNonEmptyString($content['code'] ?? null, "Code content is required at index {$index}."),
+            ContentBlockType::CODE->value => $this->requireNonEmptyString($this->resolveCodeContent($content), "Code content is required at index {$index}."),
             ContentBlockType::FAQ->value => $this->requireNonEmptyArray($content['items'] ?? null, "FAQ items are required at index {$index}."),
             default => throw new InvalidPostBlockPayloadException("Unsupported block type [{$block->blockType}] at index {$index}."),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function resolveMarkdownLikeContent(array $content): mixed
+    {
+        return $content['markdown']
+            ?? $content['text']
+            ?? $content['content']
+            ?? $content['content_markdown']
+            ?? null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function resolveQuoteContent(array $content): mixed
+    {
+        return $content['quote_markdown']
+            ?? $this->resolveMarkdownLikeContent($content);
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     */
+    private function resolveCodeContent(array $content): mixed
+    {
+        return $content['code']
+            ?? $this->resolveMarkdownLikeContent($content);
     }
 
     private function requireNonEmptyString(mixed $value, string $message): void

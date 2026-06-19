@@ -163,6 +163,31 @@ class PostApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_create_post_when_paragraph_block_uses_admin_string_array_payload(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+        $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
+
+        $response = $this->withToken($token)->postJson('/api/v1/admin/posts', [
+            'title' => 'Paragraph Payload Compatibility',
+            'category_id' => $category->id,
+            'status' => Post::STATUS_DRAFT,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'blocks' => [
+                [
+                    'block_type' => 'paragraph',
+                    'sort_order' => 1,
+                    'content' => ['Paragraph content submitted as text.'],
+                ],
+            ],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.blocks.0.block_type', 'paragraph')
+            ->assertJsonPath('data.blocks.0.content_markdown', 'Paragraph content submitted as text.');
+    }
+
     public function test_admin_can_queue_draft_rewrite_for_ai_generated_draft_posts(): void
     {
         Queue::fake();
