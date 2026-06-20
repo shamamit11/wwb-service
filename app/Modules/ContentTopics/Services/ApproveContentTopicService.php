@@ -3,6 +3,7 @@
 namespace App\Modules\ContentTopics\Services;
 
 use App\Models\ContentTopic;
+use App\Modules\Ai\Services\ContentBriefWorkflow;
 use App\Modules\ContentTopics\Data\ContentTopicStateTransitionData;
 use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionException;
 use App\Modules\ContentTopics\Repositories\ContentTopicRepository;
@@ -13,6 +14,7 @@ class ApproveContentTopicService
     public function __construct(
         private readonly ContentTopicRepository $topics,
         private readonly AuditActivityLogger $audit,
+        private readonly ContentBriefWorkflow $contentBriefs,
     ) {}
 
     public function handle(ContentTopic $topic, ?string $notes = null): ContentTopic
@@ -43,6 +45,8 @@ class ApproveContentTopicService
             attributes: $this->auditAttributes($updated),
             old: $old,
         );
+
+        $this->contentBriefs->queue($updated);
 
         return $updated;
     }

@@ -2,18 +2,19 @@
 
 ## Task Summary
 
-Diagnose and fix the admin `Generate Brief` failure so backend AI errors are surfaced instead of returning a generic 500.
+Queue content brief generation automatically when an admin approves a topic, while preserving manual generation and safe brief deduplication.
 
 ## Requested Outcome
 
-- identify why `POST /api/v1/admin/content-topics/{id}/generate-brief` still returns 500
-- surface the underlying AI workflow failure message through the API
-- add a focused regression test for failed content brief generation
+- approving a topic should enqueue content brief generation automatically
+- keep topic approval separate from synchronous AI execution
+- avoid duplicate content briefs when one already exists
+- add focused tests for approval-triggered queueing
 
 ## Scope Boundaries
 
 - service repository only
-- content brief generation failure handling and targeted tests only
+- topic approval and content brief queueing behavior only
 - no admin app changes
 - no provider integration changes
 
@@ -44,37 +45,41 @@ Diagnose and fix the admin `Generate Brief` failure so backend AI errors are sur
 - `app/Infrastructure/Ai/LaravelAiClient.php`
 - `app/Infrastructure/Ai/Exceptions/AiCallFailedException.php`
 - `app/Modules/Ai/Services/TrackAiJobService.php`
+- `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
+- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
+- `app/Jobs/AI/GenerateContentBriefJob.php`
+- `app/Modules/ContentTopics/Services/ApproveContentTopicService.php`
 - `bootstrap/app.php`
 - `app/Support/ApiErrorResponse.php`
 - `config/ai.php`
+- `tests/Feature/ContentTopicApiTest.php`
 - `tests/Feature/ContentBriefApiTest.php`
 
 ## Plan
 
-1. Confirm the failing `generate-brief` path and identify the underlying AI error.
-2. Convert failed content brief agent runs into an explicit API error instead of a generic runtime 500.
-3. Add a regression test for the failed brief generation path and run the smallest relevant test selection.
+1. Add a queued content brief dispatch path that is safe when a brief already exists.
+2. Trigger that queue path from topic approval.
+3. Add focused approval-flow tests and run the smallest relevant test selection.
 
 ## Changed Files
 
 - `.agent/tasks/current-task.md`
-- `app/Modules/Ai/Exceptions/AiWorkflowFailedException.php`
-- `app/Modules/ContentBriefs/Services/GenerateContentBriefFromTopicService.php`
-- `bootstrap/app.php`
-- `tests/Feature/ContentBriefApiTest.php`
+- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
+- `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
+- `app/Modules/ContentTopics/Services/ApproveContentTopicService.php`
+- `tests/Feature/ContentTopicApiTest.php`
 
 ## Validation
 
+- `php artisan test --filter=ContentTopicApiTest` passed
 - `php artisan test --filter=ContentBriefApiTest` passed
-- direct `php artisan tinker` repro now throws `App\Modules\Ai\Exceptions\AiWorkflowFailedException` with the underlying OpenAI 401 message instead of `RuntimeException('Content brief agent did not persist a content brief.')`
 
 ## Risks Or Follow-Ups
 
-- admin UI may still need a small client-side improvement if it only shows a generic toast for non-2xx responses
-- provider failures during synchronous generation still depend on prompt/config correctness and valid credentials
+- approval-triggered queueing can create additional AI jobs, so admin UI may later want to surface the queued job status next to the approved topic
 
 ## Completion Notes
 
-- Root cause confirmed locally: all configured AI provider keys were missing, so content brief generation failed with an OpenAI 401.
-- The API bug was separate: the failed agent result was ignored and replaced with a generic runtime exception, which the API layer converted into a generic 500 response.
-- The service now surfaces brief-generation failures as `AI_WORKFLOW_FAILED` with the underlying message and preserves the AI job record for diagnosis.
+- Topic approval now enqueues `GenerateContentBriefJob` onto the `ai` queue through `ContentBriefWorkflow::queue()`.
+- The queue path is idempotent for topics that already have a brief: approval still succeeds, but no new AI job is created.
+- Manual `Generate Brief` remains available and unchanged.

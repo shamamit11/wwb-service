@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\AI\GenerateContentBriefJob;
+use App\Models\AiJob;
+use App\Models\AiPromptTemplate;
+use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ContentTopicApiTest extends TestCase
@@ -20,6 +25,8 @@ class ContentTopicApiTest extends TestCase
 
     public function test_admin_can_crud_filter_and_transition_content_topics(): void
     {
+        Queue::fake();
+
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
 
@@ -92,6 +99,22 @@ class ContentTopicApiTest extends TestCase
             ->assertJsonPath('data.can_generate_content_brief', true)
             ->assertJsonPath('data.notes', 'Approved for brief generation.');
 
+        $job = AiJob::query()->latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('ai_jobs', [
+            'id' => $job->id,
+            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            'status' => AiJob::STATUS_QUEUED,
+            'entity_type' => 'content_topic',
+            'entity_id' => $topicId,
+            'attempts' => 1,
+        ]);
+
+        Queue::assertPushed(GenerateContentBriefJob::class, function (GenerateContentBriefJob $queuedJob) use ($job): bool {
+            return $queuedJob->aiJobId === (int) $job->id
+                && $queuedJob->queue === 'ai';
+        });
+
         $this->withToken($token)->postJson("/api/v1/admin/content-topics/{$topicId}/mark-used", [
             'notes' => 'Brief generated for article pipeline.',
         ])->assertOk()
@@ -161,6 +184,54 @@ class ContentTopicApiTest extends TestCase
             ->assertJsonPath('error_code', 'CONFLICT')
             ->assertJsonPath('errors.status.0', ContentTopic::STATUS_SUGGESTED)
             ->assertJsonPath('errors.action.0', 'mark-used');
+    }
+
+    public function test_approving_topic_does_not_queue_brief_when_one_already_exists(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Topic With Existing Brief',
+            'slug' => 'ai-topic-with-existing-brief',
+            'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
+            'primary_keyword' => 'existing brief topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '70.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_MANUAL,
+            'status' => ContentTopic::STATUS_REJECTED,
+            'notes' => 'Rejected pending review.',
+            'rejected_at' => now(),
+        ]);
+
+        ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'AI Topic With Existing Brief',
+            'slug' => 'ai-topic-with-existing-brief',
+            'meta_title' => null,
+            'meta_description' => null,
+            'primary_keyword' => 'existing brief topic',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'outline' => [['heading' => 'Intro', 'purpose' => 'Frame the topic']],
+            'headings' => ['Intro'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_DRAFT,
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/content-topics/{$topic->id}/approve", [
+            'notes' => 'Re-approved with existing brief.',
+        ])->assertOk()
+            ->assertJsonPath('data.status', ContentTopic::STATUS_APPROVED);
+
+        $this->assertDatabaseCount('ai_jobs', 0);
+        Queue::assertNothingPushed();
     }
 
     public function test_content_topic_validation_errors_use_consistent_json_shape(): void

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Ai\Services;
 
+use App\Jobs\AI\GenerateContentBriefJob;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
 use App\Models\ContentBrief;
@@ -20,6 +21,30 @@ class ContentBriefWorkflow
         private readonly ContentBriefRepository $briefs,
         private readonly GenerateContentBriefFromTopicService $generateBrief,
     ) {}
+
+    public function queue(ContentTopic $topic, ?string $promptTemplateKey = null, ?int $retryOfAiJobId = null, int $attempts = 1): ?AiJob
+    {
+        if ($this->briefs->findByTopicId((int) $topic->id) instanceof ContentBrief) {
+            return null;
+        }
+
+        $job = $this->jobs->create(new CreateAiJobData(
+            type: AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            status: AiJob::STATUS_QUEUED,
+            entityType: 'content_topic',
+            entityId: (int) $topic->id,
+            inputPayload: [
+                'content_topic_id' => (int) $topic->id,
+                'prompt_template_key' => $promptTemplateKey,
+            ],
+            attempts: max(1, $attempts),
+            retryOfAiJobId: $retryOfAiJobId,
+        ));
+
+        GenerateContentBriefJob::dispatch((int) $job->id);
+
+        return $job;
+    }
 
     public function generate(ContentTopic $topic, ?string $promptTemplateKey = null): GeneratedContentBriefData
     {
