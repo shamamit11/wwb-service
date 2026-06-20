@@ -605,6 +605,172 @@ This is a reference specification, not a generated OpenAPI JSON file.
 
 ---
 
+## About Page
+
+### Endpoint List
+
+- `GET /admin/api/v1/about-page`
+- `PUT /admin/api/v1/about-page`
+- `GET /api/v1/public/about`
+
+### Update Request Example
+
+```json
+{
+  "hero": {
+    "eyebrow": "Our story",
+    "title": "Navigating the digital frontier together.",
+    "description": "Wide Web Blog was founded on the belief that technology should be accessible, insightful, and growth-oriented.",
+    "media_url": "https://cdn.widewebblog.com/about/hero.png",
+    "media_alt": "About page office photograph"
+  },
+  "mission_section": {
+    "title": "Our Mission: Fueling Digital Growth",
+    "description": "We provide the context needed to thrive in an era of rapid AI and technological evolution.",
+    "quote": "The future is about how we leverage technology to amplify human potential."
+  },
+  "stats_section": {
+    "items": [
+      {"label": "Articles Published", "value": "500+"},
+      {"label": "Monthly Readers", "value": "120K"}
+    ]
+  },
+  "values_section": {
+    "title": "The Values We Live By",
+    "items": [
+      {
+        "icon": "clarity",
+        "title": "Authentic Clarity",
+        "description": "We prioritize honesty and transparency in every piece of content."
+      }
+    ]
+  },
+  "team_section": {
+    "title": "Meet the Minds",
+    "description": "Our multidisciplinary team combines decades of expertise.",
+    "primary_cta_label": "Join the Team",
+    "primary_cta_url": "https://widewebblog.com/careers",
+    "members": [
+      {
+        "name": "Alexander Chen",
+        "role": "Editor-in-Chief",
+        "image_url": "https://cdn.widewebblog.com/about/alexander.png",
+        "image_alt": "Alexander Chen portrait"
+      }
+    ]
+  },
+  "seo": {
+    "meta_title": "About Wide Web Blog",
+    "meta_description": "Learn more about Wide Web Blog, our mission, values, and editorial team."
+  }
+}
+```
+
+### Validation Rules
+
+- `hero`: required|array
+- `hero.eyebrow`: nullable|string|max 120
+- `hero.title`: nullable|string|max 255
+- `hero.description`: nullable|string|max 2000
+- `hero.media_url`: nullable|url|max 500
+- `hero.media_alt`: nullable|string|max 255
+- `mission_section`: required|array
+- `mission_section.title`: nullable|string|max 255
+- `mission_section.description`: nullable|string|max 3000
+- `mission_section.quote`: nullable|string|max 1000
+- `stats_section`: required|array
+- `stats_section.items`: required|array
+- `stats_section.items.*.label`: required|string|max 120
+- `stats_section.items.*.value`: required|string|max 120
+- `values_section`: required|array
+- `values_section.title`: nullable|string|max 255
+- `values_section.items`: required|array
+- `values_section.items.*.icon`: nullable|string|max 80
+- `values_section.items.*.title`: required|string|max 120
+- `values_section.items.*.description`: required|string|max 1000
+- `team_section`: required|array
+- `team_section.title`: nullable|string|max 255
+- `team_section.description`: nullable|string|max 2000
+- `team_section.primary_cta_label`: nullable|string|max 120
+- `team_section.primary_cta_url`: nullable|url|max 500
+- `team_section.members`: required|array
+- `team_section.members.*.name`: required|string|max 120
+- `team_section.members.*.role`: required|string|max 160
+- `team_section.members.*.image_url`: nullable|url|max 500
+- `team_section.members.*.image_alt`: nullable|string|max 255
+- `seo.meta_title`: nullable|string|max 255
+- `seo.meta_description`: nullable|string|max 320
+
+### Response Example
+
+```json
+{
+  "data": {
+    "hero": {
+      "eyebrow": "Our story",
+      "title": "Navigating the digital frontier together.",
+      "description": "Wide Web Blog was founded on the belief that technology should be accessible, insightful, and growth-oriented.",
+      "media_url": "https://cdn.widewebblog.com/about/hero.png",
+      "media_alt": "About page office photograph"
+    },
+    "mission_section": {
+      "title": "Our Mission: Fueling Digital Growth",
+      "description": "We provide the context needed to thrive in an era of rapid AI and technological evolution.",
+      "quote": "The future is about how we leverage technology to amplify human potential."
+    },
+    "stats_section": {
+      "items": [
+        {"label": "Articles Published", "value": "500+"},
+        {"label": "Monthly Readers", "value": "120K"}
+      ]
+    },
+    "values_section": {
+      "title": "The Values We Live By",
+      "items": [
+        {
+          "icon": "clarity",
+          "title": "Authentic Clarity",
+          "description": "We prioritize honesty and transparency in every piece of content."
+        }
+      ]
+    },
+    "team_section": {
+      "title": "Meet the Minds",
+      "description": "Our multidisciplinary team combines decades of expertise.",
+      "primary_cta_label": "Join the Team",
+      "primary_cta_url": "https://widewebblog.com/careers",
+      "members": [
+        {
+          "name": "Alexander Chen",
+          "role": "Editor-in-Chief",
+          "image_url": "https://cdn.widewebblog.com/about/alexander.png",
+          "image_alt": "Alexander Chen portrait"
+        }
+      ]
+    },
+    "seo": {
+      "meta_title": "About Wide Web Blog",
+      "meta_description": "Learn more about Wide Web Blog, our mission, values, and editorial team."
+    },
+    "updated_at": "2026-06-20T12:00:00Z",
+    "updated_by": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    }
+  }
+}
+```
+
+### Singleton Behavior
+
+- The About page is a singleton resource, not a collection.
+- `GET /admin/api/v1/about-page` auto-creates the default record if none exists yet.
+- `GET /api/v1/public/about` returns the same structured content shape without admin metadata fields.
+- Ordered arrays such as `stats_section.items`, `values_section.items`, and `team_section.members` are preserved as submitted.
+
+---
+
 ## Media
 
 ### Endpoint List

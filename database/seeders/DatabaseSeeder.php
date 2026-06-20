@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             PostBlockSeeder::class,
             PageSeeder::class,
             HomepageSeeder::class,
+            AboutPageSeeder::class,
             KnowledgeBaseEntrySeeder::class,
             SeoMetadataSeeder::class,
             AiPromptTemplateSeeder::class,

@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
+use App\Http\Controllers\Api\V1\Admin\AboutPageController as AdminAboutPageController;
 use App\Http\Controllers\Api\V1\Admin\AdminPasswordController;
+use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\AiJobController as AdminAiJobController;
 use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CreateUserController;
 use App\Http\Controllers\Api\V1\EchoMessageController;
 use App\Http\Controllers\Api\V1\HealthCheckController;
+use App\Http\Controllers\Api\V1\Public\AboutController as PublicAboutController;
 use App\Http\Controllers\Api\V1\Public\CategoryController as PublicCategoryController;
 use App\Http\Controllers\Api\V1\Public\HomeController as PublicHomeController;
 use App\Http\Controllers\Api\V1\Public\NewsletterController as PublicNewsletterController;
@@ -121,6 +123,10 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.homepage.show');
             Route::put('homepage', [AdminHomepageController::class, 'update'])
                 ->name('api.v1.admin.homepage.update');
+            Route::get('about-page', [AdminAboutPageController::class, 'show'])
+                ->name('api.v1.admin.about-page.show');
+            Route::put('about-page', [AdminAboutPageController::class, 'update'])
+                ->name('api.v1.admin.about-page.update');
 
             Route::apiResource('categories', AdminCategoryController::class)
                 ->names('api.v1.admin.categories');
@@ -245,6 +251,8 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.v1.public.posts.show');
         Route::get('home', PublicHomeController::class)
             ->name('api.v1.public.home');
+        Route::get('about', PublicAboutController::class)
+            ->name('api.v1.public.about');
         Route::post('newsletter/subscribe', [PublicNewsletterController::class, 'subscribe'])
             ->name('api.v1.public.newsletter.subscribe');
         Route::match(['get', 'post'], 'newsletter/unsubscribe', [PublicNewsletterController::class, 'unsubscribe'])
