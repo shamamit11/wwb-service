@@ -1,5 +1,20 @@
 # Task Record
 
+## Follow-Up Investigation
+
+- Date: 2026-06-20
+- Topic: `GET /api/v1/public/pages/{slug}` returns `404` for `privacy-policy` in local environment.
+- Findings:
+- The route exists at `GET /api/v1/public/pages/{slug}` and is handled by `App\Http\Controllers\Api\V1\Public\PageController`.
+- Public page lookup in `App\Modules\Pages\Services\FindPublicPageBySlugService` requires `slug` match plus `status = published`, `visibility = public`, and `published_at IS NOT NULL`.
+- Local database row `pages.slug = privacy-policy` exists, with `status = published` and `visibility = public`, but `published_at = NULL`.
+- The resulting `404` is expected under current service rules and docs.
+- Validation gap:
+- `StorePageRequest` and `UpdatePageRequest` allow `status = published` while `published_at` remains nullable, so admin/API writes can create rows that appear published but are not publicly readable.
+- Applied follow-up:
+- Tightened page write validation so `published_at` is required whenever `status = published`.
+- Added feature coverage for both create and update requests to prevent regression.
+
 ## Task Summary
 
 Implement Contact page service support with admin endpoints for page management and submission review, plus public endpoints for page content and contact form submission.

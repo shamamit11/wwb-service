@@ -368,7 +368,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `summary`: nullable|string
 - `content_markdown`: required|string
 - `visibility`: required|in:public,private,internal
-- `published_at`: nullable|date
+- `published_at`: required when `status=published`, otherwise nullable|date
 - `scheduled_for`: nullable|date
 - `meta`: nullable|array
 
