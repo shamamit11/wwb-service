@@ -18,6 +18,7 @@ use App\Models\ContentTopic;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -27,6 +28,8 @@ class TopicDiscoveryAgentTest extends TestCase
 
     public function test_topic_discovery_agent_renders_prompt_skips_duplicates_saves_suggestions_and_tracks_ai_workflow(): void
     {
+        Queue::fake();
+
         config()->set('ai.service.default_provider', 'openai');
         config()->set('ai.service.providers.openai.text_model', 'gpt-5-mini');
         config()->set('ai.service.pricing.default_currency', 'USD');
@@ -173,7 +176,7 @@ class TopicDiscoveryAgentTest extends TestCase
             'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
             'primary_keyword' => 'ai tool audit checklist',
             'source' => ContentTopic::SOURCE_AI_SUGGESTED,
-            'status' => ContentTopic::STATUS_SUGGESTED,
+            'status' => ContentTopic::STATUS_APPROVED,
         ]);
 
         $savedTopic = ContentTopic::query()->findOrFail($savedTopicId);
@@ -208,6 +211,8 @@ class TopicDiscoveryAgentTest extends TestCase
 
     public function test_topic_discovery_agent_accepts_markdown_fenced_json_output(): void
     {
+        Queue::fake();
+
         config()->set('ai.service.default_provider', 'openai');
         config()->set('ai.service.providers.openai.text_model', 'gpt-5-mini');
 

@@ -83,7 +83,7 @@ class ContentTopicApiTest extends TestCase
             'primary_keyword' => 'ai seo workflow',
             'secondary_keywords' => ['technical blog seo', 'content ops'],
             'search_intent' => 'commercial',
-            'priority_score' => '91.25',
+            'priority_score' => '89.25',
             'difficulty_note' => 'SERP is crowded but beatable with examples.',
             'source' => ContentTopic::SOURCE_MANUAL,
             'notes' => 'Promoted for Q3.',
@@ -158,6 +158,51 @@ class ContentTopicApiTest extends TestCase
             ->assertJsonPath('error_code', 'CONFLICT')
             ->assertJsonPath('errors.title.0', 'AI Topic Clustering for Blogs')
             ->assertJsonPath('errors.cluster.0', ContentTopic::CLUSTER_CONTENT_MARKETING);
+    }
+
+    public function test_high_priority_topics_are_auto_approved_and_queue_brief_generation_on_create(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $response = $this->withToken($token)->postJson('/api/v1/admin/content-topics', [
+            'title' => 'AI Editorial Audit Checklists',
+            'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
+            'primary_keyword' => 'ai editorial audit checklist',
+            'secondary_keywords' => ['content operations'],
+            'search_intent' => 'informational',
+            'priority_score' => '91.50',
+            'difficulty_note' => 'Narrow operational angle.',
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'notes' => 'Strong draft candidate.',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.status', ContentTopic::STATUS_APPROVED)
+            ->assertJsonPath('data.can_generate_content_brief', true)
+            ->assertJsonPath('data.notes', 'Strong draft candidate.');
+
+        $topicId = (int) $response->json('data.id');
+        $job = AiJob::query()->latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('content_topics', [
+            'id' => $topicId,
+            'status' => ContentTopic::STATUS_APPROVED,
+        ]);
+        $this->assertDatabaseHas('ai_jobs', [
+            'id' => $job->id,
+            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            'status' => AiJob::STATUS_QUEUED,
+            'entity_type' => 'content_topic',
+            'entity_id' => $topicId,
+        ]);
+
+        Queue::assertPushed(GenerateContentBriefJob::class, function (GenerateContentBriefJob $queuedJob) use ($job): bool {
+            return $queuedJob->aiJobId === (int) $job->id
+                && $queuedJob->queue === 'ai';
+        });
     }
 
     public function test_only_approved_topics_can_be_marked_used(): void

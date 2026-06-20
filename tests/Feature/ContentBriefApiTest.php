@@ -26,6 +26,141 @@ class ContentBriefApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_high_priority_topics_auto_approve_generated_briefs_and_queue_draft_generation(): void
+    {
+        Queue::fake();
+
+        config()->set('app.url', 'https://widewebblog.test');
+        config()->set('ai.service.default_provider', 'openai');
+        config()->set('ai.service.providers.openai.text_model', 'gpt-5-mini');
+
+        $template = AiPromptTemplate::query()->create([
+            'name' => 'Content Brief Default',
+            'key' => 'content_brief_default',
+            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            'description' => 'Default brief prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $version = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $template->id,
+            'version' => 1,
+            'system_prompt' => 'Build a structured brief for {{topic_title}} in {{cluster}}.',
+            'user_prompt' => 'Knowledge {{knowledge_context}} Existing {{existing_post_context}} Links {{internal_link_context}}',
+            'output_schema' => ['type' => 'object', 'required' => ['recommended_title', 'outline', 'heading_structure']],
+            'variables' => ['topic_title', 'cluster', 'knowledge_context', 'existing_post_context', 'internal_link_context'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $template->update(['active_version_id' => $version->id]);
+
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        \App\Models\Category::query()->create([
+            'name' => 'Content Marketing',
+            'slug' => 'content-marketing',
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        KnowledgeBaseEntry::query()->create([
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'title' => 'Editorial QA',
+            'slug' => 'editorial-qa',
+            'entry_type' => KnowledgeBaseEntry::TYPE_REFERENCE,
+            'status' => KnowledgeBaseEntry::STATUS_ACTIVE,
+            'summary' => 'Use explicit editorial QA gates.',
+            'content_markdown' => 'Detailed QA notes.',
+            'source_url' => null,
+            'featured_media_id' => null,
+            'metadata' => null,
+        ]);
+
+        $fakeClient = new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: json_encode([
+                        'recommended_title' => 'AI Editorial Checklists for Content Teams',
+                        'slug' => 'ai-editorial-checklists-for-content-teams',
+                        'meta_title' => 'AI Editorial Checklists for Content Teams',
+                        'meta_description' => 'A structured content brief for editorial review checklists.',
+                        'outline' => [
+                            ['heading' => 'Why AI review checklists matter', 'purpose' => 'Frame the workflow'],
+                            ['heading' => 'How to operationalize the checklist', 'purpose' => 'Explain the implementation'],
+                        ],
+                        'heading_structure' => [
+                            'Why AI review checklists matter',
+                            'How to operationalize the checklist',
+                        ],
+                        'faq_suggestions' => [
+                            ['question' => 'What belongs in an AI review checklist?', 'answer_focus' => 'Review criteria'],
+                        ],
+                        'internal_link_suggestions' => [],
+                        'image_ideas' => ['Workflow diagram'],
+                        'alt_text_suggestions' => ['Workflow diagram for editorial review'],
+                    ], JSON_THROW_ON_ERROR),
+                    provider: 'openai',
+                    model: 'gpt-5-mini',
+                    usage: new AiUsageData(promptTokens: 80, completionTokens: 60),
+                );
+            }
+        };
+
+        $this->app->instance(AiClient::class, $fakeClient);
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Editorial Checklists for Content Teams',
+            'slug' => 'ai-editorial-checklists-for-content-teams',
+            'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
+            'primary_keyword' => 'ai editorial checklist',
+            'secondary_keywords' => ['content operations', 'editorial workflow'],
+            'search_intent' => 'informational',
+            'priority_score' => '91.50',
+            'difficulty_note' => 'Strong operational angle.',
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'status' => ContentTopic::STATUS_SUGGESTED,
+            'notes' => 'Priority draft candidate.',
+        ]);
+
+        $approvedTopic = app(\App\Modules\ContentTopics\Services\AutoAdvanceHighPriorityTopicService::class)->handle($topic);
+
+        $this->assertSame(ContentTopic::STATUS_APPROVED, $approvedTopic->status);
+
+        $briefJob = AiJob::query()->where('type', AiPromptTemplate::TYPE_CONTENT_BRIEF)->latest('id')->firstOrFail();
+
+        Queue::assertPushed(GenerateContentBriefJob::class, function (GenerateContentBriefJob $queuedJob) use ($briefJob): bool {
+            return $queuedJob->aiJobId === (int) $briefJob->id
+                && $queuedJob->queue === 'ai';
+        });
+
+        app(\App\Modules\Ai\Services\AiWorkflowOrchestrator::class)->runQueuedContentBrief((int) $briefJob->id);
+
+        $brief = ContentBrief::query()->where('content_topic_id', $topic->id)->firstOrFail();
+
+        $this->assertSame(ContentBrief::STATUS_APPROVED, $brief->status);
+
+        $draftJob = AiJob::query()->where('type', AiPromptTemplate::TYPE_BLOG_WRITER)->latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('ai_jobs', [
+            'id' => $draftJob->id,
+            'type' => AiPromptTemplate::TYPE_BLOG_WRITER,
+            'status' => AiJob::STATUS_QUEUED,
+            'entity_type' => 'content_brief',
+            'entity_id' => $brief->id,
+        ]);
+
+        Queue::assertPushed(GenerateBlogDraftJob::class, function (GenerateBlogDraftJob $queuedJob) use ($draftJob): bool {
+            return $queuedJob->aiJobId === (int) $draftJob->id
+                && $queuedJob->queue === 'ai';
+        });
+    }
+
     public function test_admin_content_brief_routes_require_authentication(): void
     {
         $this->getJson('/api/v1/admin/content-briefs')

@@ -2,20 +2,25 @@
 
 ## Task Summary
 
-Normalize AI blog-writer `section` blocks into supported post blocks so auto-generated drafts do not fail validation during persistence.
+Reduce manual AI content handoffs by auto-advancing high-priority topics from topic approval through brief approval into queued draft generation.
 
 ## Requested Outcome
 
-- stop auto-generated drafts from failing with `Unsupported block type [section]`
-- normalize unsupported AI block payloads into the service’s supported block types
-- add a focused regression test for `section` block output
+- lower manual editorial steps by auto-approving topics with priority scores above `90`
+- keep AI outputs in draft state until human publish approval
+- preserve existing topic-only and brief-only approval flows
+- add focused regression coverage for the auto-advance behavior
 
 ## Scope Boundaries
 
-- service repository only
-- blog-writer block normalization and targeted tests only
-- no admin app changes
-- no provider integration changes
+- primary repository remains `service`
+- no sibling app reads are required for this backend workflow change
+- no publish automation
+- no frontend/admin implementation work in this task
+
+## Cross-App Reason
+
+- none
 
 ## Context Files Loaded
 
@@ -27,61 +32,75 @@ Normalize AI blog-writer `section` blocks into supported post blocks so auto-gen
 - `.agent/COMMANDS.md`
 - `.agent/TESTING.md`
 - `.agent/knowledge-base/content-lifecycle.md`
-- `.agent/knowledge-base/module-map.md`
 - `.agent/knowledge-base/queue-conventions.md`
+- `.agent/knowledge-base/module-map.md`
 - `.agent/knowledge-base/ai-content.md`
 - `.agent/skills/ai-orchestration.md`
 - `.agent/skills/ai-content-engine.md`
+- `.agent/skills/testing.md`
 
 ## Repository Files Inspected
 
+- `routes/api.php`
 - `app/Http/Controllers/Api/V1/Admin/ContentTopicController.php`
-- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
-- `app/Modules/ContentBriefs/Services/GenerateContentBriefFromTopicService.php`
-- `app/AI/Agents/ContentBriefAgent.php`
-- `app/AI/DTO/AgentResult.php`
-- `app/AI/DTO/AgentErrorData.php`
-- `app/Infrastructure/Ai/LaravelAiClient.php`
-- `app/Infrastructure/Ai/Exceptions/AiCallFailedException.php`
-- `app/Modules/Ai/Services/TrackAiJobService.php`
-- `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
-- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
-- `app/Jobs/AI/GenerateContentBriefJob.php`
+- `app/Http/Controllers/Api/V1/Admin/ContentBriefController.php`
+- `app/Http/Requests/Api/V1/Admin/TransitionContentTopicRequest.php`
+- `app/Http/Requests/Api/V1/Admin/GenerateBlogDraftRequest.php`
+- `app/Http/Resources/Api/V1/ContentTopicResource.php`
+- `app/Http/Resources/Api/V1/ContentBriefResource.php`
 - `app/Modules/ContentTopics/Services/ApproveContentTopicService.php`
-- `bootstrap/app.php`
-- `app/Support/ApiErrorResponse.php`
-- `config/ai.php`
+- `app/Modules/ContentTopics/Services/CreateContentTopicService.php`
+- `app/Modules/ContentTopics/Services/UpdateContentTopicService.php`
+- `app/Modules/ContentBriefs/Services/ApproveContentBriefService.php`
+- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
+- `app/Modules/Ai/Services/DraftGenerationWorkflow.php`
+- `app/Modules/Ai/Services/ResolveAutoDraftGenerationDataService.php`
+- `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
+- `app/Modules/Posts/Repositories/PostRepository.php`
+- `app/AI/Tools/SaveTopicIdeaTool.php`
+- `tests/Feature/InternalAiToolsTest.php`
+- `tests/Feature/TopicDiscoveryAgentTest.php`
+- `tests/Feature/TopicDiscoveryExecutionTest.php`
 - `tests/Feature/ContentTopicApiTest.php`
 - `tests/Feature/ContentBriefApiTest.php`
-- `app/AI/Agents/BlogWriterAgent.php`
-- `app/Modules/Posts/Services/PostBlockPayloadValidator.php`
-- `app/Modules/Posts/Services/PostBlockPayloadMapper.php`
-- `tests/Feature/BlogWriterAgentTest.php`
-- `tests/Feature/GenerateBlogDraftJobTest.php`
 
 ## Plan
 
-1. Confirm where unsupported block types enter the draft persistence path.
-2. Normalize `section` AI output into supported post block types before validation.
-3. Add focused regression coverage and run the smallest relevant test selection.
+1. Add a high-priority auto-advance service for topic create and update flows.
+2. Carry continuation intent through queued content-brief jobs so the async workflow can auto-approve the brief and queue the draft.
+3. Add targeted coverage for create, topic discovery, and queued brief auto-advance behavior.
 
 ## Changed Files
 
 - `.agent/tasks/current-task.md`
-- `app/AI/Agents/BlogWriterAgent.php`
-- `tests/Feature/BlogWriterAgentTest.php`
+- `app/Modules/ContentTopics/Services/AutoAdvanceHighPriorityTopicService.php`
+- `app/Modules/ContentTopics/Services/ApproveContentTopicService.php`
+- `app/Modules/ContentTopics/Services/CreateContentTopicService.php`
+- `app/Modules/ContentTopics/Services/UpdateContentTopicService.php`
+- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
+- `app/Modules/ContentBriefs/Data/ContinueContentBriefToDraftResultData.php`
+- `app/Modules/ContentBriefs/Services/ContinueContentBriefToDraftService.php`
+- `tests/Feature/ContentTopicApiTest.php`
+- `tests/Feature/ContentBriefApiTest.php`
+- `tests/Feature/InternalAiToolsTest.php`
+- `tests/Feature/TopicDiscoveryAgentTest.php`
+- `tests/Feature/TopicDiscoveryExecutionTest.php`
 
 ## Validation
 
-- `php artisan test --filter=BlogWriterAgentTest` passed
-- `php artisan test --filter=GenerateBlogDraftJobTest` passed
+- `php artisan test tests/Feature/ContentTopicApiTest.php` passed
+- `php artisan test tests/Feature/InternalAiToolsTest.php` passed
+- `php artisan test tests/Feature/TopicDiscoveryAgentTest.php` passed
+- `php artisan test tests/Feature/TopicDiscoveryExecutionTest.php` passed
+- `php artisan test tests/Feature/ContentBriefApiTest.php` passed
 
 ## Risks Or Follow-Ups
 
-- if the model starts returning other unsupported composite block types beyond `section`, they will need similar normalization rules
+- the admin UI may still show topics and briefs as manually reviewable steps even though high-priority topics now auto-advance on the service side
 
 ## Completion Notes
 
-- Root cause confirmed: the blog writer can emit `content_blocks` with `block_type: section`, but the post layer only accepts `heading`, `paragraph`, `image`, `quote`, `list`, `code`, `faq`, and `callout`.
-- `BlogWriterAgent::normalizeContentBlocks()` now expands `section` blocks into supported blocks, currently a heading plus optional paragraph and list.
-- Draft persistence now succeeds for the reported payload shape instead of throwing `InvalidPostBlockPayloadException`.
+- Topics with `priority_score > 90` now auto-advance from create and update flows.
+- Auto-advance approves suggested or rejected topics, queues content brief generation, and sets a continuation flag on the queued brief job.
+- When the queued content brief finishes, the service now auto-approves the generated brief and queues draft generation when an active category can be resolved.
+- Drafts still remain in `draft` status for manual editorial review and publish approval.

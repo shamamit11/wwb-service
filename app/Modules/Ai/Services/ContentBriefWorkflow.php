@@ -12,6 +12,7 @@ use App\Modules\Ai\Repositories\AiJobRepository;
 use App\Modules\ContentBriefs\Exceptions\ContentBriefGenerationNotAllowedException;
 use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
 use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
+use App\Modules\ContentBriefs\Services\ContinueContentBriefToDraftService;
 use App\Modules\ContentBriefs\Services\GenerateContentBriefFromTopicService;
 use RuntimeException;
 
@@ -21,9 +22,16 @@ class ContentBriefWorkflow
         private readonly AiJobRepository $jobs,
         private readonly ContentBriefRepository $briefs,
         private readonly GenerateContentBriefFromTopicService $generateBrief,
+        private readonly ContinueContentBriefToDraftService $continueBriefToDraft,
     ) {}
 
-    public function queue(ContentTopic $topic, ?string $promptTemplateKey = null, ?int $retryOfAiJobId = null, int $attempts = 1): ?AiJob
+    public function queue(
+        ContentTopic $topic,
+        ?string $promptTemplateKey = null,
+        ?int $retryOfAiJobId = null,
+        int $attempts = 1,
+        bool $autoContinueToDraft = false,
+    ): ?AiJob
     {
         if (! $topic->isApproved()) {
             throw new ContentBriefGenerationNotAllowedException(
@@ -49,6 +57,15 @@ class ContentBriefWorkflow
             ->first();
 
         if ($activeJob instanceof AiJob) {
+            if ($autoContinueToDraft) {
+                $payload = is_array($activeJob->input_payload) ? $activeJob->input_payload : [];
+
+                if (($payload['auto_continue_to_draft'] ?? false) !== true) {
+                    $payload['auto_continue_to_draft'] = true;
+                    $activeJob->update(['input_payload' => $payload]);
+                }
+            }
+
             return $activeJob->loadCount('steps');
         }
 
@@ -60,6 +77,7 @@ class ContentBriefWorkflow
             inputPayload: [
                 'content_topic_id' => (int) $topic->id,
                 'prompt_template_key' => $promptTemplateKey,
+                'auto_continue_to_draft' => $autoContinueToDraft,
             ],
             attempts: max(1, $attempts),
             retryOfAiJobId: $retryOfAiJobId,
@@ -121,10 +139,16 @@ class ContentBriefWorkflow
             ? $payload['prompt_template_key']
             : null;
 
-        return $this->generateBrief->handle(
+        $result = $this->generateBrief->handle(
             topic: $topic,
             aiJobId: (int) $job->id,
             promptTemplateKey: $promptTemplateKey,
         );
+
+        if (($payload['auto_continue_to_draft'] ?? false) === true) {
+            $this->continueBriefToDraft->handle($result->brief);
+        }
+
+        return $result;
     }
 }

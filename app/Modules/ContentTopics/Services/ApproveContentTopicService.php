@@ -17,7 +17,7 @@ class ApproveContentTopicService
         private readonly ContentBriefWorkflow $contentBriefs,
     ) {}
 
-    public function handle(ContentTopic $topic, ?string $notes = null): ContentTopic
+    public function handle(ContentTopic $topic, ?string $notes = null, bool $autoContinueToDraft = false): ContentTopic
     {
         if (! in_array($topic->status, [ContentTopic::STATUS_SUGGESTED, ContentTopic::STATUS_REJECTED], true)) {
             throw new InvalidContentTopicStateTransitionException(
@@ -46,7 +46,7 @@ class ApproveContentTopicService
             old: $old,
         );
 
-        $this->contentBriefs->queue($updated);
+        $this->contentBriefs->queue($updated, autoContinueToDraft: $autoContinueToDraft);
 
         return $updated;
     }
