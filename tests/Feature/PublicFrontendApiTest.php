@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Homepage;
 use App\Models\KnowledgeBaseEntry;
 use App\Models\Post;
 use App\Models\Tag;
@@ -115,6 +116,65 @@ class PublicFrontendApiTest extends TestCase
             'published_at' => '2026-06-12 10:00:00',
         ]);
 
+        Homepage::query()->create([
+            'singleton_key' => Homepage::SINGLETON_KEY,
+            'hero' => [
+                'eyebrow' => 'Start here',
+                'title' => 'Build better internet systems',
+                'description' => 'Editorially curated homepage content.',
+                'primary_cta_label' => 'Read featured stories',
+                'primary_cta_url' => 'https://widewebblog.test/featured',
+                'secondary_cta_label' => 'Browse resources',
+                'secondary_cta_url' => 'https://widewebblog.test/resources',
+                'media_url' => 'https://cdn.widewebblog.test/home/hero.png',
+                'media_alt' => 'Homepage hero artwork',
+            ],
+            'featured_editorial' => [
+                'title' => 'Featured editorial',
+                'description' => 'Hand-picked editorial cards.',
+                'mode' => Homepage::SECTION_MODE_MANUAL,
+                'post_ids' => [$published->id, $publishedWithArchivedTemplate->id],
+                'category_ids' => null,
+                'limit' => 2,
+            ],
+            'guide_section' => [
+                'title' => 'Guides and resources',
+                'description' => 'Automatically selected guides.',
+                'mode' => Homepage::SECTION_MODE_AUTOMATIC,
+                'post_ids' => [],
+                'category_ids' => [$activeCategory->id],
+                'limit' => 6,
+            ],
+            'topic_section' => [
+                'title' => 'Browse topics',
+                'description' => 'Explore the editorial taxonomy.',
+                'category_ids' => [$activeCategory->id],
+            ],
+            'promo_section' => [
+                'enabled' => true,
+                'eyebrow' => 'Resource pack',
+                'title' => 'Download the operator kit',
+                'description' => 'Promotional support section for a featured resource.',
+                'bullet_points' => ['Checklists', 'Benchmarks', 'Field notes'],
+                'primary_cta_label' => 'Get the kit',
+                'primary_cta_url' => 'https://widewebblog.test/kit',
+                'stats' => [
+                    ['label' => 'Templates', 'value' => '12'],
+                    ['label' => 'Playbooks', 'value' => '8'],
+                ],
+            ],
+            'newsletter_section' => [
+                'enabled' => true,
+                'title' => 'Get weekly dispatches',
+                'description' => 'Editorial updates and new resources.',
+            ],
+            'seo' => [
+                'meta_title' => 'Wide Web Blog | Homepage',
+                'meta_description' => 'Homepage metadata for discovery and click-through.',
+            ],
+            'updated_by_user_id' => $admin->id,
+        ]);
+
         KnowledgeBaseEntry::query()->create([
             'created_by_user_id' => $admin->id,
             'updated_by_user_id' => $admin->id,
@@ -193,10 +253,17 @@ class PublicFrontendApiTest extends TestCase
 
         $this->getJson('/api/v1/public/home')
             ->assertOk()
-            ->assertJsonPath('data.featured_posts.0.slug', 'how-ai-agent-memory-works')
-            ->assertJsonCount(2, 'data.latest_posts')
-            ->assertJsonCount(1, 'data.categories')
-            ->assertJsonPath('data.seo.canonical_url', 'https://widewebblog.test/');
+            ->assertJsonPath('data.hero.title', 'Build better internet systems')
+            ->assertJsonPath('data.hero.primary_cta_url', 'https://widewebblog.test/featured')
+            ->assertJsonPath('data.featured_editorial.post_ids.0', $published->id)
+            ->assertJsonPath('data.guide_section.category_ids.0', $activeCategory->id)
+            ->assertJsonPath('data.topic_section.category_ids.0', $activeCategory->id)
+            ->assertJsonPath('data.promo_section.stats.1.label', 'Playbooks')
+            ->assertJsonPath('data.newsletter_section.enabled', true)
+            ->assertJsonPath('data.seo.meta_title', 'Wide Web Blog | Homepage')
+            ->assertJsonMissingPath('data.featured_posts')
+            ->assertJsonMissingPath('data.latest_posts')
+            ->assertJsonMissingPath('data.categories');
 
         $this->getJson('/api/v1/public/search?q=memory')
             ->assertOk()
@@ -221,6 +288,24 @@ class PublicFrontendApiTest extends TestCase
         $this->assertNotEquals($scheduled->id, $published->id);
         $this->assertNotEquals($archived->id, $publishedWithArchivedTemplate->id);
         $this->assertNotEquals($privatePublished->id, $inactiveCategoryPublished->id);
+    }
+
+    public function test_public_home_bootstraps_default_homepage_shape(): void
+    {
+        $this->getJson('/api/v1/public/home')
+            ->assertOk()
+            ->assertJsonPath('data.hero.title', null)
+            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_MANUAL)
+            ->assertJsonPath('data.featured_editorial.post_ids', [])
+            ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_MANUAL)
+            ->assertJsonPath('data.topic_section.category_ids', [])
+            ->assertJsonPath('data.promo_section.enabled', false)
+            ->assertJsonPath('data.newsletter_section.enabled', false)
+            ->assertJsonPath('data.seo.meta_title', null);
+
+        $this->assertDatabaseHas('homepages', [
+            'singleton_key' => Homepage::SINGLETON_KEY,
+        ]);
     }
 
     private function createCategory(User $author, string $name, string $slug, bool $isActive = true): Category

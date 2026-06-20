@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Http\Resources\Api\ApiResource;
+use App\Models\Homepage;
 use Illuminate\Http\Request;
 
 class PublicHomeResource extends ApiResource
@@ -12,11 +13,17 @@ class PublicHomeResource extends ApiResource
      */
     public function toArray(Request $request): array
     {
+        /** @var Homepage $homepage */
+        $homepage = $this->resource;
+
         return [
-            'featured_posts' => PublicPostSummaryResource::collection($this->resource['featured_posts'])->resolve(),
-            'latest_posts' => PublicPostSummaryResource::collection($this->resource['latest_posts'])->resolve(),
-            'categories' => PublicCategorySummaryResource::collection($this->resource['categories'])->resolve(),
-            'seo' => $this->resource['seo'],
+            'hero' => $homepage->hero,
+            'featured_editorial' => $homepage->featured_editorial,
+            'guide_section' => $homepage->guide_section,
+            'topic_section' => $homepage->topic_section,
+            'promo_section' => $homepage->promo_section,
+            'newsletter_section' => $homepage->newsletter_section,
+            'seo' => $homepage->seo,
         ];
     }
 }
