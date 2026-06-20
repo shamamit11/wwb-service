@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             PageSeeder::class,
             HomepageSeeder::class,
             AboutPageSeeder::class,
+            ContactPageSeeder::class,
             KnowledgeBaseEntrySeeder::class,
             SeoMetadataSeeder::class,
             AiPromptTemplateSeeder::class,

@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\Admin\AdminStatusController;
 use App\Http\Controllers\Api\V1\Admin\AiJobController as AdminAiJobController;
 use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ContactPageController as AdminContactPageController;
+use App\Http\Controllers\Api\V1\Admin\ContactSubmissionController as AdminContactSubmissionController;
 use App\Http\Controllers\Api\V1\Admin\ContentBriefController as AdminContentBriefController;
 use App\Http\Controllers\Api\V1\Admin\ContentTopicController as AdminContentTopicController;
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Api\V1\EchoMessageController;
 use App\Http\Controllers\Api\V1\HealthCheckController;
 use App\Http\Controllers\Api\V1\Public\AboutController as PublicAboutController;
 use App\Http\Controllers\Api\V1\Public\CategoryController as PublicCategoryController;
+use App\Http\Controllers\Api\V1\Public\ContactController as PublicContactController;
 use App\Http\Controllers\Api\V1\Public\HomeController as PublicHomeController;
 use App\Http\Controllers\Api\V1\Public\NewsletterController as PublicNewsletterController;
 use App\Http\Controllers\Api\V1\Public\NewsletterTrackingController as PublicNewsletterTrackingController;
@@ -128,6 +131,16 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.about-page.show');
             Route::put('about-page', [AdminAboutPageController::class, 'update'])
                 ->name('api.v1.admin.about-page.update');
+            Route::get('contact-page', [AdminContactPageController::class, 'show'])
+                ->name('api.v1.admin.contact-page.show');
+            Route::put('contact-page', [AdminContactPageController::class, 'update'])
+                ->name('api.v1.admin.contact-page.update');
+            Route::get('contact-submissions', [AdminContactSubmissionController::class, 'index'])
+                ->name('api.v1.admin.contact-submissions.index');
+            Route::get('contact-submissions/{contactSubmission}', [AdminContactSubmissionController::class, 'show'])
+                ->name('api.v1.admin.contact-submissions.show');
+            Route::patch('contact-submissions/{contactSubmission}', [AdminContactSubmissionController::class, 'update'])
+                ->name('api.v1.admin.contact-submissions.update');
 
             Route::apiResource('categories', AdminCategoryController::class)
                 ->names('api.v1.admin.categories');
@@ -256,6 +269,10 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.v1.public.home');
         Route::get('about', PublicAboutController::class)
             ->name('api.v1.public.about');
+        Route::get('contact', [PublicContactController::class, 'show'])
+            ->name('api.v1.public.contact.show');
+        Route::post('contact/submit', [PublicContactController::class, 'submit'])
+            ->name('api.v1.public.contact.submit');
         Route::post('newsletter/subscribe', [PublicNewsletterController::class, 'subscribe'])
             ->name('api.v1.public.newsletter.subscribe');
         Route::match(['get', 'post'], 'newsletter/unsubscribe', [PublicNewsletterController::class, 'unsubscribe'])
