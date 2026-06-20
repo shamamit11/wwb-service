@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException;
+use App\Modules\Ai\Exceptions\AiWorkflowFailedException;
 use App\Modules\ContentBriefs\Exceptions\ContentBriefGenerationNotAllowedException;
 use App\Modules\ContentBriefs\Exceptions\InvalidContentBriefStateTransitionException;
 use App\Modules\ContentTopics\Exceptions\DuplicateContentTopicException;
@@ -159,6 +160,26 @@ return Application::configure(basePath: dirname(__DIR__))
                 [
                     'status' => [$exception->currentStatus],
                 ],
+            );
+        });
+
+        $exceptions->render(function (AiWorkflowFailedException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiErrorResponse::make(
+                $request,
+                $exception->getMessage(),
+                'AI_WORKFLOW_FAILED',
+                502,
+                array_filter([
+                    'workflow' => [$exception->workflow],
+                    'agent' => $exception->agent !== null ? [$exception->agent] : null,
+                ], static fn (mixed $value): bool => $value !== null),
+                array_filter([
+                    'job_id' => $exception->jobId,
+                ], static fn (mixed $value): bool => $value !== null),
             );
         });
 

@@ -7,6 +7,7 @@ use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use App\Infrastructure\Ai\Data\GenerateTextRequest;
 use App\Infrastructure\Ai\Data\TextGenerationResult;
+use App\Infrastructure\Ai\Exceptions\AiCallFailedException;
 use App\Jobs\AI\GenerateBlogDraftJob;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
@@ -156,6 +157,54 @@ class ContentBriefApiTest extends TestCase
             ->assertJsonPath('error_code', 'CONFLICT')
             ->assertJsonPath('errors.status.0', ContentTopic::STATUS_SUGGESTED)
             ->assertJsonPath('errors.action.0', 'generate-brief');
+    }
+
+    public function test_generate_brief_returns_ai_workflow_failure_details_when_agent_fails(): void
+    {
+        $this->seedContentBriefPromptTemplate();
+
+        $fakeClient = new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                throw new AiCallFailedException('AI text generation failed: Incorrect API key provided.');
+            }
+        };
+
+        $this->app->instance(AiClient::class, $fakeClient);
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'Debug Brief Generation Topic',
+            'slug' => 'debug-brief-generation-topic',
+            'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
+            'primary_keyword' => 'debug brief generation',
+            'secondary_keywords' => [],
+            'search_intent' => 'informational',
+            'priority_score' => '50.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_MANUAL,
+            'status' => ContentTopic::STATUS_APPROVED,
+            'notes' => 'Debug provider failure handling.',
+            'approved_at' => now(),
+        ]);
+
+        $this->withToken($token)->postJson("/api/v1/admin/content-topics/{$topic->id}/generate-brief")
+            ->assertStatus(502)
+            ->assertJsonPath('error_code', 'AI_WORKFLOW_FAILED')
+            ->assertJsonPath('message', 'AI text generation failed: Incorrect API key provided.')
+            ->assertJsonPath('errors.workflow.0', 'content_brief_generation')
+            ->assertJsonPath('errors.agent.0', 'ContentBriefAgent');
+
+        $this->assertDatabaseHas('ai_jobs', [
+            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            'entity_type' => 'content_topic',
+            'entity_id' => $topic->id,
+            'status' => AiJob::STATUS_FAILED,
+            'error_message' => 'AI text generation failed: Incorrect API key provided.',
+        ]);
     }
 
     public function test_admin_can_queue_draft_generation_from_an_approved_brief(): void
@@ -386,25 +435,7 @@ class ContentBriefApiTest extends TestCase
 
     private function seedPromptAndFakeAgent(): void
     {
-        $template = AiPromptTemplate::query()->create([
-            'name' => 'Content Brief Default',
-            'key' => 'content_brief_default',
-            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
-            'description' => 'Default brief prompt.',
-            'status' => AiPromptTemplate::STATUS_ACTIVE,
-        ]);
-
-        $version = AiPromptTemplateVersion::query()->create([
-            'prompt_template_id' => $template->id,
-            'version' => 1,
-            'system_prompt' => 'Build a structured brief for {{topic_title}}.',
-            'user_prompt' => 'Knowledge {{knowledge_context}} Existing {{existing_post_context}} Links {{internal_link_context}}',
-            'output_schema' => ['type' => 'object'],
-            'variables' => ['topic_title', 'knowledge_context', 'existing_post_context', 'internal_link_context'],
-            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
-        ]);
-
-        $template->update(['active_version_id' => $version->id]);
+        $this->seedContentBriefPromptTemplate();
 
         $fakeClient = new class implements AiClient
         {
@@ -449,5 +480,28 @@ class ContentBriefApiTest extends TestCase
         };
 
         $this->app->instance(AiClient::class, $fakeClient);
+    }
+
+    private function seedContentBriefPromptTemplate(): void
+    {
+        $template = AiPromptTemplate::query()->create([
+            'name' => 'Content Brief Default',
+            'key' => 'content_brief_default',
+            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
+            'description' => 'Default brief prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $version = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $template->id,
+            'version' => 1,
+            'system_prompt' => 'Build a structured brief for {{topic_title}}.',
+            'user_prompt' => 'Knowledge {{knowledge_context}} Existing {{existing_post_context}} Links {{internal_link_context}}',
+            'output_schema' => ['type' => 'object'],
+            'variables' => ['topic_title', 'knowledge_context', 'existing_post_context', 'internal_link_context'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $template->update(['active_version_id' => $version->id]);
     }
 }

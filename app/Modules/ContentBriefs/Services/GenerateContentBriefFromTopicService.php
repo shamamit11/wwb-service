@@ -5,6 +5,7 @@ namespace App\Modules\ContentBriefs\Services;
 use App\AI\Agents\ContentBriefAgent;
 use App\AI\DTO\ContentBriefInput;
 use App\Models\ContentTopic;
+use App\Modules\Ai\Exceptions\AiWorkflowFailedException;
 use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
 use App\Modules\ContentBriefs\Exceptions\ContentBriefGenerationNotAllowedException;
 use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
@@ -66,6 +67,17 @@ class GenerateContentBriefFromTopicService
                 'prompt_template_key' => $promptTemplateKey,
             ], static fn (mixed $value): bool => $value !== null),
         ));
+
+        if ($result->isFailure()) {
+            throw new AiWorkflowFailedException(
+                workflow: 'content_brief_generation',
+                agent: $result->agent,
+                jobId: isset($result->metadata['job_id']) && is_int($result->metadata['job_id'])
+                    ? $result->metadata['job_id']
+                    : null,
+                message: $result->error?->message ?? 'Content brief generation failed.',
+            );
+        }
 
         $briefId = $result->metadata['brief_id'] ?? null;
         $brief = is_int($briefId)
