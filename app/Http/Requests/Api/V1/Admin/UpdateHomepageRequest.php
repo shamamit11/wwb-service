@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
-use App\Models\Homepage;
 use App\Modules\Homepage\Data\UpdateHomepageData;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateHomepageRequest extends FormRequest
 {
@@ -34,28 +32,16 @@ class UpdateHomepageRequest extends FormRequest
             'featured_editorial' => ['required', 'array'],
             'featured_editorial.title' => ['nullable', 'string', 'max:255'],
             'featured_editorial.description' => ['nullable', 'string', 'max:2000'],
-            'featured_editorial.mode' => ['required', 'string', Rule::in(Homepage::SECTION_MODES)],
-            'featured_editorial.post_ids' => ['present', 'nullable', 'array'],
-            'featured_editorial.post_ids.*' => ['integer', 'distinct', 'exists:posts,id'],
-            'featured_editorial.category_ids' => ['present', 'nullable', 'array'],
-            'featured_editorial.category_ids.*' => ['integer', 'distinct', 'exists:categories,id'],
             'featured_editorial.limit' => ['present', 'nullable', 'integer', 'min:1', 'max:24'],
 
             'guide_section' => ['required', 'array'],
             'guide_section.title' => ['nullable', 'string', 'max:255'],
             'guide_section.description' => ['nullable', 'string', 'max:2000'],
-            'guide_section.mode' => ['required', 'string', Rule::in(Homepage::SECTION_MODES)],
-            'guide_section.post_ids' => ['present', 'nullable', 'array'],
-            'guide_section.post_ids.*' => ['integer', 'distinct', 'exists:posts,id'],
-            'guide_section.category_ids' => ['present', 'nullable', 'array'],
-            'guide_section.category_ids.*' => ['integer', 'distinct', 'exists:categories,id'],
             'guide_section.limit' => ['present', 'nullable', 'integer', 'min:1', 'max:24'],
 
             'topic_section' => ['required', 'array'],
             'topic_section.title' => ['nullable', 'string', 'max:255'],
             'topic_section.description' => ['nullable', 'string', 'max:2000'],
-            'topic_section.category_ids' => ['required', 'array'],
-            'topic_section.category_ids.*' => ['integer', 'distinct', 'exists:categories,id'],
 
             'promo_section' => ['required', 'array'],
             'promo_section.enabled' => ['required', 'boolean'],
@@ -126,9 +112,9 @@ class UpdateHomepageRequest extends FormRequest
         return [
             'title' => $section['title'] ?? null,
             'description' => $section['description'] ?? null,
-            'mode' => $section['mode'],
-            'post_ids' => array_values($section['post_ids'] ?? []),
-            'category_ids' => $section['category_ids'] === null ? null : array_values($section['category_ids'] ?? []),
+            'mode' => 'automatic',
+            'post_ids' => [],
+            'category_ids' => null,
             'limit' => $section['limit'] ?? null,
         ];
     }
@@ -142,7 +128,7 @@ class UpdateHomepageRequest extends FormRequest
         return [
             'title' => $section['title'] ?? null,
             'description' => $section['description'] ?? null,
-            'category_ids' => array_values($section['category_ids']),
+            'category_ids' => [],
         ];
     }
 

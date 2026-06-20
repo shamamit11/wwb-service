@@ -133,22 +133,22 @@ class PublicFrontendApiTest extends TestCase
                 'title' => 'Featured editorial',
                 'description' => 'Hand-picked editorial cards.',
                 'mode' => Homepage::SECTION_MODE_MANUAL,
-                'post_ids' => [$published->id, $publishedWithArchivedTemplate->id],
+                'post_ids' => [],
                 'category_ids' => null,
                 'limit' => 2,
             ],
             'guide_section' => [
                 'title' => 'Guides and resources',
                 'description' => 'Automatically selected guides.',
-                'mode' => Homepage::SECTION_MODE_AUTOMATIC,
+                'mode' => Homepage::SECTION_MODE_MANUAL,
                 'post_ids' => [],
-                'category_ids' => [$activeCategory->id],
-                'limit' => 6,
+                'category_ids' => null,
+                'limit' => 3,
             ],
             'topic_section' => [
                 'title' => 'Browse topics',
                 'description' => 'Explore the editorial taxonomy.',
-                'category_ids' => [$activeCategory->id],
+                'category_ids' => [],
             ],
             'promo_section' => [
                 'enabled' => true,
@@ -255,9 +255,16 @@ class PublicFrontendApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.hero.title', 'Build better internet systems')
             ->assertJsonPath('data.hero.primary_cta_url', 'https://widewebblog.test/featured')
+            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_AUTOMATIC)
             ->assertJsonPath('data.featured_editorial.post_ids.0', $published->id)
-            ->assertJsonPath('data.guide_section.category_ids.0', $activeCategory->id)
+            ->assertJsonPath('data.featured_editorial.posts.0.slug', 'how-ai-agent-memory-works')
+            ->assertJsonPath('data.guide_section.title', 'Recent Articles')
+            ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_AUTOMATIC)
+            ->assertJsonPath('data.guide_section.post_ids.0', $published->id)
+            ->assertJsonPath('data.guide_section.post_ids.1', $publishedWithArchivedTemplate->id)
+            ->assertJsonPath('data.guide_section.posts.1.slug', 'archived-template-post')
             ->assertJsonPath('data.topic_section.category_ids.0', $activeCategory->id)
+            ->assertJsonPath('data.topic_section.categories.0.slug', 'ai-agents')
             ->assertJsonPath('data.promo_section.stats.1.label', 'Playbooks')
             ->assertJsonPath('data.newsletter_section.enabled', true)
             ->assertJsonPath('data.seo.meta_title', 'Wide Web Blog | Homepage')
@@ -295,10 +302,14 @@ class PublicFrontendApiTest extends TestCase
         $this->getJson('/api/v1/public/home')
             ->assertOk()
             ->assertJsonPath('data.hero.title', null)
-            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_MANUAL)
+            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_AUTOMATIC)
             ->assertJsonPath('data.featured_editorial.post_ids', [])
-            ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_MANUAL)
+            ->assertJsonPath('data.featured_editorial.posts', [])
+            ->assertJsonPath('data.guide_section.title', 'Recent Articles')
+            ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_AUTOMATIC)
+            ->assertJsonPath('data.guide_section.posts', [])
             ->assertJsonPath('data.topic_section.category_ids', [])
+            ->assertJsonPath('data.topic_section.categories', [])
             ->assertJsonPath('data.promo_section.enabled', false)
             ->assertJsonPath('data.newsletter_section.enabled', false)
             ->assertJsonPath('data.seo.meta_title', null);

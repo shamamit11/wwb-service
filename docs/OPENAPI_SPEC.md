@@ -445,24 +445,24 @@ This is a reference specification, not a generated OpenAPI JSON file.
   },
   "featured_editorial": {
     "title": "Featured editorial",
-    "description": "Hand-picked editorial cards.",
-    "mode": "manual",
-    "post_ids": [34, 21, 13],
-    "category_ids": null,
-    "limit": null
-  },
-  "guide_section": {
-    "title": "Guides and resources",
-    "description": "Automatically selected guides.",
+    "description": "Automatically curated featured stories.",
     "mode": "automatic",
     "post_ids": [],
-    "category_ids": [8, 2],
+    "category_ids": null,
+    "limit": 2
+  },
+  "guide_section": {
+    "title": "Recent Articles",
+    "description": "Automatically selected recent stories.",
+    "mode": "automatic",
+    "post_ids": [],
+    "category_ids": null,
     "limit": 6
   },
   "topic_section": {
-    "title": "Browse topics",
-    "description": "Explore the editorial taxonomy.",
-    "category_ids": [8, 2, 5]
+    "title": "Explore Core Topics",
+    "description": "Browse every active category automatically.",
+    "category_ids": []
   },
   "promo_section": {
     "enabled": true,
@@ -501,20 +501,15 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `hero.secondary_cta_url`: nullable|url|max 500
 - `hero.media_url`: nullable|url|max 500
 - `hero.media_alt`: nullable|string|max 255
-- `featured_editorial.mode`: required|in:manual,automatic
-- `featured_editorial.post_ids`: present|nullable|array
-- `featured_editorial.post_ids.*`: integer|exists:posts,id
-- `featured_editorial.category_ids`: present|nullable|array
-- `featured_editorial.category_ids.*`: integer|exists:categories,id
+- `featured_editorial.mode`: returned as `automatic`
+- `featured_editorial.post_ids`: persisted as an empty array because public content is resolved automatically
+- `featured_editorial.category_ids`: persisted as `null`
 - `featured_editorial.limit`: present|nullable|integer|min:1|max:24
-- `guide_section.mode`: required|in:manual,automatic
-- `guide_section.post_ids`: present|nullable|array
-- `guide_section.post_ids.*`: integer|exists:posts,id
-- `guide_section.category_ids`: present|nullable|array
-- `guide_section.category_ids.*`: integer|exists:categories,id
+- `guide_section.mode`: returned as `automatic`
+- `guide_section.post_ids`: persisted as an empty array because public content is resolved automatically
+- `guide_section.category_ids`: persisted as `null`
 - `guide_section.limit`: present|nullable|integer|min:1|max:24
-- `topic_section.category_ids`: required|array
-- `topic_section.category_ids.*`: integer|exists:categories,id
+- `topic_section.category_ids`: persisted as an empty array because public categories are resolved automatically
 - `promo_section.enabled`: required|boolean
 - `promo_section.bullet_points`: required|array
 - `promo_section.bullet_points.*`: string|max 255
@@ -546,24 +541,24 @@ This is a reference specification, not a generated OpenAPI JSON file.
     },
     "featured_editorial": {
       "title": "Featured editorial",
-      "description": "Hand-picked editorial cards.",
-      "mode": "manual",
-      "post_ids": [34, 21, 13],
-      "category_ids": null,
-      "limit": null
-    },
-    "guide_section": {
-      "title": "Guides and resources",
-      "description": "Automatically selected guides.",
+      "description": "Automatically curated featured stories.",
       "mode": "automatic",
       "post_ids": [],
-      "category_ids": [8, 2],
+      "category_ids": null,
+      "limit": 2
+    },
+    "guide_section": {
+      "title": "Recent Articles",
+      "description": "Automatically selected recent stories.",
+      "mode": "automatic",
+      "post_ids": [],
+      "category_ids": null,
       "limit": 6
     },
     "topic_section": {
-      "title": "Browse topics",
-      "description": "Explore the editorial taxonomy.",
-      "category_ids": [8, 2, 5]
+      "title": "Explore Core Topics",
+      "description": "Browse every active category automatically.",
+      "category_ids": []
     },
     "promo_section": {
       "enabled": true,

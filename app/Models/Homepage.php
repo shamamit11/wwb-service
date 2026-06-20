@@ -85,18 +85,18 @@ class Homepage extends Model
             'featured_editorial' => [
                 'title' => null,
                 'description' => null,
-                'mode' => self::SECTION_MODE_MANUAL,
+                'mode' => self::SECTION_MODE_AUTOMATIC,
                 'post_ids' => [],
                 'category_ids' => null,
-                'limit' => null,
+                'limit' => 3,
             ],
             'guide_section' => [
-                'title' => null,
+                'title' => 'Recent Articles',
                 'description' => null,
-                'mode' => self::SECTION_MODE_MANUAL,
+                'mode' => self::SECTION_MODE_AUTOMATIC,
                 'post_ids' => [],
                 'category_ids' => null,
-                'limit' => null,
+                'limit' => 6,
             ],
             'topic_section' => [
                 'title' => null,
