@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Admin\SchemaController as AdminSchemaController;
 use App\Http\Controllers\Api\V1\Admin\SeoMetadataController as AdminSeoMetadataController;
 use App\Http\Controllers\Api\V1\Admin\SeoScoreController as AdminSeoScoreController;
 use App\Http\Controllers\Api\V1\Admin\SitemapController as AdminSitemapController;
+use App\Http\Controllers\Api\V1\Admin\SiteSettingsController as AdminSiteSettingsController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\TemplateController as AdminTemplateController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
@@ -44,6 +45,7 @@ use App\Http\Controllers\Api\V1\Public\PostController as PublicPostController;
 use App\Http\Controllers\Api\V1\Public\RssController as PublicRssController;
 use App\Http\Controllers\Api\V1\Public\SearchController as PublicSearchController;
 use App\Http\Controllers\Api\V1\Public\SitemapController as PublicSitemapController;
+use App\Http\Controllers\Api\V1\Public\SiteSettingsController as PublicSiteSettingsController;
 use App\Http\Controllers\Api\V1\Public\TagController as PublicTagController;
 use App\Http\Controllers\Api\V1\TestErrorController;
 use App\Models\User;
@@ -135,6 +137,10 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.contact-page.show');
             Route::put('contact-page', [AdminContactPageController::class, 'update'])
                 ->name('api.v1.admin.contact-page.update');
+            Route::get('site-settings', [AdminSiteSettingsController::class, 'show'])
+                ->name('api.v1.admin.site-settings.show');
+            Route::put('site-settings', [AdminSiteSettingsController::class, 'update'])
+                ->name('api.v1.admin.site-settings.update');
             Route::get('contact-submissions', [AdminContactSubmissionController::class, 'index'])
                 ->name('api.v1.admin.contact-submissions.index');
             Route::get('contact-submissions/{contactSubmission}', [AdminContactSubmissionController::class, 'show'])
@@ -271,6 +277,8 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.v1.public.about');
         Route::get('contact', [PublicContactController::class, 'show'])
             ->name('api.v1.public.contact.show');
+        Route::get('site-settings', PublicSiteSettingsController::class)
+            ->name('api.v1.public.site-settings');
         Route::post('contact/submit', [PublicContactController::class, 'submit'])
             ->name('api.v1.public.contact.submit');
         Route::post('newsletter/subscribe', [PublicNewsletterController::class, 'subscribe'])

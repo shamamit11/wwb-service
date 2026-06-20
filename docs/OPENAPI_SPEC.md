@@ -449,6 +449,9 @@ This is a reference specification, not a generated OpenAPI JSON file.
 
 - `GET /admin/api/v1/homepage`
 - `PUT /admin/api/v1/homepage`
+- `GET /admin/api/v1/site-settings`
+- `PUT /admin/api/v1/site-settings`
+- `GET /api/v1/public/site-settings`
 
 ### Update Request Example
 

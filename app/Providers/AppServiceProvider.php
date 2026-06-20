@@ -59,6 +59,8 @@ use App\Modules\Posts\Repositories\PostBlockRepository;
 use App\Modules\Posts\Repositories\PostRepository;
 use App\Modules\Seo\Repositories\EloquentSeoMetadataRepository;
 use App\Modules\Seo\Repositories\SeoMetadataRepository;
+use App\Modules\SiteSettings\Repositories\EloquentSiteSettingsRepository;
+use App\Modules\SiteSettings\Repositories\SiteSettingsRepository;
 use App\Modules\Tags\Repositories\EloquentTagRepository;
 use App\Modules\Tags\Repositories\TagRepository;
 use App\Modules\Templates\Repositories\EloquentTemplateRepository;
@@ -103,6 +105,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PostBlockRepository::class, EloquentPostBlockRepository::class);
         $this->app->bind(PostRepository::class, EloquentPostRepository::class);
         $this->app->bind(SeoMetadataRepository::class, EloquentSeoMetadataRepository::class);
+        $this->app->bind(SiteSettingsRepository::class, EloquentSiteSettingsRepository::class);
         $this->app->bind(TemplateRepository::class, EloquentTemplateRepository::class);
         $this->app->bind(TagRepository::class, EloquentTagRepository::class);
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
