@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\Public\HomeController as PublicHomeController;
 use App\Http\Controllers\Api\V1\Public\NewsletterController as PublicNewsletterController;
 use App\Http\Controllers\Api\V1\Public\NewsletterTrackingController as PublicNewsletterTrackingController;
 use App\Http\Controllers\Api\V1\Public\NewsletterWebhookController as PublicNewsletterWebhookController;
+use App\Http\Controllers\Api\V1\Public\PageController as PublicPageController;
 use App\Http\Controllers\Api\V1\Public\PostController as PublicPostController;
 use App\Http\Controllers\Api\V1\Public\RssController as PublicRssController;
 use App\Http\Controllers\Api\V1\Public\SearchController as PublicSearchController;
@@ -249,6 +250,8 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.v1.public.posts.index');
         Route::get('posts/{slug}', [PublicPostController::class, 'show'])
             ->name('api.v1.public.posts.show');
+        Route::get('pages/{slug}', [PublicPageController::class, 'show'])
+            ->name('api.v1.public.pages.show');
         Route::get('home', PublicHomeController::class)
             ->name('api.v1.public.home');
         Route::get('about', PublicAboutController::class)

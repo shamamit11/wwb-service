@@ -338,6 +338,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `GET /admin/api/v1/pages/{id}`
 - `PUT /admin/api/v1/pages/{id}`
 - `DELETE /admin/api/v1/pages/{id}`
+- `GET /api/v1/public/pages/{slug}`
 
 ### Create Request Example
 
@@ -418,6 +419,26 @@ This is a reference specification, not a generated OpenAPI JSON file.
   - `GET /admin/api/v1/seo/page/{id}`
   - `PUT /admin/api/v1/seo/page/{id}`
 - This keeps canonical URLs and metadata in the shared SEO model instead of duplicating those fields in the pages table.
+
+### Public Page Read Rules
+
+- `GET /api/v1/public/pages/{slug}` returns only pages where:
+  - `status = published`
+  - `visibility = public`
+  - `published_at` is not null
+- Draft, internal, private, unpublished, or archived pages return `404`.
+- Public response fields include:
+  - `id`
+  - `title`
+  - `slug`
+  - `type`
+  - `summary`
+  - `content_markdown`
+  - `published_at`
+  - `updated_at`
+  - `canonical_url`
+  - `meta`
+  - `seo`
 
 ---
 

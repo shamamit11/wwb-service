@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Homepage;
 use App\Models\KnowledgeBaseEntry;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\Template;
@@ -245,6 +246,46 @@ class PublicFrontendApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.template', null);
 
+        $privacyPage = $this->createPage($admin, [
+            'title' => 'Privacy Policy',
+            'slug' => 'privacy-policy',
+            'type' => Page::TYPE_LEGAL,
+            'status' => Page::STATUS_PUBLISHED,
+            'visibility' => Page::VISIBILITY_PUBLIC,
+            'summary' => 'How Wide Web Blog handles personal information.',
+            'content_markdown' => '# Privacy Policy',
+            'published_at' => '2026-06-15 12:00:00',
+        ]);
+        $privacyPage->seo()->create([
+            'meta_title' => 'Privacy Policy',
+            'meta_description' => 'Privacy policy for Wide Web Blog.',
+            'canonical_url' => 'https://widewebblog.test/pages/privacy-policy/',
+            'robots_index' => true,
+            'robots_follow' => true,
+            'og_title' => 'Privacy Policy',
+            'og_description' => 'Privacy policy details.',
+            'schema_type' => 'WebPage',
+        ]);
+
+        $draftPage = $this->createPage($admin, [
+            'title' => 'Draft Terms',
+            'slug' => 'draft-terms',
+            'type' => Page::TYPE_LEGAL,
+            'status' => Page::STATUS_DRAFT,
+            'visibility' => Page::VISIBILITY_PUBLIC,
+            'content_markdown' => '# Draft Terms',
+        ]);
+
+        $internalPage = $this->createPage($admin, [
+            'title' => 'Internal Notes',
+            'slug' => 'internal-notes',
+            'type' => Page::TYPE_SUPPORT,
+            'status' => Page::STATUS_PUBLISHED,
+            'visibility' => Page::VISIBILITY_INTERNAL,
+            'content_markdown' => '# Internal Notes',
+            'published_at' => '2026-06-15 13:00:00',
+        ]);
+
         $this->getJson('/api/v1/public/posts/draft-post')->assertStatus(404);
         $this->getJson('/api/v1/public/posts/review-post')->assertStatus(404);
         $this->getJson('/api/v1/public/posts/archived-post')->assertStatus(404);
@@ -272,6 +313,21 @@ class PublicFrontendApiTest extends TestCase
             ->assertJsonMissingPath('data.latest_posts')
             ->assertJsonMissingPath('data.categories');
 
+        $this->getJson('/api/v1/public/pages/privacy-policy')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'privacy-policy')
+            ->assertJsonPath('data.type', Page::TYPE_LEGAL)
+            ->assertJsonPath('data.content_markdown', '# Privacy Policy')
+            ->assertJsonPath('data.seo.meta_title', 'Privacy Policy');
+
+        $this->getJson('/api/v1/public/pages/draft-terms')
+            ->assertStatus(404)
+            ->assertJsonPath('error_code', 'NOT_FOUND');
+
+        $this->getJson('/api/v1/public/pages/internal-notes')
+            ->assertStatus(404)
+            ->assertJsonPath('error_code', 'NOT_FOUND');
+
         $this->getJson('/api/v1/public/search?q=memory')
             ->assertOk()
             ->assertJsonCount(2, 'data')
@@ -295,6 +351,7 @@ class PublicFrontendApiTest extends TestCase
         $this->assertNotEquals($scheduled->id, $published->id);
         $this->assertNotEquals($archived->id, $publishedWithArchivedTemplate->id);
         $this->assertNotEquals($privatePublished->id, $inactiveCategoryPublished->id);
+        $this->assertNotEquals($draftPage->id, $internalPage->id);
     }
 
     public function test_public_home_bootstraps_default_homepage_shape(): void
@@ -355,6 +412,27 @@ class PublicFrontendApiTest extends TestCase
             'default_excerpt_prompt' => null,
             'default_meta' => null,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createPage(User $author, array $overrides = []): Page
+    {
+        return Page::query()->create(array_merge([
+            'created_by_user_id' => $author->id,
+            'updated_by_user_id' => null,
+            'title' => 'Sample Page',
+            'slug' => 'sample-page',
+            'type' => Page::TYPE_STANDARD,
+            'status' => Page::STATUS_DRAFT,
+            'summary' => null,
+            'content_markdown' => 'Sample page content.',
+            'visibility' => Page::VISIBILITY_PUBLIC,
+            'published_at' => null,
+            'scheduled_for' => null,
+            'meta' => null,
+        ], $overrides));
     }
 
     /**
