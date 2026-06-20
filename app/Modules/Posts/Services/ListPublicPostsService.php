@@ -6,11 +6,25 @@ use App\Models\Post;
 use App\Modules\Posts\Data\PublicPostFiltersData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 class ListPublicPostsService
 {
     public function handle(PublicPostFiltersData $filters): LengthAwarePaginator
     {
+        if ($filters->returnEmptyWhenSearchBlank && blank($filters->search)) {
+            return new Paginator(
+                items: collect(),
+                total: 0,
+                perPage: $filters->perPage,
+                currentPage: Paginator::resolveCurrentPage(),
+                options: [
+                    'path' => Paginator::resolveCurrentPath(),
+                    'query' => request()->query(),
+                ],
+            );
+        }
+
         [$sortColumn, $descending] = $this->normalizeSort($filters->sort);
 
         return $this->baseQuery()
@@ -20,6 +34,9 @@ class ListPublicPostsService
                         ->where('title', 'like', "%{$search}%")
                         ->orWhere('slug', 'like', "%{$search}%")
                         ->orWhere('excerpt', 'like', "%{$search}%")
+                        ->orWhereHas('blocks', fn (Builder $blockQuery) => $blockQuery
+                            ->where('content_markdown', 'like', "%{$search}%")
+                            ->orWhere('plain_text_cache', 'like', "%{$search}%"))
                         ->orWhereHas('category', fn (Builder $categoryQuery) => $categoryQuery
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('slug', 'like', "%{$search}%"))
@@ -43,7 +60,7 @@ class ListPublicPostsService
     protected function baseQuery(): Builder
     {
         return Post::query()
-            ->with(['category', 'tags', 'featuredMedia', 'template', 'seo.ogImageMedia'])
+            ->with(['author', 'category', 'tags', 'featuredMedia', 'template', 'seo.ogImageMedia'])
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('visibility', Post::VISIBILITY_PUBLIC)
             ->whereNotNull('published_at')

@@ -42,6 +42,7 @@ class PublicFrontendApiTest extends TestCase
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-14 10:00:00',
+            'reading_time_minutes' => 8,
             'word_count' => 900,
             'template_id' => $activeTemplate->id,
         ], [$activeTag]);
@@ -73,8 +74,19 @@ class PublicFrontendApiTest extends TestCase
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-13 09:00:00',
+            'reading_time_minutes' => 5,
             'template_id' => $archivedTemplate->id,
         ], [$activeTag]);
+
+        $relatedPublished = $this->createPost($admin, $activeCategory, [
+            'title' => 'Agent Context Windows Explained',
+            'slug' => 'agent-context-windows-explained',
+            'excerpt' => 'Context handling for modern agent systems.',
+            'status' => Post::STATUS_PUBLISHED,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => '2026-06-12 08:00:00',
+            'reading_time_minutes' => 6,
+        ]);
 
         $draft = $this->createPost($admin, $activeCategory, [
             'title' => 'Draft Post',
@@ -194,12 +206,12 @@ class PublicFrontendApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.slug', 'ai-agents')
-            ->assertJsonPath('data.0.post_count', 2);
+            ->assertJsonPath('data.0.post_count', 3);
 
         $this->getJson('/api/v1/public/categories/ai-agents')
             ->assertOk()
             ->assertJsonPath('data.slug', 'ai-agents')
-            ->assertJsonCount(2, 'data.posts')
+            ->assertJsonCount(3, 'data.posts')
             ->assertJsonPath('data.posts.0.slug', 'how-ai-agent-memory-works')
             ->assertJsonMissingPath('data.posts.0.status');
 
@@ -224,9 +236,11 @@ class PublicFrontendApiTest extends TestCase
 
         $this->getJson('/api/v1/public/posts')
             ->assertOk()
-            ->assertJsonCount(2, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'how-ai-agent-memory-works')
             ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('data.0.author.name', $admin->name)
+            ->assertJsonPath('data.0.read_time', '8 min read')
             ->assertJsonMissingPath('data.0.status')
             ->assertJsonMissingPath('data.0.visibility');
 
@@ -237,7 +251,15 @@ class PublicFrontendApiTest extends TestCase
         $this->getJson('/api/v1/public/posts/how-ai-agent-memory-works')
             ->assertOk()
             ->assertJsonPath('data.slug', 'how-ai-agent-memory-works')
+            ->assertJsonPath('data.author.name', $admin->name)
+            ->assertJsonPath('data.read_time', '8 min read')
+            ->assertJsonPath('data.word_count', 900)
+            ->assertJsonPath('data.content', 'Published content block.')
+            ->assertJsonPath('data.content_markdown', 'Published content block.')
             ->assertJsonPath('data.seo.meta_title', 'How AI Agent Memory Works')
+            ->assertJsonCount(2, 'data.related_posts')
+            ->assertJsonPath('data.related_posts.0.slug', 'archived-template-post')
+            ->assertJsonPath('data.related_posts.1.slug', 'agent-context-windows-explained')
             ->assertJsonPath('data.schema.@context', 'https://schema.org')
             ->assertJsonPath('data.template.slug', 'tutorial')
             ->assertJsonPath('data.blocks.0.content_markdown', 'Published content block.');
@@ -245,6 +267,10 @@ class PublicFrontendApiTest extends TestCase
         $this->getJson('/api/v1/public/posts/archived-template-post')
             ->assertOk()
             ->assertJsonPath('data.template', null);
+
+        $this->getJson('/api/v1/public/posts/does-not-exist')
+            ->assertStatus(404)
+            ->assertJsonPath('error_code', 'NOT_FOUND');
 
         $privacyPage = $this->createPage($admin, [
             'title' => 'Privacy Policy',
@@ -333,18 +359,33 @@ class PublicFrontendApiTest extends TestCase
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.slug', 'how-ai-agent-memory-works');
 
+        $this->getJson('/api/v1/public/search?q=context')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'agent-context-windows-explained');
+
+        $this->getJson('/api/v1/public/search?q=Published%20content%20block')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'how-ai-agent-memory-works');
+
         $this->getJson('/api/v1/public/search?q=scheduled')
             ->assertOk()
             ->assertJsonCount(0, 'data');
 
+        $this->getJson('/api/v1/public/search?q=')
+            ->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.total', 0);
+
         $this->getJson('/api/v1/public/sitemap')
             ->assertOk()
-            ->assertJsonCount(2, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'how-ai-agent-memory-works');
 
         $this->getJson('/api/v1/public/rss')
             ->assertOk()
-            ->assertJsonCount(2, 'data')
+            ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'how-ai-agent-memory-works');
 
         $this->assertNotEquals($draft->id, $published->id);
@@ -352,6 +393,7 @@ class PublicFrontendApiTest extends TestCase
         $this->assertNotEquals($archived->id, $publishedWithArchivedTemplate->id);
         $this->assertNotEquals($privatePublished->id, $inactiveCategoryPublished->id);
         $this->assertNotEquals($draftPage->id, $internalPage->id);
+        $this->assertNotEquals($relatedPublished->id, $published->id);
     }
 
     public function test_public_home_bootstraps_default_homepage_shape(): void

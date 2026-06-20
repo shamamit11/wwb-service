@@ -199,8 +199,9 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `POST /admin/api/v1/posts/{id}/publish`
 - `POST /admin/api/v1/posts/{id}/schedule`
 - `POST /admin/api/v1/posts/{id}/unpublish`
-- `GET /api/v1/posts`
-- `GET /api/v1/posts/{slug}`
+- `GET /api/v1/public/posts`
+- `GET /api/v1/public/posts/{slug}`
+- `GET /api/v1/public/search`
 
 ### Create Request Example
 
@@ -1066,11 +1067,15 @@ Multipart upload is preferred for binary data. Metadata may be included as field
 
 ### List published posts by category
 
-`GET /api/v1/posts?filter[category_slug]=ai-agents&sort=-published_at`
+`GET /api/v1/public/posts?category=ai-agents&sort=-published_at`
 
 ### Search public posts
 
-`GET /api/v1/posts?filter[search]=laravel%20ai`
+`GET /api/v1/public/posts?search=laravel%20ai`
+
+### Search public posts via dedicated endpoint
+
+`GET /api/v1/public/search?q=laravel%20ai`
 
 ### Admin list draft posts
 

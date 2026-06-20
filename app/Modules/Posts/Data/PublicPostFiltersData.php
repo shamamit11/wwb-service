@@ -12,5 +12,6 @@ final readonly class PublicPostFiltersData extends DataTransferObject
         public ?string $tagSlug = null,
         public string $sort = '-published_at',
         public int $perPage = 15,
+        public bool $returnEmptyWhenSearchBlank = false,
     ) {}
 }
