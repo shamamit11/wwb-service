@@ -357,4 +357,113 @@ class BlogWriterAgentTest extends TestCase
             categoryId: (int) $category->id,
         );
     }
+
+    public function test_blog_writer_agent_normalizes_section_blocks_into_supported_post_blocks(): void
+    {
+        config()->set('app.url', 'https://widewebblog.test');
+
+        $template = AiPromptTemplate::query()->create([
+            'name' => 'Blog Writer Default',
+            'key' => 'blog_writer_default',
+            'type' => AiPromptTemplate::TYPE_BLOG_WRITER,
+            'description' => 'Default blog writer prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $version = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $template->id,
+            'version' => 1,
+            'system_prompt' => 'Write a structured draft for {{title}}.',
+            'user_prompt' => 'Outline {{outline}}',
+            'output_schema' => ['type' => 'object', 'required' => ['title', 'slug', 'markdown_body', 'content_blocks']],
+            'variables' => ['title', 'outline'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $template->update(['active_version_id' => $version->id]);
+
+        $author = User::factory()->create(['is_admin' => true]);
+        $category = Category::query()->create([
+            'name' => 'AI Workflows',
+            'slug' => 'ai-workflows',
+            'created_by_user_id' => $author->id,
+            'updated_by_user_id' => $author->id,
+            'description' => null,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $topic = ContentTopic::query()->create([
+            'title' => 'AI Tools for Small Business',
+            'slug' => 'ai-tools-for-small-business',
+            'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
+            'primary_keyword' => 'ai tools for small business',
+            'secondary_keywords' => [],
+            'search_intent' => 'commercial',
+            'priority_score' => '85.00',
+            'difficulty_note' => null,
+            'source' => ContentTopic::SOURCE_AI_SUGGESTED,
+            'status' => ContentTopic::STATUS_APPROVED,
+            'notes' => 'Approved for drafting.',
+            'approved_at' => now(),
+        ]);
+
+        $brief = ContentBrief::query()->create([
+            'content_topic_id' => $topic->id,
+            'title' => 'Top AI Tools for Small Businesses',
+            'slug' => 'top-ai-tools-for-small-businesses',
+            'meta_title' => 'Top AI Tools for Small Businesses',
+            'meta_description' => 'Structured brief for small business AI tooling.',
+            'primary_keyword' => 'ai tools for small business',
+            'secondary_keywords' => [],
+            'search_intent' => 'commercial',
+            'outline' => [['heading' => 'Why small businesses should start with AI now', 'purpose' => 'Frame benefits']],
+            'headings' => ['Why small businesses should start with AI now'],
+            'faq_suggestions' => [],
+            'internal_link_suggestions' => [],
+            'image_suggestions' => [],
+            'status' => ContentBrief::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+
+        $fakeClient = new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: json_encode([
+                        'title' => 'Top AI Tools for Small Businesses',
+                        'slug' => 'top-ai-tools-for-small-businesses',
+                        'excerpt' => 'A practical guide to small business AI tooling.',
+                        'markdown_body' => "# Top AI Tools for Small Businesses\n\nStart with practical wins.",
+                        'content_blocks' => [
+                            [
+                                'block_type' => 'section',
+                                'sort_order' => 1,
+                                'heading' => 'Why small businesses should start with AI now',
+                                'content' => [
+                                    'markdown' => 'Start with practical wins.',
+                                ],
+                            ],
+                        ],
+                    ], JSON_THROW_ON_ERROR),
+                    provider: 'openai',
+                    model: 'gpt-5-mini',
+                    usage: new AiUsageData(promptTokens: 120, completionTokens: 160),
+                );
+            }
+        };
+
+        $this->app->instance(AiClient::class, $fakeClient);
+
+        $generated = app(GenerateBlogDraftFromBriefService::class)->handle(
+            brief: $brief->fresh('topic'),
+            authorUserId: (int) $author->id,
+            categoryId: (int) $category->id,
+        );
+
+        $blocks = $generated->post->refresh()->blocks->pluck('block_type')->all();
+
+        $this->assertSame(['heading', 'paragraph'], $blocks);
+    }
 }

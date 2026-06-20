@@ -2,21 +2,19 @@
 
 ## Task Summary
 
-Convert manual `Generate Brief` into a queued workflow so admin requests no longer block on long AI calls or hit PHP execution time limits.
+Normalize AI blog-writer `section` blocks into supported post blocks so auto-generated drafts do not fail validation during persistence.
 
 ## Requested Outcome
 
-- stop `POST /api/v1/admin/content-topics/{id}/generate-brief` from running AI generation inside the HTTP request
-- queue or reuse a content brief AI job instead
-- still return an existing brief immediately when one already exists
-- avoid duplicate queued brief jobs from repeated clicks
-- add focused tests for the new endpoint behavior
+- stop auto-generated drafts from failing with `Unsupported block type [section]`
+- normalize unsupported AI block payloads into the service’s supported block types
+- add a focused regression test for `section` block output
 
 ## Scope Boundaries
 
 - service repository only
-- content brief generation endpoint behavior and targeted tests only
-- no admin app changes unless required by confirmed contract break
+- blog-writer block normalization and targeted tests only
+- no admin app changes
 - no provider integration changes
 
 ## Context Files Loaded
@@ -34,8 +32,6 @@ Convert manual `Generate Brief` into a queued workflow so admin requests no long
 - `.agent/knowledge-base/ai-content.md`
 - `.agent/skills/ai-orchestration.md`
 - `.agent/skills/ai-content-engine.md`
-- `../admin/.agent/API-CONTRACT.md`
-- `../admin/.agent/ARCHITECTURE.md`
 
 ## Repository Files Inspected
 
@@ -57,38 +53,35 @@ Convert manual `Generate Brief` into a queued workflow so admin requests no long
 - `config/ai.php`
 - `tests/Feature/ContentTopicApiTest.php`
 - `tests/Feature/ContentBriefApiTest.php`
-- `../admin/app/Services/WideWebBlogApi/Clients/ContentTopicClient.php`
-- `../admin/app/Livewire/Admin/TopicQueue/Show.php`
-- `../admin/tests/Feature/TopicQueue/TopicQueueScreensTest.php`
+- `app/AI/Agents/BlogWriterAgent.php`
+- `app/Modules/Posts/Services/PostBlockPayloadValidator.php`
+- `app/Modules/Posts/Services/PostBlockPayloadMapper.php`
+- `tests/Feature/BlogWriterAgentTest.php`
+- `tests/Feature/GenerateBlogDraftJobTest.php`
 
 ## Plan
 
-1. Confirm the admin `Generate Brief` contract and narrowest safe response shape.
-2. Change the endpoint to queue or reuse a brief AI job instead of doing synchronous generation.
-3. Add focused endpoint tests and run the smallest relevant test selection.
+1. Confirm where unsupported block types enter the draft persistence path.
+2. Normalize `section` AI output into supported post block types before validation.
+3. Add focused regression coverage and run the smallest relevant test selection.
 
 ## Changed Files
 
 - `.agent/tasks/current-task.md`
-- `app/Http/Controllers/Api/V1/Admin/ContentTopicController.php`
-- `app/Modules/Ai/Services/ContentBriefWorkflow.php`
-- `app/Modules/Ai/Services/AiWorkflowOrchestrator.php`
-- `app/Modules/ContentTopics/Services/ApproveContentTopicService.php`
-- `tests/Feature/ContentTopicApiTest.php`
-- `tests/Feature/ContentBriefApiTest.php`
+- `app/AI/Agents/BlogWriterAgent.php`
+- `tests/Feature/BlogWriterAgentTest.php`
 
 ## Validation
 
-- `php artisan test --filter=ContentBriefApiTest` passed
-- `php artisan test --filter=ContentTopicApiTest` passed
+- `php artisan test --filter=BlogWriterAgentTest` passed
+- `php artisan test --filter=GenerateBlogDraftJobTest` passed
 
 ## Risks Or Follow-Ups
 
-- admin UI currently redirects to brief details when `data.id` is present, so queued responses intentionally avoid `data.id` until a brief actually exists
+- if the model starts returning other unsupported composite block types beyond `section`, they will need similar normalization rules
 
 ## Completion Notes
 
-- Root cause confirmed from production error stack: the manual `generate-brief` endpoint still used `ContentBriefWorkflow::generate()`, which ran the AI provider call inside the HTTP request until FrankenPHP hit the 30-second execution limit.
-- `POST /api/v1/admin/content-topics/{id}/generate-brief` now queues or reuses a content brief AI job and returns `202 Accepted` with `meta.ai_job_id` when no brief exists yet.
-- If a brief already exists, the endpoint still returns that brief immediately with `200 OK`.
-- Repeated clicks while a brief job is already pending, queued, or processing now reuse the active job instead of creating duplicate jobs.
+- Root cause confirmed: the blog writer can emit `content_blocks` with `block_type: section`, but the post layer only accepts `heading`, `paragraph`, `image`, `quote`, `list`, `code`, `faq`, and `callout`.
+- `BlogWriterAgent::normalizeContentBlocks()` now expands `section` blocks into supported blocks, currently a heading plus optional paragraph and list.
+- Draft persistence now succeeds for the reported payload shape instead of throwing `InvalidPostBlockPayloadException`.
