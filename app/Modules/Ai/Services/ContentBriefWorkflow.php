@@ -9,6 +9,7 @@ use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Repositories\AiJobRepository;
+use App\Modules\ContentBriefs\Exceptions\ContentBriefGenerationNotAllowedException;
 use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
 use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
 use App\Modules\ContentBriefs\Services\GenerateContentBriefFromTopicService;
@@ -24,8 +25,31 @@ class ContentBriefWorkflow
 
     public function queue(ContentTopic $topic, ?string $promptTemplateKey = null, ?int $retryOfAiJobId = null, int $attempts = 1): ?AiJob
     {
+        if (! $topic->isApproved()) {
+            throw new ContentBriefGenerationNotAllowedException(
+                topicStatus: $topic->status,
+                message: "Content brief can only be generated from approved topics. Current status is [{$topic->status}].",
+            );
+        }
+
         if ($this->briefs->findByTopicId((int) $topic->id) instanceof ContentBrief) {
             return null;
+        }
+
+        $activeJob = AiJob::query()
+            ->where('type', AiPromptTemplate::TYPE_CONTENT_BRIEF)
+            ->where('entity_type', 'content_topic')
+            ->where('entity_id', (int) $topic->id)
+            ->whereIn('status', [
+                AiJob::STATUS_PENDING,
+                AiJob::STATUS_QUEUED,
+                AiJob::STATUS_PROCESSING,
+            ])
+            ->latest('id')
+            ->first();
+
+        if ($activeJob instanceof AiJob) {
+            return $activeJob->loadCount('steps');
         }
 
         $job = $this->jobs->create(new CreateAiJobData(

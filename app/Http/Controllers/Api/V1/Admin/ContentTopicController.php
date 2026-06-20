@@ -93,10 +93,23 @@ class ContentTopicController extends Controller
         ContentTopic $contentTopic,
         ContentBriefWorkflow $service,
     ): JsonResponse {
+        $job = $service->queue($contentTopic);
+
+        if ($job !== null) {
+            return response()->json([
+                'message' => 'Content brief generation queued.',
+                'data' => (object) [],
+                'meta' => [
+                    'ai_job_id' => $job->id,
+                    'ai_job_status' => $job->status,
+                ],
+            ], Response::HTTP_ACCEPTED);
+        }
+
         $result = $service->generate($contentTopic);
 
         return (new ContentBriefResource($result->brief))
             ->response()
-            ->setStatusCode($result->wasCreated ? Response::HTTP_CREATED : Response::HTTP_OK);
+            ->setStatusCode(Response::HTTP_OK);
     }
 }
