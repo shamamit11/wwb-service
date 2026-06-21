@@ -8,6 +8,7 @@ use App\Models\KnowledgeBaseEntry;
 use App\Models\Page;
 use App\Models\Post;
 use App\Modules\Media\Services\Contracts\MediaReader;
+use App\Modules\Seo\Services\CanonicalUrlService;
 use Illuminate\Http\Request;
 
 class SeoMetadataResource extends ApiResource
@@ -19,6 +20,8 @@ class SeoMetadataResource extends ApiResource
     {
         /** @var MediaReader $reader */
         $reader = app(MediaReader::class);
+        /** @var CanonicalUrlService $canonicalUrls */
+        $canonicalUrls = app(CanonicalUrlService::class);
         $seoable = $this->resource->seoable;
 
         return [
@@ -33,7 +36,7 @@ class SeoMetadataResource extends ApiResource
             'seoable_id' => $this->resource->seoable_id,
             'meta_title' => $this->resource->meta_title,
             'meta_description' => $this->resource->meta_description,
-            'canonical_url' => $this->resource->canonical_url,
+            'canonical_url' => $canonicalUrls->normalize($this->resource->canonical_url),
             'robots_index' => (bool) $this->resource->robots_index,
             'robots_follow' => (bool) $this->resource->robots_follow,
             'og_title' => $this->resource->og_title,

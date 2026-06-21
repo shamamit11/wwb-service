@@ -17,7 +17,8 @@ class SitemapApiTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('app.url', 'https://widewebblog.test');
+        config()->set('app.url', 'https://service.widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.widewebblog.com');
     }
 
     public function test_admin_sitemap_route_requires_authentication(): void
@@ -94,7 +95,7 @@ class SitemapApiTest extends TestCase
             ->assertJsonPath('data.0.id', $newerPublished->id)
             ->assertJsonPath('data.0.type', 'post')
             ->assertJsonPath('data.0.slug', 'newer-published')
-            ->assertJsonPath('data.0.canonical_url', 'https://widewebblog.test/newer-published/')
+            ->assertJsonPath('data.0.canonical_url', 'https://www.widewebblog.com/newer-published/')
             ->assertJsonPath('data.0.published_at', '2026-06-12T09:30:00.000000Z')
             ->assertJsonPath('data.0.last_modified_at', $newerPublished->updated_at?->toISOString())
             ->assertJsonPath('data.1.id', $olderPublished->id)

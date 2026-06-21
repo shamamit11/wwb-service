@@ -16,7 +16,8 @@ class CategorySchemaBuilder
      */
     public function build(Category $category): array
     {
-        $canonical = $this->canonicalUrls->for($category) ?? rtrim((string) config('app.url'), '/').'/';
+        $baseUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+        $canonical = $this->canonicalUrls->for($category) ?? "{$baseUrl}/";
         $metadata = $category->seo;
 
         $schema = [
@@ -26,7 +27,7 @@ class CategorySchemaBuilder
             'description' => $metadata?->meta_description ?: $category->description,
             'url' => $canonical,
             'isPartOf' => [
-                '@id' => rtrim((string) config('app.url'), '/').'/#website',
+                '@id' => "{$baseUrl}/#website",
             ],
             'breadcrumb' => [
                 '@id' => "{$canonical}#breadcrumb",
