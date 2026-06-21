@@ -26,3 +26,8 @@ Schedule::command('ai:run-weekly-content-plan')
     ->dailyAt('02:00')
     ->withoutOverlapping()
     ->name('ai-run-weekly-content-plan');
+
+Schedule::command('news:discover --limit=5')
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->name('news-discover');

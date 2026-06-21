@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'currents' => [
+        'api_key' => env('CURRENTS_API_KEY'),
+        'base_url' => env('CURRENTS_API_BASE_URL', 'https://api.currentsapi.services/v1'),
+        'timeout' => (int) env('CURRENTS_API_TIMEOUT', 15),
+    ],
+
+    'firecrawl' => [
+        'api_key' => env('FIRECRAWL_API_KEY'),
+        'base_url' => env('FIRECRAWL_API_BASE_URL', 'https://api.firecrawl.dev/v1'),
+        'timeout' => (int) env('FIRECRAWL_API_TIMEOUT', 30),
+    ],
+
 ];

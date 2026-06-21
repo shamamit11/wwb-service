@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\LaravelAiClient;
+use App\Infrastructure\News\Contracts\NewsContentExtractionClient;
+use App\Infrastructure\News\Contracts\NewsDiscoveryClient;
+use App\Infrastructure\News\CurrentsNewsClient;
+use App\Infrastructure\News\FirecrawlContentClient;
 use App\Models\User;
 use App\Modules\AboutPage\Repositories\AboutPageRepository;
 use App\Modules\AboutPage\Repositories\EloquentAboutPageRepository;
@@ -49,6 +53,10 @@ use App\Modules\Newsletter\Repositories\NewsletterCampaignRepository;
 use App\Modules\Newsletter\Repositories\NewsletterListRepository;
 use App\Modules\Newsletter\Repositories\NewsletterRecipientEventRepository;
 use App\Modules\Newsletter\Repositories\NewsletterSubscriberRepository;
+use App\Modules\News\Repositories\EloquentNewsItemRepository;
+use App\Modules\News\Repositories\EloquentNewsSourceRepository;
+use App\Modules\News\Repositories\NewsItemRepository;
+use App\Modules\News\Repositories\NewsSourceRepository;
 use App\Modules\Pages\Repositories\EloquentPageRepository;
 use App\Modules\Pages\Repositories\PageRepository;
 use App\Modules\Posts\Repositories\EloquentPostRepository;
@@ -72,6 +80,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AiClient::class, LaravelAiClient::class);
+        $this->app->bind(NewsDiscoveryClient::class, CurrentsNewsClient::class);
+        $this->app->bind(NewsContentExtractionClient::class, FirecrawlContentClient::class);
         $this->app->bind(AboutPageRepository::class, EloquentAboutPageRepository::class);
         $this->app->bind(AiGenerationStepRepository::class, EloquentAiGenerationStepRepository::class);
         $this->app->bind(AiJobRepository::class, EloquentAiJobRepository::class);
@@ -94,6 +104,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(NewsletterCampaignRecipientRepository::class, EloquentNewsletterCampaignRecipientRepository::class);
         $this->app->bind(NewsletterRecipientEventRepository::class, EloquentNewsletterRecipientEventRepository::class);
         $this->app->bind(NewsletterDeliveryProvider::class, MailNewsletterDeliveryProvider::class);
+        $this->app->bind(NewsItemRepository::class, EloquentNewsItemRepository::class);
+        $this->app->bind(NewsSourceRepository::class, EloquentNewsSourceRepository::class);
         $this->app->bind(PageRepository::class, EloquentPageRepository::class);
         $this->app->bind(PostRepository::class, EloquentPostRepository::class);
         $this->app->bind(SeoMetadataRepository::class, EloquentSeoMetadataRepository::class);
