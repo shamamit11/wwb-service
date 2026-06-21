@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\ContentTopicController as AdminContentTopi
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController as AdminMediaController;
+use App\Http\Controllers\Api\V1\Admin\NewsItemController as AdminNewsItemController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterCampaignController as AdminNewsletterCampaignController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterListController as AdminNewsletterListController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
@@ -159,6 +160,18 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.knowledge-base.link-post');
             Route::post('knowledge-base/{knowledgeBase}/link-topic', [AdminKnowledgeBaseEntryController::class, 'linkTopic'])
                 ->name('api.v1.admin.knowledge-base.link-topic');
+            Route::get('news-items', [AdminNewsItemController::class, 'index'])
+                ->name('api.v1.admin.news-items.index');
+            Route::post('news-items/discover', [AdminNewsItemController::class, 'discover'])
+                ->name('api.v1.admin.news-items.discover');
+            Route::get('news-items/{newsItem}', [AdminNewsItemController::class, 'show'])
+                ->name('api.v1.admin.news-items.show');
+            Route::post('news-items/{newsItem}/score', [AdminNewsItemController::class, 'score'])
+                ->name('api.v1.admin.news-items.score');
+            Route::post('news-items/{newsItem}/extract', [AdminNewsItemController::class, 'extract'])
+                ->name('api.v1.admin.news-items.extract');
+            Route::post('news-items/{newsItem}/route', [AdminNewsItemController::class, 'route'])
+                ->name('api.v1.admin.news-items.route');
 
             Route::prefix('newsletter')->group(function (): void {
                 Route::apiResource('lists', AdminNewsletterListController::class)

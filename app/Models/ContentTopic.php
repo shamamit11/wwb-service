@@ -38,6 +38,8 @@ class ContentTopic extends Model
 
     public const SOURCE_AI_SUGGESTED = 'ai_suggested';
 
+    public const SOURCE_NEWS_SIGNAL = 'news_signal';
+
     public const CLUSTER_AI_TOOLS = 'ai_tools';
 
     public const CLUSTER_AI_FOR_BLOGGING = 'ai_for_blogging';
@@ -69,6 +71,7 @@ class ContentTopic extends Model
     public const SOURCES = [
         self::SOURCE_MANUAL,
         self::SOURCE_AI_SUGGESTED,
+        self::SOURCE_NEWS_SIGNAL,
     ];
 
     /**
