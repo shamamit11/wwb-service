@@ -39,7 +39,7 @@ Use this file for stable lifecycle rules across topics, posts, SEO, knowledge li
 - Separate editorial state from background processing state.
 - Use jobs for generation and analysis states, not for publish authorization.
 - Topics below the score threshold are disposable and should not require admin review.
-- Topics above the score threshold may queue draft generation automatically.
+- Topics at or above the score threshold may queue draft generation automatically.
 - Retryable background work must not duplicate domain records.
 
 ## Future Expansion

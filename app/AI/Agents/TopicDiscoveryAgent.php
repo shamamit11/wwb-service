@@ -13,12 +13,14 @@ use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\CheckDuplicateTopicTool;
 use App\AI\Tools\SaveTopicIdeaTool;
 use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
 use App\Models\ContentTopic;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
-use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
 use App\Modules\Ai\Repositories\AiJobRepository;
+use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
+use App\Modules\Ai\Services\AiAutomationDailyLimitService;
 use App\Modules\Ai\Services\RecordAiUsageService;
 use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
@@ -39,6 +41,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         private readonly RenderAiPromptTemplateService $renderPrompt,
         private readonly TrackAiJobService $trackAiJob,
         private readonly RecordAiUsageService $recordAiUsage,
+        private readonly AiAutomationDailyLimitService $dailyLimits,
         private readonly CheckDuplicateTopicTool $checkDuplicateTopic,
         private readonly SaveTopicIdeaTool $saveTopicIdea,
     ) {}
@@ -83,7 +86,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 targetCount: $input->targetCount,
             );
 
-            [$savedTopics, $skippedDuplicates] = $this->persistTopics($parsedResponse, $input);
+            [$savedTopics, $skippedDuplicates, $skippedDailyLimit] = $this->persistTopics($parsedResponse, $input);
 
             $usagePayload = $response->usage->toArray();
             $outputPayload = [
@@ -96,6 +99,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                     $savedTopics,
                 ),
                 'skipped_duplicates' => $skippedDuplicates,
+                'skipped_daily_limit' => $skippedDailyLimit,
             ];
 
             $step = $this->trackAiJob->completeStep($step, $outputPayload, $usagePayload);
@@ -118,6 +122,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                         $savedTopics,
                     ),
                     'skipped_duplicates' => $skippedDuplicates,
+                    'skipped_daily_limit' => $skippedDailyLimit,
                 ],
             );
         } catch (Throwable $throwable) {
@@ -280,12 +285,13 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     }
 
     /**
-     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>}
+     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>,2:list<array{title:string, reason:string, priority_score:?string}>}
      */
     private function persistTopics(TopicDiscoveryResult $result, TopicDiscoveryInput $input): array
     {
         $savedTopics = [];
         $skippedDuplicates = [];
+        $skippedDailyLimit = [];
         $seenKeys = [];
 
         foreach ($result->topics as $topic) {
@@ -318,10 +324,20 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 continue;
             }
 
+            if (! $this->dailyLimits->canPersistAiSuggestedTopic($topic->priorityScore)) {
+                $skippedDailyLimit[] = [
+                    'title' => $topic->title,
+                    'reason' => 'daily_high_priority_topic_limit_reached',
+                    'priority_score' => $topic->priorityScore,
+                ];
+
+                continue;
+            }
+
             $savedTopics[] = $this->saveTopicIdea->save($topic, $input->categoryId, $input->audience);
         }
 
-        return [$savedTopics, $skippedDuplicates];
+        return [$savedTopics, $skippedDuplicates, $skippedDailyLimit];
     }
 
     /**
@@ -343,7 +359,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     }
 
     /**
-     * @param  mixed  $value
      * @return list<string>
      */
     private function normalizeStringList(mixed $value): array
@@ -358,9 +373,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         )));
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private function normalizeString(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -372,9 +384,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         return $normalized !== '' ? $normalized : null;
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private function normalizeDecimal(mixed $value): ?string
     {
         if (! is_numeric($value)) {
@@ -408,7 +417,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         return is_string($model) && $model !== '' ? $model : null;
     }
 
-    private function resolveOrCreateJob(TopicDiscoveryInput $input): \App\Models\AiJob
+    private function resolveOrCreateJob(TopicDiscoveryInput $input): AiJob
     {
         $existingJobId = $input->metadata['ai_job_id'] ?? null;
 
@@ -424,7 +433,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
-            status: \App\Models\AiJob::STATUS_PENDING,
+            status: AiJob::STATUS_PENDING,
             entityType: 'content_topic_batch',
             provider: $this->resolveProvider($input),
             model: $this->resolveModel($input),

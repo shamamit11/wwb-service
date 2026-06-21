@@ -12,7 +12,7 @@
 1. Knowledge Base context is gathered.
 2. `TopicDiscoveryAgent` suggests scored topics within approved clusters.
 3. topics below `90` are pruned automatically.
-4. topics above `90` queue `BlogWriterAgent`.
+4. topics at `90` or higher are eligible for automatic draft routing.
 5. draft posts are reviewed, edited, approved, and published manually in Admin.
 
 ## Approved Topic Clusters

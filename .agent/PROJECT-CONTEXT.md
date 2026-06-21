@@ -57,7 +57,7 @@ The service owns:
 - Knowledge Base entries ground AI workflows.
 - `TopicDiscoveryAgent` creates scored topics in approved clusters.
 - topics below `90` are pruned automatically.
-- topics above `90` queue blog draft generation automatically.
+- topics at `90` or higher queue blog draft generation automatically.
 - `BlogWriterAgent` generates one full article draft.
 - all AI-generated posts remain `draft` until manual admin approval.
 - images remain manual; AI may only suggest ideas, placement notes, and alt text.

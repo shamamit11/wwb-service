@@ -11,7 +11,7 @@ The service uses AI to accelerate editorial work, not to replace editorial appro
 - AI never publishes posts directly.
 - topic discovery creates scored topics.
 - topics below `90` are pruned automatically.
-- topics above `90` queue draft generation automatically.
+- topics at `90` or higher queue draft generation automatically.
 - generated posts remain drafts until an admin reviews and publishes them.
 - image generation is not part of the active workflow.
 

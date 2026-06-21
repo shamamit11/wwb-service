@@ -3,17 +3,17 @@
 namespace App\Modules\ContentTopics\Services;
 
 use App\Models\ContentTopic;
+use App\Modules\Ai\Services\AiAutomationDailyLimitService;
 use App\Modules\Ai\Services\DraftGenerationWorkflow;
 use App\Modules\Ai\Services\ResolveAutoDraftGenerationDataService;
 
 class AutoAdvanceHighPriorityTopicService
 {
-    private const AUTO_APPROVAL_PRIORITY_THRESHOLD = 90.0;
-
     public function __construct(
         private readonly ApproveContentTopicService $approveTopic,
         private readonly ResolveAutoDraftGenerationDataService $resolveAutoDraftGenerationData,
         private readonly DraftGenerationWorkflow $drafts,
+        private readonly AiAutomationDailyLimitService $dailyLimits,
     ) {}
 
     public function handle(ContentTopic $topic): ContentTopic
@@ -32,7 +32,7 @@ class AutoAdvanceHighPriorityTopicService
 
         $data = $this->resolveAutoDraftGenerationData->handle($topic);
 
-        if ($data !== null) {
+        if ($data !== null && $this->dailyLimits->canQueueAutomaticDraft()) {
             $this->drafts->queue($topic, $data);
         }
 
@@ -45,6 +45,6 @@ class AutoAdvanceHighPriorityTopicService
             return false;
         }
 
-        return (float) $topic->priority_score > self::AUTO_APPROVAL_PRIORITY_THRESHOLD;
+        return $this->dailyLimits->isHighPriorityScore($topic->priority_score);
     }
 }
