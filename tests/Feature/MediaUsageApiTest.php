@@ -160,6 +160,38 @@ class MediaUsageApiTest extends TestCase
             ->assertJsonPath('data.usage.0.type', 'seo_image');
     }
 
+    public function test_media_show_includes_inline_post_usage_details(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $media = Media::query()->create([
+            'uploaded_by_user_id' => $admin->id,
+            'storage_provider' => 'r2',
+            'bucket_name' => 'wwb-media',
+            'object_key' => 'media/2026/06/inline.webp',
+            'original_filename' => 'inline.webp',
+            'mime_type' => 'image/webp',
+            'extension' => 'webp',
+            'file_size_bytes' => 100,
+            'source_type' => 'uploaded',
+            'status' => 'ready',
+        ]);
+
+        $postId = $this->createFeaturedPost($admin, null, 'inline-post');
+        DB::table('post_media')->insert([
+            'post_id' => $postId,
+            'media_id' => $media->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withToken($token)->getJson("/api/v1/admin/media/{$media->id}")
+            ->assertOk()
+            ->assertJsonPath('data.usage_count', 1)
+            ->assertJsonPath('data.usage.0.type', 'inline_post');
+    }
+
     public function test_delete_is_blocked_when_media_is_in_use(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
@@ -187,7 +219,7 @@ class MediaUsageApiTest extends TestCase
             ->assertJsonPath('errors.usage.0.type', 'featured_post');
     }
 
-    private function createFeaturedPost(User $admin, int $mediaId, string $slug): void
+    private function createFeaturedPost(User $admin, ?int $mediaId, string $slug): int
     {
         $category = Category::query()->first() ?? Category::query()->create([
             'created_by_user_id' => $admin->id,
@@ -199,23 +231,23 @@ class MediaUsageApiTest extends TestCase
             'sort_order' => 0,
         ]);
 
-        Post::query()->create([
+        $post = Post::query()->create([
             'author_user_id' => $admin->id,
             'category_id' => $category->id,
-            'template_id' => null,
             'featured_media_id' => $mediaId,
             'title' => ucfirst(str_replace('-', ' ', $slug)),
             'slug' => $slug,
-            'excerpt' => null,
+            'short_description' => null,
+            'description' => null,
+            'full_article_html' => '<p>Media fixture</p>',
+            'full_article_delta' => null,
+            'faq' => [],
             'status' => Post::STATUS_DRAFT,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => null,
-            'scheduled_for' => null,
-            'content_version' => 1,
-            'reading_time_minutes' => null,
-            'word_count' => null,
-            'is_featured' => false,
             'meta' => null,
         ]);
+
+        return (int) $post->id;
     }
 }

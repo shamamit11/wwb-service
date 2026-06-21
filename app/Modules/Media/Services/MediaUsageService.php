@@ -19,6 +19,11 @@ class MediaUsageService
             $references[] = new MediaUsageReferenceData('featured_post', 'Featured post usage', $featuredPostCount);
         }
 
+        $inlinePostCount = $this->countIfTableAndColumnExist('post_media', 'media_id', $media->id);
+        if ($inlinePostCount > 0) {
+            $references[] = new MediaUsageReferenceData('inline_post', 'Inline article image usage', $inlinePostCount);
+        }
+
         $seoImageCount = $this->countIfTableAndColumnExist('seo_metadata', 'og_image_media_id', $media->id);
         if ($seoImageCount > 0) {
             $references[] = new MediaUsageReferenceData('seo_image', 'SEO image usage', $seoImageCount);

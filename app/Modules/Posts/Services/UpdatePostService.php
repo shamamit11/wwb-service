@@ -15,6 +15,7 @@ class UpdatePostService
         private readonly PostRepository $posts,
         private readonly PostSlugResolver $slugResolver,
         private readonly AuditActivityLogger $audit,
+        private readonly SyncPostInlineMediaService $syncInlineMedia,
     ) {}
 
     public function handle(Post $post, UpdatePostCommandData $data): Post
@@ -47,6 +48,7 @@ class UpdatePostService
             ));
 
             $result = $updated->refresh()->load(['author', 'category', 'featuredMedia', 'tags']);
+            $this->syncInlineMedia->handle($result);
 
             $this->audit->log(
                 logName: 'content',

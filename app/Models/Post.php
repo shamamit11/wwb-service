@@ -114,6 +114,14 @@ class Post extends Model
     }
 
     /**
+     * @return BelongsToMany<Media, $this>
+     */
+    public function inlineMedia(): BelongsToMany
+    {
+        return $this->belongsToMany(Media::class, 'post_media')->withTimestamps();
+    }
+
+    /**
      * @return MorphOne<SeoMetadata, $this>
      */
     public function seo(): MorphOne

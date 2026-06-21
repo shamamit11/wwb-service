@@ -15,6 +15,7 @@ class CreatePostService
         private readonly PostRepository $posts,
         private readonly PostSlugResolver $slugResolver,
         private readonly AuditActivityLogger $audit,
+        private readonly SyncPostInlineMediaService $syncInlineMedia,
     ) {}
 
     public function handle(CreatePostCommandData $data): Post
@@ -39,6 +40,7 @@ class CreatePostService
             ));
 
             $created = $post->refresh()->load(['author', 'category', 'featuredMedia', 'tags']);
+            $this->syncInlineMedia->handle($created);
 
             $this->audit->log(
                 logName: 'content',

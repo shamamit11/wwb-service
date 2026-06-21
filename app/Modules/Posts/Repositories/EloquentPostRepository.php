@@ -72,6 +72,7 @@ class EloquentPostRepository implements PostRepository
     public function delete(Post $post): void
     {
         $post->tags()->detach();
+        $post->inlineMedia()->detach();
         $post->delete();
     }
 
@@ -246,6 +247,6 @@ class EloquentPostRepository implements PostRepository
      */
     private function relations(): array
     {
-        return ['author', 'category', 'featuredMedia', 'tags', 'seo'];
+        return ['author', 'category', 'featuredMedia', 'tags', 'seo', 'inlineMedia'];
     }
 }
