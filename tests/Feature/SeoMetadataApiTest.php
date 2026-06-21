@@ -20,6 +20,8 @@ class SeoMetadataApiTest extends TestCase
         parent::setUp();
 
         Storage::fake('r2');
+        config()->set('app.url', 'https://service.widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.widewebblog.com');
         config()->set('filesystems.disks.r2.bucket', 'wwb-media');
     }
 
@@ -54,7 +56,7 @@ class SeoMetadataApiTest extends TestCase
         $this->withToken($token)->putJson("/api/v1/admin/seo/post/{$post->id}", [
             'meta_title' => 'How AI Agent Memory Works',
             'meta_description' => 'A practical explanation of memory design for AI agents.',
-            'canonical_url' => 'https://widewebblog.test/how-ai-agent-memory-works',
+            'canonical_url' => 'https://service.widewebblog.test/how-ai-agent-memory-works',
             'robots_index' => true,
             'robots_follow' => false,
             'og_title' => 'AI Agent Memory',
@@ -66,7 +68,7 @@ class SeoMetadataApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.seoable_type', 'post')
             ->assertJsonPath('data.seoable_id', $post->id)
-            ->assertJsonPath('data.canonical_url', 'https://widewebblog.test/how-ai-agent-memory-works')
+            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/how-ai-agent-memory-works')
             ->assertJsonPath('data.robots_follow', false)
             ->assertJsonPath('data.og_image_media.id', $media->id)
             ->assertJsonPath('data.schema_type', 'Article')
@@ -80,7 +82,7 @@ class SeoMetadataApiTest extends TestCase
         $this->withToken($token)->putJson("/api/v1/admin/seo/category/{$category->id}", [
             'meta_title' => 'AI Agents Category',
             'meta_description' => 'Technical content about AI agents.',
-            'canonical_url' => 'https://widewebblog.test/categories/ai-agents',
+            'canonical_url' => 'https://service.widewebblog.test/categories/ai-agents',
             'robots_index' => true,
             'robots_follow' => true,
             'og_title' => 'AI Agents',
@@ -119,13 +121,13 @@ class SeoMetadataApiTest extends TestCase
         $this->withToken($token)->putJson("/api/v1/admin/seo/page/{$page->id}", [
             'meta_title' => 'About Wide Web Blog',
             'meta_description' => 'Learn about the editorial mission behind Wide Web Blog.',
-            'canonical_url' => 'https://widewebblog.test/about/',
+            'canonical_url' => 'https://service.widewebblog.test/about/',
             'robots_index' => true,
             'robots_follow' => true,
             'schema_type' => 'AboutPage',
         ])->assertOk()
             ->assertJsonPath('data.seoable_type', 'page')
-            ->assertJsonPath('data.canonical_url', 'https://widewebblog.test/about/')
+            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/about/')
             ->assertJsonPath('data.schema_type', 'AboutPage');
 
         $this->withToken($token)->getJson("/api/v1/admin/seo/pages/{$page->id}")
@@ -135,15 +137,13 @@ class SeoMetadataApiTest extends TestCase
 
     public function test_admin_seo_read_derives_default_canonical_when_override_is_missing(): void
     {
-        config()->set('app.url', 'https://widewebblog.test');
-
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
         $category = $this->createCategory($admin, 'AI Agents', 'ai-agents');
 
         $this->withToken($token)->getJson("/api/v1/admin/seo/category/{$category->id}")
             ->assertOk()
-            ->assertJsonPath('data.canonical_url', 'https://widewebblog.test/categories/ai-agents/');
+            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/categories/ai-agents/');
     }
 
     public function test_admin_seo_validation_errors_use_consistent_json_shape(): void

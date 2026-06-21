@@ -18,7 +18,8 @@ class SchemaDataApiTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('app.url', 'https://widewebblog.test');
+        config()->set('app.url', 'https://service.widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.worldwideweb.test');
         config()->set('app.name', 'Wide Web Blog');
     }
 
@@ -77,10 +78,13 @@ class SchemaDataApiTest extends TestCase
         $this->assertSame('https://schema.org', $payload['@context']);
         $this->assertCount(5, $payload['@graph']);
         $this->assertSame('Organization', $payload['@graph'][0]['@type']);
+        $this->assertSame('https://www.worldwideweb.test/', $payload['@graph'][0]['url']);
         $this->assertSame('WebSite', $payload['@graph'][1]['@type']);
+        $this->assertSame('https://www.worldwideweb.test/', $payload['@graph'][1]['url']);
         $this->assertSame('BreadcrumbList', $payload['@graph'][2]['@type']);
         $this->assertSame('TechArticle', $payload['@graph'][3]['@type']);
         $this->assertSame(['AI agents', 'Memory'], $payload['@graph'][3]['about']);
+        $this->assertSame('https://www.worldwideweb.test/how-ai-agent-memory-works/', $payload['@graph'][3]['url']);
         $this->assertSame('FAQPage', $payload['@graph'][4]['@type']);
         $this->assertSame('What is agent memory?', $payload['@graph'][4]['mainEntity'][0]['name']);
 
@@ -88,12 +92,15 @@ class SchemaDataApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.@context', 'https://schema.org')
             ->assertJsonPath('data.@graph.0.@type', 'Organization')
+            ->assertJsonPath('data.@graph.0.url', 'https://www.worldwideweb.test/')
             ->assertJsonPath('data.@graph.1.@type', 'WebSite')
+            ->assertJsonPath('data.@graph.1.url', 'https://www.worldwideweb.test/')
             ->assertJsonPath('data.@graph.2.itemListElement.1.name', 'AI Agents')
+            ->assertJsonPath('data.@graph.2.itemListElement.0.item', 'https://www.worldwideweb.test/')
             ->assertJsonPath('data.@graph.3.@type', 'TechArticle')
             ->assertJsonPath('data.@graph.3.headline', 'How AI Agent Memory Works')
             ->assertJsonPath('data.@graph.3.description', 'SEO description for AI agent memory.')
-            ->assertJsonPath('data.@graph.3.url', 'https://widewebblog.test/how-ai-agent-memory-works/')
+            ->assertJsonPath('data.@graph.3.url', 'https://www.worldwideweb.test/how-ai-agent-memory-works/')
             ->assertJsonPath('data.@graph.3.author.name', 'Editor One')
             ->assertJsonPath('data.@graph.3.articleSection', 'AI Agents')
             ->assertJsonPath('data.@graph.3.keywords', 'ai agent memory')
@@ -127,11 +134,12 @@ class SchemaDataApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.@context', 'https://schema.org')
             ->assertJsonPath('data.@graph.2.@type', 'BreadcrumbList')
+            ->assertJsonPath('data.@graph.2.itemListElement.0.item', 'https://www.worldwideweb.test/')
             ->assertJsonPath('data.@graph.2.itemListElement.1.name', 'AI Agents')
             ->assertJsonPath('data.@graph.3.@type', 'CollectionPage')
             ->assertJsonPath('data.@graph.3.name', 'AI Agents Category')
             ->assertJsonPath('data.@graph.3.description', 'Technical content about AI agents.')
-            ->assertJsonPath('data.@graph.3.url', 'https://widewebblog.test/categories/ai-agents/')
+            ->assertJsonPath('data.@graph.3.url', 'https://www.worldwideweb.test/categories/ai-agents/')
             ->assertJsonPath('data.@graph.3.inLanguage', 'en');
     }
 

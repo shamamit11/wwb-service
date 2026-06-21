@@ -15,7 +15,7 @@ class CanonicalUrlService
         $override = trim((string) ($seoable->seo?->canonical_url ?? ''));
 
         if ($override !== '') {
-            return $override;
+            return $this->normalize($override);
         }
 
         return match ($seoable::class) {
@@ -63,8 +63,36 @@ class CanonicalUrlService
         return $this->absolute("pages/{$page->slug}/");
     }
 
+    public function normalize(?string $url): ?string
+    {
+        $trimmed = trim((string) $url);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $serviceUrl = rtrim((string) config('app.url'), '/');
+        $frontendUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+        if ($serviceUrl === '' || $frontendUrl === '' || $serviceUrl === $frontendUrl) {
+            return $trimmed;
+        }
+
+        if (! str_starts_with($trimmed, $serviceUrl)) {
+            return $trimmed;
+        }
+
+        $remainder = substr($trimmed, strlen($serviceUrl));
+
+        if ($remainder !== '' && ! str_starts_with($remainder, '/')) {
+            return $trimmed;
+        }
+
+        return $frontendUrl.$remainder;
+    }
+
     private function absolute(string $path): string
     {
-        return rtrim((string) config('app.url'), '/').'/'.ltrim($path, '/');
+        return rtrim((string) config('app.frontend_url', config('app.url')), '/').'/'.ltrim($path, '/');
     }
 }

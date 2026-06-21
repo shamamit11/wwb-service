@@ -21,7 +21,8 @@ class PublicFrontendApiTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('app.url', 'https://widewebblog.test');
+        config()->set('app.url', 'https://service.widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.worldwideweb.test');
         config()->set('app.name', 'Wide Web Blog');
     }
 
@@ -49,7 +50,7 @@ class PublicFrontendApiTest extends TestCase
         $published->seo()->create([
             'meta_title' => 'How AI Agent Memory Works',
             'meta_description' => 'SEO description for the published article.',
-            'canonical_url' => 'https://widewebblog.test/how-ai-agent-memory-works/',
+            'canonical_url' => 'https://service.widewebblog.test/how-ai-agent-memory-works/',
             'robots_index' => true,
             'robots_follow' => true,
             'og_title' => 'AI Agent Memory',
@@ -260,7 +261,13 @@ class PublicFrontendApiTest extends TestCase
             ->assertJsonCount(2, 'data.related_posts')
             ->assertJsonPath('data.related_posts.0.slug', 'archived-template-post')
             ->assertJsonPath('data.related_posts.1.slug', 'agent-context-windows-explained')
+            ->assertJsonPath('data.canonical_url', 'https://www.worldwideweb.test/how-ai-agent-memory-works/')
+            ->assertJsonPath('data.seo.canonical_url', 'https://www.worldwideweb.test/how-ai-agent-memory-works/')
             ->assertJsonPath('data.schema.@context', 'https://schema.org')
+            ->assertJsonPath('data.schema.@graph.0.url', 'https://www.worldwideweb.test/')
+            ->assertJsonPath('data.schema.@graph.1.url', 'https://www.worldwideweb.test/')
+            ->assertJsonPath('data.schema.@graph.2.itemListElement.0.item', 'https://www.worldwideweb.test/')
+            ->assertJsonPath('data.schema.@graph.3.url', 'https://www.worldwideweb.test/how-ai-agent-memory-works/')
             ->assertJsonPath('data.template.slug', 'tutorial')
             ->assertJsonPath('data.blocks.0.content_markdown', 'Published content block.');
 
@@ -285,7 +292,7 @@ class PublicFrontendApiTest extends TestCase
         $privacyPage->seo()->create([
             'meta_title' => 'Privacy Policy',
             'meta_description' => 'Privacy policy for Wide Web Blog.',
-            'canonical_url' => 'https://widewebblog.test/pages/privacy-policy/',
+            'canonical_url' => 'https://service.widewebblog.test/pages/privacy-policy/',
             'robots_index' => true,
             'robots_follow' => true,
             'og_title' => 'Privacy Policy',
@@ -344,7 +351,9 @@ class PublicFrontendApiTest extends TestCase
             ->assertJsonPath('data.slug', 'privacy-policy')
             ->assertJsonPath('data.type', Page::TYPE_LEGAL)
             ->assertJsonPath('data.content_markdown', '# Privacy Policy')
-            ->assertJsonPath('data.seo.meta_title', 'Privacy Policy');
+            ->assertJsonPath('data.canonical_url', 'https://www.worldwideweb.test/pages/privacy-policy/')
+            ->assertJsonPath('data.seo.meta_title', 'Privacy Policy')
+            ->assertJsonPath('data.seo.canonical_url', 'https://www.worldwideweb.test/pages/privacy-policy/');
 
         $this->getJson('/api/v1/public/pages/draft-terms')
             ->assertStatus(404)

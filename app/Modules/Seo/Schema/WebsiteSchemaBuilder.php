@@ -9,7 +9,7 @@ class WebsiteSchemaBuilder
      */
     public function build(): array
     {
-        $baseUrl = rtrim((string) config('app.url'), '/');
+        $baseUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
 
         return [
             '@type' => 'WebSite',

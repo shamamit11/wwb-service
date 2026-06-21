@@ -18,7 +18,8 @@ class ArticleSchemaBuilder
      */
     public function build(Post $post): array
     {
-        $canonical = $this->canonicalUrls->for($post) ?? rtrim((string) config('app.url'), '/').'/';
+        $baseUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+        $canonical = $this->canonicalUrls->for($post) ?? "{$baseUrl}/";
         $metadata = $post->seo;
 
         $schema = [
@@ -35,7 +36,7 @@ class ArticleSchemaBuilder
                 'name' => $post->author?->name,
             ],
             'publisher' => [
-                '@id' => rtrim((string) config('app.url'), '/').'/#organization',
+                '@id' => "{$baseUrl}/#organization",
             ],
             'articleSection' => $post->category?->name,
             'keywords' => $metadata?->focus_keyword ?: ($post->tags->pluck('name')->implode(', ') ?: null),

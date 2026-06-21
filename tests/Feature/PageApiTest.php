@@ -11,6 +11,14 @@ class PageApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('app.url', 'https://service.widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.widewebblog.com');
+    }
+
     public function test_admin_page_routes_require_authentication(): void
     {
         $this->getJson('/api/v1/admin/pages')
@@ -73,7 +81,7 @@ class PageApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.slug', 'privacy-and-data-use')
             ->assertJsonPath('data.status', Page::STATUS_PUBLISHED)
-            ->assertJsonPath('data.canonical_url', 'http://wwb-service.test/pages/privacy-and-data-use/')
+            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/pages/privacy-and-data-use/')
             ->assertJsonPath('data.updated_by.id', $admin->id)
             ->assertJsonPath('data.meta.revision', 2);
 
