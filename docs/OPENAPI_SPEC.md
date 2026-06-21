@@ -199,8 +199,9 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `POST /admin/api/v1/posts/{id}/publish`
 - `POST /admin/api/v1/posts/{id}/schedule`
 - `POST /admin/api/v1/posts/{id}/unpublish`
-- `GET /api/v1/posts`
-- `GET /api/v1/posts/{slug}`
+- `GET /api/v1/public/posts`
+- `GET /api/v1/public/posts/{slug}`
+- `GET /api/v1/public/search`
 
 ### Create Request Example
 
@@ -338,6 +339,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `GET /admin/api/v1/pages/{id}`
 - `PUT /admin/api/v1/pages/{id}`
 - `DELETE /admin/api/v1/pages/{id}`
+- `GET /api/v1/public/pages/{slug}`
 
 ### Create Request Example
 
@@ -367,7 +369,7 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `summary`: nullable|string
 - `content_markdown`: required|string
 - `visibility`: required|in:public,private,internal
-- `published_at`: nullable|date
+- `published_at`: required when `status=published`, otherwise nullable|date
 - `scheduled_for`: nullable|date
 - `meta`: nullable|array
 
@@ -419,6 +421,26 @@ This is a reference specification, not a generated OpenAPI JSON file.
   - `PUT /admin/api/v1/seo/page/{id}`
 - This keeps canonical URLs and metadata in the shared SEO model instead of duplicating those fields in the pages table.
 
+### Public Page Read Rules
+
+- `GET /api/v1/public/pages/{slug}` returns only pages where:
+  - `status = published`
+  - `visibility = public`
+  - `published_at` is not null
+- Draft, internal, private, unpublished, or archived pages return `404`.
+- Public response fields include:
+  - `id`
+  - `title`
+  - `slug`
+  - `type`
+  - `summary`
+  - `content_markdown`
+  - `published_at`
+  - `updated_at`
+  - `canonical_url`
+  - `meta`
+  - `seo`
+
 ---
 
 ## Homepage
@@ -427,6 +449,9 @@ This is a reference specification, not a generated OpenAPI JSON file.
 
 - `GET /admin/api/v1/homepage`
 - `PUT /admin/api/v1/homepage`
+- `GET /admin/api/v1/site-settings`
+- `PUT /admin/api/v1/site-settings`
+- `GET /api/v1/public/site-settings`
 
 ### Update Request Example
 
@@ -445,24 +470,24 @@ This is a reference specification, not a generated OpenAPI JSON file.
   },
   "featured_editorial": {
     "title": "Featured editorial",
-    "description": "Hand-picked editorial cards.",
-    "mode": "manual",
-    "post_ids": [34, 21, 13],
-    "category_ids": null,
-    "limit": null
-  },
-  "guide_section": {
-    "title": "Guides and resources",
-    "description": "Automatically selected guides.",
+    "description": "Automatically curated featured stories.",
     "mode": "automatic",
     "post_ids": [],
-    "category_ids": [8, 2],
+    "category_ids": null,
+    "limit": 2
+  },
+  "guide_section": {
+    "title": "Recent Articles",
+    "description": "Automatically selected recent stories.",
+    "mode": "automatic",
+    "post_ids": [],
+    "category_ids": null,
     "limit": 6
   },
   "topic_section": {
-    "title": "Browse topics",
-    "description": "Explore the editorial taxonomy.",
-    "category_ids": [8, 2, 5]
+    "title": "Explore Core Topics",
+    "description": "Browse every active category automatically.",
+    "category_ids": []
   },
   "promo_section": {
     "enabled": true,
@@ -501,20 +526,15 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - `hero.secondary_cta_url`: nullable|url|max 500
 - `hero.media_url`: nullable|url|max 500
 - `hero.media_alt`: nullable|string|max 255
-- `featured_editorial.mode`: required|in:manual,automatic
-- `featured_editorial.post_ids`: present|nullable|array
-- `featured_editorial.post_ids.*`: integer|exists:posts,id
-- `featured_editorial.category_ids`: present|nullable|array
-- `featured_editorial.category_ids.*`: integer|exists:categories,id
+- `featured_editorial.mode`: returned as `automatic`
+- `featured_editorial.post_ids`: persisted as an empty array because public content is resolved automatically
+- `featured_editorial.category_ids`: persisted as `null`
 - `featured_editorial.limit`: present|nullable|integer|min:1|max:24
-- `guide_section.mode`: required|in:manual,automatic
-- `guide_section.post_ids`: present|nullable|array
-- `guide_section.post_ids.*`: integer|exists:posts,id
-- `guide_section.category_ids`: present|nullable|array
-- `guide_section.category_ids.*`: integer|exists:categories,id
+- `guide_section.mode`: returned as `automatic`
+- `guide_section.post_ids`: persisted as an empty array because public content is resolved automatically
+- `guide_section.category_ids`: persisted as `null`
 - `guide_section.limit`: present|nullable|integer|min:1|max:24
-- `topic_section.category_ids`: required|array
-- `topic_section.category_ids.*`: integer|exists:categories,id
+- `topic_section.category_ids`: persisted as an empty array because public categories are resolved automatically
 - `promo_section.enabled`: required|boolean
 - `promo_section.bullet_points`: required|array
 - `promo_section.bullet_points.*`: string|max 255
@@ -546,24 +566,24 @@ This is a reference specification, not a generated OpenAPI JSON file.
     },
     "featured_editorial": {
       "title": "Featured editorial",
-      "description": "Hand-picked editorial cards.",
-      "mode": "manual",
-      "post_ids": [34, 21, 13],
-      "category_ids": null,
-      "limit": null
-    },
-    "guide_section": {
-      "title": "Guides and resources",
-      "description": "Automatically selected guides.",
+      "description": "Automatically curated featured stories.",
       "mode": "automatic",
       "post_ids": [],
-      "category_ids": [8, 2],
+      "category_ids": null,
+      "limit": 2
+    },
+    "guide_section": {
+      "title": "Recent Articles",
+      "description": "Automatically selected recent stories.",
+      "mode": "automatic",
+      "post_ids": [],
+      "category_ids": null,
       "limit": 6
     },
     "topic_section": {
-      "title": "Browse topics",
-      "description": "Explore the editorial taxonomy.",
-      "category_ids": [8, 2, 5]
+      "title": "Explore Core Topics",
+      "description": "Browse every active category automatically.",
+      "category_ids": []
     },
     "promo_section": {
       "enabled": true,
@@ -602,6 +622,172 @@ This is a reference specification, not a generated OpenAPI JSON file.
 - The homepage is a singleton resource, not a collection.
 - `GET /admin/api/v1/homepage` auto-creates the default record if none exists yet.
 - Ordered arrays such as `post_ids`, `category_ids`, `bullet_points`, and `stats` are preserved as submitted.
+
+---
+
+## About Page
+
+### Endpoint List
+
+- `GET /admin/api/v1/about-page`
+- `PUT /admin/api/v1/about-page`
+- `GET /api/v1/public/about`
+
+### Update Request Example
+
+```json
+{
+  "hero": {
+    "eyebrow": "Our story",
+    "title": "Navigating the digital frontier together.",
+    "description": "Wide Web Blog was founded on the belief that technology should be accessible, insightful, and growth-oriented.",
+    "media_url": "https://cdn.widewebblog.com/about/hero.png",
+    "media_alt": "About page office photograph"
+  },
+  "mission_section": {
+    "title": "Our Mission: Fueling Digital Growth",
+    "description": "We provide the context needed to thrive in an era of rapid AI and technological evolution.",
+    "quote": "The future is about how we leverage technology to amplify human potential."
+  },
+  "stats_section": {
+    "items": [
+      {"label": "Articles Published", "value": "500+"},
+      {"label": "Monthly Readers", "value": "120K"}
+    ]
+  },
+  "values_section": {
+    "title": "The Values We Live By",
+    "items": [
+      {
+        "icon": "clarity",
+        "title": "Authentic Clarity",
+        "description": "We prioritize honesty and transparency in every piece of content."
+      }
+    ]
+  },
+  "team_section": {
+    "title": "Meet the Minds",
+    "description": "Our multidisciplinary team combines decades of expertise.",
+    "primary_cta_label": "Join the Team",
+    "primary_cta_url": "https://widewebblog.com/careers",
+    "members": [
+      {
+        "name": "Alexander Chen",
+        "role": "Editor-in-Chief",
+        "image_url": "https://cdn.widewebblog.com/about/alexander.png",
+        "image_alt": "Alexander Chen portrait"
+      }
+    ]
+  },
+  "seo": {
+    "meta_title": "About Wide Web Blog",
+    "meta_description": "Learn more about Wide Web Blog, our mission, values, and editorial team."
+  }
+}
+```
+
+### Validation Rules
+
+- `hero`: required|array
+- `hero.eyebrow`: nullable|string|max 120
+- `hero.title`: nullable|string|max 255
+- `hero.description`: nullable|string|max 2000
+- `hero.media_url`: nullable|url|max 500
+- `hero.media_alt`: nullable|string|max 255
+- `mission_section`: required|array
+- `mission_section.title`: nullable|string|max 255
+- `mission_section.description`: nullable|string|max 3000
+- `mission_section.quote`: nullable|string|max 1000
+- `stats_section`: required|array
+- `stats_section.items`: required|array
+- `stats_section.items.*.label`: required|string|max 120
+- `stats_section.items.*.value`: required|string|max 120
+- `values_section`: required|array
+- `values_section.title`: nullable|string|max 255
+- `values_section.items`: required|array
+- `values_section.items.*.icon`: nullable|string|max 80
+- `values_section.items.*.title`: required|string|max 120
+- `values_section.items.*.description`: required|string|max 1000
+- `team_section`: required|array
+- `team_section.title`: nullable|string|max 255
+- `team_section.description`: nullable|string|max 2000
+- `team_section.primary_cta_label`: nullable|string|max 120
+- `team_section.primary_cta_url`: nullable|url|max 500
+- `team_section.members`: required|array
+- `team_section.members.*.name`: required|string|max 120
+- `team_section.members.*.role`: required|string|max 160
+- `team_section.members.*.image_url`: nullable|url|max 500
+- `team_section.members.*.image_alt`: nullable|string|max 255
+- `seo.meta_title`: nullable|string|max 255
+- `seo.meta_description`: nullable|string|max 320
+
+### Response Example
+
+```json
+{
+  "data": {
+    "hero": {
+      "eyebrow": "Our story",
+      "title": "Navigating the digital frontier together.",
+      "description": "Wide Web Blog was founded on the belief that technology should be accessible, insightful, and growth-oriented.",
+      "media_url": "https://cdn.widewebblog.com/about/hero.png",
+      "media_alt": "About page office photograph"
+    },
+    "mission_section": {
+      "title": "Our Mission: Fueling Digital Growth",
+      "description": "We provide the context needed to thrive in an era of rapid AI and technological evolution.",
+      "quote": "The future is about how we leverage technology to amplify human potential."
+    },
+    "stats_section": {
+      "items": [
+        {"label": "Articles Published", "value": "500+"},
+        {"label": "Monthly Readers", "value": "120K"}
+      ]
+    },
+    "values_section": {
+      "title": "The Values We Live By",
+      "items": [
+        {
+          "icon": "clarity",
+          "title": "Authentic Clarity",
+          "description": "We prioritize honesty and transparency in every piece of content."
+        }
+      ]
+    },
+    "team_section": {
+      "title": "Meet the Minds",
+      "description": "Our multidisciplinary team combines decades of expertise.",
+      "primary_cta_label": "Join the Team",
+      "primary_cta_url": "https://widewebblog.com/careers",
+      "members": [
+        {
+          "name": "Alexander Chen",
+          "role": "Editor-in-Chief",
+          "image_url": "https://cdn.widewebblog.com/about/alexander.png",
+          "image_alt": "Alexander Chen portrait"
+        }
+      ]
+    },
+    "seo": {
+      "meta_title": "About Wide Web Blog",
+      "meta_description": "Learn more about Wide Web Blog, our mission, values, and editorial team."
+    },
+    "updated_at": "2026-06-20T12:00:00Z",
+    "updated_by": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    }
+  }
+}
+```
+
+### Singleton Behavior
+
+- The About page is a singleton resource, not a collection.
+- `GET /admin/api/v1/about-page` auto-creates the default record if none exists yet.
+- `GET /api/v1/public/about` returns the same structured content shape without admin metadata fields.
+- Ordered arrays such as `stats_section.items`, `values_section.items`, and `team_section.members` are preserved as submitted.
 
 ---
 
@@ -884,11 +1070,15 @@ Multipart upload is preferred for binary data. Metadata may be included as field
 
 ### List published posts by category
 
-`GET /api/v1/posts?filter[category_slug]=ai-agents&sort=-published_at`
+`GET /api/v1/public/posts?category=ai-agents&sort=-published_at`
 
 ### Search public posts
 
-`GET /api/v1/posts?filter[search]=laravel%20ai`
+`GET /api/v1/public/posts?search=laravel%20ai`
+
+### Search public posts via dedicated endpoint
+
+`GET /api/v1/public/search?q=laravel%20ai`
 
 ### Admin list draft posts
 

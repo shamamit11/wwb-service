@@ -14,6 +14,7 @@ class CreateContentTopicService
         private readonly ContentTopicRepository $topics,
         private readonly ContentTopicSlugResolver $slugResolver,
         private readonly AuditActivityLogger $audit,
+        private readonly AutoAdvanceHighPriorityTopicService $autoAdvanceHighPriorityTopic,
     ) {}
 
     public function handle(CreateContentTopicData $data): ContentTopic
@@ -42,7 +43,7 @@ class CreateContentTopicService
             attributes: $this->auditAttributes($topic),
         );
 
-        return $topic;
+        return $this->autoAdvanceHighPriorityTopic->handle($topic);
     }
 
     private function guardAgainstDuplicate(string $title, string $cluster, ?string $primaryKeyword): void

@@ -47,6 +47,11 @@ class AiWorkflowOrchestrator
         return $this->contentBriefs->generate($topic, $promptTemplateKey);
     }
 
+    public function queueContentBrief(ContentTopic $topic, ?string $promptTemplateKey = null, ?int $retryOfAiJobId = null, int $attempts = 1): ?AiJob
+    {
+        return $this->contentBriefs->queue($topic, $promptTemplateKey, $retryOfAiJobId, $attempts);
+    }
+
     public function runQueuedContentBrief(int $aiJobId): GeneratedContentBriefData
     {
         return $this->contentBriefs->runQueued($aiJobId);

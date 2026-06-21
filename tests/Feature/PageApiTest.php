@@ -11,6 +11,14 @@ class PageApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('app.url', 'https://service.widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.widewebblog.com');
+    }
+
     public function test_admin_page_routes_require_authentication(): void
     {
         $this->getJson('/api/v1/admin/pages')
@@ -73,7 +81,7 @@ class PageApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.slug', 'privacy-and-data-use')
             ->assertJsonPath('data.status', Page::STATUS_PUBLISHED)
-            ->assertJsonPath('data.canonical_url', 'http://wwb-service.test/pages/privacy-and-data-use/')
+            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/pages/privacy-and-data-use/')
             ->assertJsonPath('data.updated_by.id', $admin->id)
             ->assertJsonPath('data.meta.revision', 2);
 
@@ -170,6 +178,50 @@ class PageApiTest extends TestCase
                 'errors' => ['title', 'type', 'status', 'content_markdown', 'visibility', 'meta'],
                 'meta' => ['request_id'],
             ]);
+    }
+
+    public function test_admin_cannot_create_published_page_without_published_at(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $this->withToken($token)->postJson('/api/v1/admin/pages', [
+            'title' => 'Privacy Policy',
+            'slug' => 'privacy-policy',
+            'type' => Page::TYPE_LEGAL,
+            'status' => Page::STATUS_PUBLISHED,
+            'summary' => 'How Wide Web Blog handles user data.',
+            'content_markdown' => '# Privacy Policy',
+            'visibility' => Page::VISIBILITY_PUBLIC,
+        ])->assertStatus(422)
+            ->assertJsonPath('error_code', 'VALIDATION_ERROR')
+            ->assertJsonPath('errors.published_at.0', 'The published at field is required.');
+    }
+
+    public function test_admin_cannot_update_published_page_without_published_at(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
+
+        $page = $this->createPage($admin, [
+            'title' => 'Privacy Policy',
+            'slug' => 'privacy-policy',
+            'type' => Page::TYPE_LEGAL,
+            'status' => Page::STATUS_DRAFT,
+            'visibility' => Page::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->withToken($token)->putJson("/api/v1/admin/pages/{$page->id}", [
+            'title' => 'Privacy Policy',
+            'slug' => 'privacy-policy',
+            'type' => Page::TYPE_LEGAL,
+            'status' => Page::STATUS_PUBLISHED,
+            'summary' => 'How Wide Web Blog handles user data.',
+            'content_markdown' => '# Privacy Policy',
+            'visibility' => Page::VISIBILITY_PUBLIC,
+        ])->assertStatus(422)
+            ->assertJsonPath('error_code', 'VALIDATION_ERROR')
+            ->assertJsonPath('errors.published_at.0', 'The published at field is required.');
     }
 
     /**

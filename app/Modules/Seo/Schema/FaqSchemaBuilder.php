@@ -53,7 +53,7 @@ class FaqSchemaBuilder
             return null;
         }
 
-        $canonical = $this->canonicalUrls->for($post) ?? rtrim((string) config('app.url'), '/').'/';
+        $canonical = $this->canonicalUrls->for($post) ?? rtrim((string) config('app.frontend_url', config('app.url')), '/').'/';
 
         return [
             '@type' => 'FAQPage',

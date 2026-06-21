@@ -24,7 +24,14 @@ class PublicPostSummaryResource extends ApiResource
             'canonical_url' => $canonicalUrls->for($this->resource),
             'published_at' => $this->resource->published_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
+            'reading_time_minutes' => $this->resource->reading_time_minutes,
+            'read_time' => $this->formatReadTime($this->resource->reading_time_minutes),
+            'featured_image' => $this->featuredImageUrl(),
             'featured_media' => $this->whenLoaded('featuredMedia', fn (): ?array => $this->resource->featuredMedia === null ? null : (new PublicMediaResource($this->resource->featuredMedia))->resolve()),
+            'author' => $this->whenLoaded('author', fn (): ?array => $this->resource->author === null ? null : [
+                'id' => $this->resource->author->id,
+                'name' => $this->resource->author->name,
+            ]),
             'category' => $this->whenLoaded('category', fn (): array => [
                 'id' => $this->resource->category->id,
                 'name' => $this->resource->category->name,
@@ -37,5 +44,23 @@ class PublicPostSummaryResource extends ApiResource
             ])->values()->all()),
             'seo' => $this->whenLoaded('seo', fn (): array => (new PublicSeoMetadataResource($this->resource->seo->loadMissing('ogImageMedia')))->resolve()),
         ];
+    }
+
+    private function formatReadTime(?int $minutes): ?string
+    {
+        if ($minutes === null || $minutes <= 0) {
+            return null;
+        }
+
+        return "{$minutes} min read";
+    }
+
+    private function featuredImageUrl(): ?string
+    {
+        if (! $this->resource->relationLoaded('featuredMedia') || $this->resource->featuredMedia === null) {
+            return null;
+        }
+
+        return (new PublicMediaResource($this->resource->featuredMedia))->resolve()['url'] ?? null;
     }
 }

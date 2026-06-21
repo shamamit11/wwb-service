@@ -37,9 +37,10 @@ class HomepageApiTest extends TestCase
             ->getJson('/api/v1/admin/homepage')
             ->assertOk()
             ->assertJsonPath('data.hero.title', null)
-            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_MANUAL)
+            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_AUTOMATIC)
             ->assertJsonPath('data.featured_editorial.post_ids', [])
-            ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_MANUAL)
+            ->assertJsonPath('data.guide_section.title', 'Recent Articles')
+            ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_AUTOMATIC)
             ->assertJsonPath('data.topic_section.category_ids', [])
             ->assertJsonPath('data.promo_section.enabled', false)
             ->assertJsonPath('data.newsletter_section.enabled', false)
@@ -58,14 +59,6 @@ class HomepageApiTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $token = $admin->createToken('test-suite', ['admin:access'])->plainTextToken;
 
-        $categoryA = $this->createCategory($admin, 'Guides', 'guides');
-        $categoryB = $this->createCategory($admin, 'Resources', 'resources');
-        $categoryC = $this->createCategory($admin, 'AI Agents', 'ai-agents');
-
-        $postA = $this->createPost($admin, $categoryA, 'Editorial One', 'editorial-one');
-        $postB = $this->createPost($admin, $categoryA, 'Editorial Two', 'editorial-two');
-        $postC = $this->createPost($admin, $categoryB, 'Guide One', 'guide-one');
-
         $payload = [
             'hero' => [
                 'eyebrow' => 'Start here',
@@ -80,24 +73,17 @@ class HomepageApiTest extends TestCase
             ],
             'featured_editorial' => [
                 'title' => 'Featured editorial',
-                'description' => 'Hand-picked editorial cards.',
-                'mode' => Homepage::SECTION_MODE_MANUAL,
-                'post_ids' => [$postB->id, $postA->id],
-                'category_ids' => null,
-                'limit' => null,
+                'description' => 'Automatically curated featured stories.',
+                'limit' => 2,
             ],
             'guide_section' => [
-                'title' => 'Guides and resources',
-                'description' => 'Automatically selected guides.',
-                'mode' => Homepage::SECTION_MODE_AUTOMATIC,
-                'post_ids' => [$postC->id],
-                'category_ids' => [$categoryB->id, $categoryA->id],
+                'title' => 'Recent Articles',
+                'description' => 'Automatically selected recent stories.',
                 'limit' => 3,
             ],
             'topic_section' => [
-                'title' => 'Browse topics',
-                'description' => 'Explore the knowledge graph.',
-                'category_ids' => [$categoryC->id, $categoryA->id, $categoryB->id],
+                'title' => 'Explore Core Topics',
+                'description' => 'Browse every active category automatically.',
             ],
             'promo_section' => [
                 'enabled' => true,
@@ -127,13 +113,15 @@ class HomepageApiTest extends TestCase
             ->putJson('/api/v1/admin/homepage', $payload)
             ->assertOk()
             ->assertJsonPath('data.hero.title', 'Build better internet systems')
-            ->assertJsonPath('data.featured_editorial.post_ids.0', $postB->id)
-            ->assertJsonPath('data.featured_editorial.post_ids.1', $postA->id)
+            ->assertJsonPath('data.featured_editorial.mode', Homepage::SECTION_MODE_AUTOMATIC)
+            ->assertJsonPath('data.featured_editorial.post_ids', [])
+            ->assertJsonPath('data.featured_editorial.limit', 2)
             ->assertJsonPath('data.guide_section.mode', Homepage::SECTION_MODE_AUTOMATIC)
-            ->assertJsonPath('data.guide_section.category_ids.0', $categoryB->id)
-            ->assertJsonPath('data.guide_section.category_ids.1', $categoryA->id)
-            ->assertJsonPath('data.topic_section.category_ids.0', $categoryC->id)
-            ->assertJsonPath('data.topic_section.category_ids.2', $categoryB->id)
+            ->assertJsonPath('data.guide_section.title', 'Recent Articles')
+            ->assertJsonPath('data.guide_section.post_ids', [])
+            ->assertJsonPath('data.guide_section.limit', 3)
+            ->assertJsonPath('data.topic_section.title', 'Explore Core Topics')
+            ->assertJsonPath('data.topic_section.category_ids', [])
             ->assertJsonPath('data.promo_section.bullet_points.0', 'Checklists')
             ->assertJsonPath('data.promo_section.bullet_points.2', 'Field notes')
             ->assertJsonPath('data.promo_section.stats.0.label', 'Templates')
@@ -144,9 +132,13 @@ class HomepageApiTest extends TestCase
 
         $homepage = Homepage::query()->firstOrFail();
 
-        $this->assertSame([$postB->id, $postA->id], $homepage->featured_editorial['post_ids']);
-        $this->assertSame([$categoryB->id, $categoryA->id], $homepage->guide_section['category_ids']);
-        $this->assertSame([$categoryC->id, $categoryA->id, $categoryB->id], $homepage->topic_section['category_ids']);
+        $this->assertSame(Homepage::SECTION_MODE_AUTOMATIC, $homepage->featured_editorial['mode']);
+        $this->assertSame([], $homepage->featured_editorial['post_ids']);
+        $this->assertSame(2, $homepage->featured_editorial['limit']);
+        $this->assertSame('Recent Articles', $homepage->guide_section['title']);
+        $this->assertSame([], $homepage->guide_section['post_ids']);
+        $this->assertSame(3, $homepage->guide_section['limit']);
+        $this->assertSame([], $homepage->topic_section['category_ids']);
         $this->assertSame(['Checklists', 'Benchmarks', 'Field notes'], $homepage->promo_section['bullet_points']);
         $this->assertSame([
             ['label' => 'Templates', 'value' => '12'],
@@ -167,14 +159,10 @@ class HomepageApiTest extends TestCase
                     'primary_cta_url' => 'not-a-url',
                 ],
                 'featured_editorial' => [
-                    'mode' => 'curated',
-                    'post_ids' => ['abc'],
                     'category_ids' => null,
                     'limit' => 0,
                 ],
                 'guide_section' => [
-                    'mode' => Homepage::SECTION_MODE_MANUAL,
-                    'post_ids' => null,
                     'category_ids' => ['bad'],
                     'limit' => 30,
                 ],
@@ -205,12 +193,8 @@ class HomepageApiTest extends TestCase
                 'errors' => [
                     'hero.title',
                     'hero.primary_cta_url',
-                    'featured_editorial.mode',
-                    'featured_editorial.post_ids.0',
                     'featured_editorial.limit',
-                    'guide_section.category_ids.0',
                     'guide_section.limit',
-                    'topic_section.category_ids.0',
                     'promo_section.enabled',
                     'promo_section.bullet_points.1',
                     'promo_section.primary_cta_url',

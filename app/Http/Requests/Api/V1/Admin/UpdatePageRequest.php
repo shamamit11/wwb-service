@@ -30,7 +30,11 @@ class UpdatePageRequest extends FormRequest
             'summary' => ['nullable', 'string'],
             'content_markdown' => ['required', 'string'],
             'visibility' => ['required', 'string', Rule::in(Page::VISIBILITIES)],
-            'published_at' => ['nullable', 'date'],
+            'published_at' => [
+                Rule::requiredIf(fn (): bool => $this->input('status') === Page::STATUS_PUBLISHED),
+                'nullable',
+                'date',
+            ],
             'scheduled_for' => ['nullable', 'date'],
             'meta' => ['nullable', 'array'],
         ];

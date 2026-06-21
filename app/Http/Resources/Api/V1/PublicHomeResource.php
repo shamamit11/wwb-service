@@ -13,9 +13,21 @@ class PublicHomeResource extends ApiResource
     public function toArray(Request $request): array
     {
         return [
-            'featured_posts' => PublicPostSummaryResource::collection($this->resource['featured_posts'])->resolve(),
-            'latest_posts' => PublicPostSummaryResource::collection($this->resource['latest_posts'])->resolve(),
-            'categories' => PublicCategorySummaryResource::collection($this->resource['categories'])->resolve(),
+            'hero' => $this->resource['hero'],
+            'featured_editorial' => [
+                ...$this->resource['featured_editorial'],
+                'posts' => PublicPostSummaryResource::collection($this->resource['featured_editorial']['posts'])->resolve(),
+            ],
+            'guide_section' => [
+                ...$this->resource['guide_section'],
+                'posts' => PublicPostSummaryResource::collection($this->resource['guide_section']['posts'])->resolve(),
+            ],
+            'topic_section' => [
+                ...$this->resource['topic_section'],
+                'categories' => PublicCategorySummaryResource::collection($this->resource['topic_section']['categories'])->resolve(),
+            ],
+            'promo_section' => $this->resource['promo_section'],
+            'newsletter_section' => $this->resource['newsletter_section'],
             'seo' => $this->resource['seo'],
         ];
     }

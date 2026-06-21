@@ -14,6 +14,7 @@ class UpdateContentTopicService
         private readonly ContentTopicRepository $topics,
         private readonly ContentTopicSlugResolver $slugResolver,
         private readonly AuditActivityLogger $audit,
+        private readonly AutoAdvanceHighPriorityTopicService $autoAdvanceHighPriorityTopic,
     ) {}
 
     public function handle(ContentTopic $topic, UpdateContentTopicData $data): ContentTopic
@@ -44,7 +45,7 @@ class UpdateContentTopicService
             old: $old,
         );
 
-        return $updated;
+        return $this->autoAdvanceHighPriorityTopic->handle($updated);
     }
 
     private function guardAgainstDuplicate(ContentTopic $topic, UpdateContentTopicData $data): void

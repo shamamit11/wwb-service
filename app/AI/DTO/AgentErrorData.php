@@ -23,6 +23,15 @@ final readonly class AgentErrorData extends DataTransferObject
     public static function fromThrowable(Throwable $throwable, array $context = []): self
     {
         $code = $throwable->getCode();
+        $previous = $throwable->getPrevious();
+
+        if ($previous instanceof Throwable) {
+            $context['previous'] = [
+                'message' => $previous->getMessage(),
+                'type' => $previous::class,
+                'code' => is_int($previous->getCode()) || is_string($previous->getCode()) ? $previous->getCode() : null,
+            ];
+        }
 
         return new self(
             message: $throwable->getMessage(),

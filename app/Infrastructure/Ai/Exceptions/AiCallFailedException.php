@@ -9,6 +9,12 @@ class AiCallFailedException extends RuntimeException
 {
     public static function fromThrowable(Throwable $throwable): self
     {
-        return new self('AI text generation failed.', previous: $throwable);
+        $message = trim($throwable->getMessage());
+
+        if ($message === '') {
+            $message = $throwable::class;
+        }
+
+        return new self("AI text generation failed: {$message}", previous: $throwable);
     }
 }

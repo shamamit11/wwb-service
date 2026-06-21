@@ -3,6 +3,8 @@
 namespace App\Modules\ContentBriefs\Services;
 
 use App\Models\ContentBrief;
+use App\Modules\Ai\Services\QueueBlogDraftGenerationService;
+use App\Modules\Ai\Services\ResolveAutoDraftGenerationDataService;
 use App\Modules\ContentBriefs\Data\UpdateContentBriefData;
 use App\Modules\ContentBriefs\Exceptions\InvalidContentBriefStateTransitionException;
 use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
@@ -13,6 +15,8 @@ class ApproveContentBriefService
     public function __construct(
         private readonly ContentBriefRepository $briefs,
         private readonly AuditActivityLogger $audit,
+        private readonly ResolveAutoDraftGenerationDataService $resolveAutoDraftData,
+        private readonly QueueBlogDraftGenerationService $queueDraftGeneration,
     ) {}
 
     public function handle(ContentBrief $brief): ContentBrief
@@ -51,6 +55,12 @@ class ApproveContentBriefService
             attributes: $this->auditAttributes($updated),
             old: $old,
         );
+
+        $autoDraftData = $this->resolveAutoDraftData->handle($updated->loadMissing('topic'));
+
+        if ($autoDraftData !== null) {
+            $this->queueDraftGeneration->handle($updated, $autoDraftData);
+        }
 
         return $updated;
     }

@@ -351,18 +351,31 @@ class BlogWriterAgent implements ContentAgentInterface
             $blockType = $this->normalizeString($blockPayload['block_type'] ?? $blockPayload['type'] ?? null);
             $content = $blockPayload['content'] ?? null;
 
-            if ($blockType === null || ! is_array($content)) {
+            if ($blockType === ContentBlockType::HEADING->value || $blockType === ContentBlockType::PARAGRAPH->value || $blockType === ContentBlockType::LIST->value || $blockType === ContentBlockType::FAQ->value || $blockType === ContentBlockType::IMAGE->value || $blockType === ContentBlockType::QUOTE->value || $blockType === ContentBlockType::CODE->value || $blockType === ContentBlockType::CALLOUT->value) {
+                if (! is_array($content)) {
+                    continue;
+                }
+
+                $sortOrder = $blockPayload['sort_order'] ?? ($index + 1);
+                $sortOrder = is_numeric($sortOrder) ? max(1, (int) $sortOrder) : ($index + 1);
+
+                $blocks[] = [
+                    'block_type' => $blockType,
+                    'sort_order' => $sortOrder,
+                    'content' => $content,
+                ];
+
                 continue;
             }
 
-            $sortOrder = $blockPayload['sort_order'] ?? ($index + 1);
-            $sortOrder = is_numeric($sortOrder) ? max(1, (int) $sortOrder) : ($index + 1);
+            if ($blockType === 'section') {
+                $sortOrder = $blockPayload['sort_order'] ?? ($index + 1);
+                $sortOrder = is_numeric($sortOrder) ? max(1, (int) $sortOrder) : ($index + 1);
 
-            $blocks[] = [
-                'block_type' => $blockType,
-                'sort_order' => $sortOrder,
-                'content' => $content,
-            ];
+                foreach ($this->expandSectionBlock($blockPayload, $sortOrder) as $expandedBlock) {
+                    $blocks[] = $expandedBlock;
+                }
+            }
         }
 
         usort($blocks, static fn (array $left, array $right): int => $left['sort_order'] <=> $right['sort_order']);
@@ -376,6 +389,75 @@ class BlogWriterAgent implements ContentAgentInterface
             $blocks,
             array_keys($blocks),
         ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $blockPayload
+     * @return list<array{block_type:string,sort_order:int,content:array<string, mixed>}>
+     */
+    private function expandSectionBlock(array $blockPayload, int $sortOrder): array
+    {
+        $content = is_array($blockPayload['content'] ?? null) ? $blockPayload['content'] : [];
+        $blocks = [];
+
+        $heading = $this->normalizeString(
+            $blockPayload['heading']
+            ?? $blockPayload['title']
+            ?? $content['heading']
+            ?? $content['title']
+            ?? null
+        );
+
+        if ($heading !== null) {
+            $blocks[] = [
+                'block_type' => ContentBlockType::HEADING->value,
+                'sort_order' => $sortOrder,
+                'content' => [
+                    'text' => $heading,
+                    'level' => 2,
+                ],
+            ];
+        }
+
+        $markdown = $this->normalizeString(
+            $blockPayload['markdown']
+            ?? $blockPayload['text']
+            ?? $blockPayload['body']
+            ?? $content['markdown']
+            ?? $content['text']
+            ?? $content['body']
+            ?? $content['content']
+            ?? null
+        );
+
+        if ($markdown !== null) {
+            $blocks[] = [
+                'block_type' => ContentBlockType::PARAGRAPH->value,
+                'sort_order' => $sortOrder + count($blocks),
+                'content' => [
+                    'markdown' => $markdown,
+                ],
+            ];
+        }
+
+        $items = is_array($content['items'] ?? null)
+            ? array_values(array_filter(array_map(
+                fn (mixed $item): ?string => $this->normalizeString($item),
+                $content['items'],
+            )))
+            : [];
+
+        if ($items !== []) {
+            $blocks[] = [
+                'block_type' => ContentBlockType::LIST->value,
+                'sort_order' => $sortOrder + count($blocks),
+                'content' => [
+                    'items' => $items,
+                ],
+            ];
+        }
+
+        return $blocks;
     }
 
     /**

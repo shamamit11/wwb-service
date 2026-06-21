@@ -11,6 +11,7 @@ use App\AI\Tools\SaveContentBriefTool;
 use App\AI\Tools\SavePostDraftTool;
 use App\AI\Tools\SaveTopicIdeaTool;
 use App\AI\Tools\SearchExistingPostsTool;
+use App\Jobs\AI\GenerateContentBriefJob;
 use App\Models\Category;
 use App\Models\ContentBrief;
 use App\Models\ContentTopic;
@@ -19,6 +20,7 @@ use App\Models\Post;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class InternalAiToolsTest extends TestCase
@@ -129,8 +131,10 @@ class InternalAiToolsTest extends TestCase
         $this->assertSame(['post'], $postDuplicate['matches']);
     }
 
-    public function test_save_topic_idea_tool_creates_suggested_topic_via_service_rules(): void
+    public function test_save_topic_idea_tool_auto_approves_high_priority_topics_via_service_rules(): void
     {
+        Queue::fake();
+
         $saved = app(SaveTopicIdeaTool::class)->save(new TopicSuggestionData(
             title: 'AI Content Audit Checklists',
             slug: 'ai-content-audit-checklists',
@@ -144,9 +148,10 @@ class InternalAiToolsTest extends TestCase
         ), 'Editorial leads');
 
         $this->assertSame(ContentTopic::SOURCE_AI_SUGGESTED, $saved->source);
-        $this->assertSame(ContentTopic::STATUS_SUGGESTED, $saved->status);
+        $this->assertSame(ContentTopic::STATUS_APPROVED, $saved->status);
         $this->assertStringContainsString('AI summary: A checklist-driven topic for editorial systems.', (string) $saved->notes);
         $this->assertStringContainsString('Audience: Editorial leads', (string) $saved->notes);
+        Queue::assertPushed(GenerateContentBriefJob::class, 1);
     }
 
     public function test_save_content_brief_tool_updates_existing_brief_as_draft(): void

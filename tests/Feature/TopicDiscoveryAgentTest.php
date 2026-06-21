@@ -8,6 +8,7 @@ use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Infrastructure\Ai\Data\AiUsageData;
 use App\Infrastructure\Ai\Data\GenerateTextRequest;
 use App\Infrastructure\Ai\Data\TextGenerationResult;
+use App\Infrastructure\Ai\Exceptions\AiCallFailedException;
 use App\Models\AiGenerationStep;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
@@ -17,6 +18,8 @@ use App\Models\ContentTopic;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use RuntimeException;
 use Tests\TestCase;
 
 class TopicDiscoveryAgentTest extends TestCase
@@ -25,6 +28,8 @@ class TopicDiscoveryAgentTest extends TestCase
 
     public function test_topic_discovery_agent_renders_prompt_skips_duplicates_saves_suggestions_and_tracks_ai_workflow(): void
     {
+        Queue::fake();
+
         config()->set('ai.service.default_provider', 'openai');
         config()->set('ai.service.providers.openai.text_model', 'gpt-5-mini');
         config()->set('ai.service.pricing.default_currency', 'USD');
@@ -171,7 +176,7 @@ class TopicDiscoveryAgentTest extends TestCase
             'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
             'primary_keyword' => 'ai tool audit checklist',
             'source' => ContentTopic::SOURCE_AI_SUGGESTED,
-            'status' => ContentTopic::STATUS_SUGGESTED,
+            'status' => ContentTopic::STATUS_APPROVED,
         ]);
 
         $savedTopic = ContentTopic::query()->findOrFail($savedTopicId);
@@ -206,6 +211,8 @@ class TopicDiscoveryAgentTest extends TestCase
 
     public function test_topic_discovery_agent_accepts_markdown_fenced_json_output(): void
     {
+        Queue::fake();
+
         config()->set('ai.service.default_provider', 'openai');
         config()->set('ai.service.providers.openai.text_model', 'gpt-5-mini');
 
@@ -258,5 +265,65 @@ TEXT,
         $this->assertTrue($result->isSuccessful());
         $this->assertSame('AI Topic Monitoring for Editorial Teams', $result->parsedResponse?->topics[0]->title);
         $this->assertCount(1, $result->metadata['saved_topic_ids']);
+    }
+
+    public function test_topic_discovery_agent_persists_underlying_provider_error_details(): void
+    {
+        $template = AiPromptTemplate::query()->create([
+            'name' => 'Topic Discovery Default',
+            'key' => 'topic_discovery_default',
+            'type' => AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
+            'description' => 'Default topic discovery prompt.',
+            'status' => AiPromptTemplate::STATUS_ACTIVE,
+        ]);
+
+        $version = AiPromptTemplateVersion::query()->create([
+            'prompt_template_id' => $template->id,
+            'version' => 1,
+            'system_prompt' => 'Return JSON only.',
+            'user_prompt' => 'Cluster {{cluster}}',
+            'output_schema' => ['type' => 'object', 'required' => ['topics']],
+            'variables' => ['cluster'],
+            'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
+        ]);
+
+        $template->update(['active_version_id' => $version->id]);
+
+        $fakeClient = new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                throw AiCallFailedException::fromThrowable(new RuntimeException('The model [gpt-5-mini] is not available for this project.'));
+            }
+        };
+
+        $this->app->instance(AiClient::class, $fakeClient);
+
+        $result = app(TopicDiscoveryAgent::class)->run(new TopicDiscoveryInput(
+            cluster: ContentTopic::CLUSTER_AI_TOOLS,
+            targetCount: 1,
+        ));
+
+        $this->assertTrue($result->isFailure());
+        $this->assertSame(
+            'AI text generation failed: The model [gpt-5-mini] is not available for this project.',
+            $result->error?->message,
+        );
+        $this->assertSame(
+            RuntimeException::class,
+            $result->error?->context['previous']['type'] ?? null,
+        );
+
+        $this->assertDatabaseHas('ai_jobs', [
+            'id' => $result->metadata['job_id'],
+            'status' => AiJob::STATUS_FAILED,
+            'error_message' => 'AI text generation failed: The model [gpt-5-mini] is not available for this project.',
+        ]);
+
+        $this->assertDatabaseHas('ai_generation_steps', [
+            'id' => $result->metadata['step_id'],
+            'status' => AiGenerationStep::STATUS_FAILED,
+            'error_message' => 'AI text generation failed: The model [gpt-5-mini] is not available for this project.',
+        ]);
     }
 }

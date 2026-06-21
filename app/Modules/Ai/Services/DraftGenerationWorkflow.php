@@ -35,6 +35,22 @@ class DraftGenerationWorkflow
             );
         }
 
+        $activeJob = AiJob::query()
+            ->where('type', AiPromptTemplate::TYPE_BLOG_WRITER)
+            ->where('entity_type', 'content_brief')
+            ->where('entity_id', (int) $brief->id)
+            ->whereIn('status', [
+                AiJob::STATUS_PENDING,
+                AiJob::STATUS_QUEUED,
+                AiJob::STATUS_PROCESSING,
+            ])
+            ->latest('id')
+            ->first();
+
+        if ($activeJob instanceof AiJob) {
+            return $activeJob->loadCount('steps');
+        }
+
         $job = $this->jobs->create(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_BLOG_WRITER,
             status: AiJob::STATUS_QUEUED,

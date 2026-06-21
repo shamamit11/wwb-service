@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Jobs\AI\DiscoverContentTopicsJob;
+use App\Jobs\AI\GenerateContentBriefJob;
 use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Services\AiWorkflowOrchestrator;
 use App\Modules\Ai\Repositories\AiJobRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
 
@@ -66,6 +68,8 @@ class TopicDiscoveryExecutionTest extends TestCase
 
     public function test_discover_content_topics_job_is_retry_safe_for_topic_creation(): void
     {
+        Queue::fake();
+
         $this->seedTopicDiscoveryPromptTemplate();
 
         $author = \App\Models\User::factory()->create();
@@ -162,9 +166,10 @@ class TopicDiscoveryExecutionTest extends TestCase
         $this->assertDatabaseHas('content_topics', [
             'title' => 'AI Tool Playbooks for Editorial Teams',
             'cluster' => 'ai_tools',
-            'status' => \App\Models\ContentTopic::STATUS_SUGGESTED,
+            'status' => \App\Models\ContentTopic::STATUS_APPROVED,
             'source' => \App\Models\ContentTopic::SOURCE_AI_SUGGESTED,
         ]);
+        Queue::assertPushed(GenerateContentBriefJob::class, 1);
     }
 
     public function test_schedule_list_includes_topic_discovery_tasks(): void

@@ -17,7 +17,7 @@ class BreadcrumbSchemaBuilder
      */
     public function forPost(Post $post): array
     {
-        $baseUrl = rtrim((string) config('app.url'), '/');
+        $baseUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
         $canonical = $this->canonicalUrls->for($post) ?? "{$baseUrl}/";
         $categoryCanonical = $post->category === null ? null : $this->canonicalUrls->for($post->category);
 
@@ -58,7 +58,7 @@ class BreadcrumbSchemaBuilder
      */
     public function forCategory(Category $category): array
     {
-        $baseUrl = rtrim((string) config('app.url'), '/');
+        $baseUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
         $canonical = $this->canonicalUrls->for($category) ?? "{$baseUrl}/";
 
         $items = [
