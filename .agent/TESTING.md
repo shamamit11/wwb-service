@@ -34,4 +34,9 @@ Each task should capture:
 
 ## Current Baseline
 
-This workspace did not include runnable application code when this scaffold was created, so no project-specific test matrix is documented yet.
+Current practical baseline:
+
+- use `php artisan migrate:fresh --seed` for schema-level validation
+- use targeted Pest runs before full suite runs
+- use `php artisan test` for final repository validation when the change crosses modules
+- prefer verifying the simplified article-first pipeline over preserving removed brief/template/block behavior

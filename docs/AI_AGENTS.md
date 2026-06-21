@@ -2,31 +2,30 @@
 
 ## Purpose
 
-This document explains the current AI agent roles in the service repository and how they fit into the MVP workflow.
+This document explains the current AI agent roles in the service repository and how they fit into the active editorial workflow.
 
-## Agent Set
+## Main Agent Set
 
-The shipped Phase 3 backend includes three agents:
+The main editorial pipeline includes:
 
 - `TopicDiscoveryAgent`
-- `ContentBriefAgent`
 - `BlogWriterAgent`
 
-These are workflow-specific agents, not general autonomous assistants.
+Helper AI agents also exist for metadata and title/excerpt suggestions, but they are not separate editorial stages in the publish pipeline.
 
 ## Shared Rules
 
-- Agents never publish content directly.
-- Agents work through workflow services and internal tools.
-- Agents should rely on Knowledge Base context where available.
-- Agents should produce structured, reviewable output instead of unbounded raw HTML.
-- Images remain manual in this phase.
+- agents never publish content directly
+- agents work through workflow services and internal tools
+- agents should rely on Knowledge Base context where available
+- agents should produce structured, reviewable output
+- images remain manual in this phase
 
 ## TopicDiscoveryAgent
 
 ### Role
 
-Generate suggested editorial topics inside approved content clusters.
+Generate scored editorial topics inside approved content clusters.
 
 ### Inputs
 
@@ -37,123 +36,90 @@ Generate suggested editorial topics inside approved content clusters.
 
 ### Outputs
 
-- suggested topic ideas
-- metadata for duplicate handling and saved topic IDs
-
-### Persistence Path
-
-Topic discovery ultimately writes suggested topics into the Topic Queue through internal tools and service rules.
+- suggested topics
+- score breakdown:
+  - `trend_score`
+  - `knowledge_base_fit`
+  - `business_value`
+  - `originality_gap`
+  - `execution_confidence`
+- aggregate `priority_score`
 
 ### Guardrails
 
-- cluster must be one of the approved clusters
-- output becomes `suggested` topics only
+- cluster must be approved
 - duplicates should be skipped safely
-
-## ContentBriefAgent
-
-### Role
-
-Turn an approved topic into a structured content brief.
-
-### Inputs
-
-- approved content topic
-- Knowledge Base context
-- existing internal content context
-- optional prompt template override
-
-### Outputs
-
-- brief title and slug
-- outline and headings
-- FAQ suggestions
-- internal link suggestions
-- image ideas and alt text suggestions
-
-### Guardrails
-
-- only approved topics may generate briefs
-- brief output is an intermediate planning asset
-- image suggestions are advisory only
+- topics below `90` should not remain in the queue
 
 ## BlogWriterAgent
 
 ### Role
 
-Generate a draft blog post from an approved content brief.
+Generate one full article draft from a topic that has cleared the score threshold.
 
 ### Inputs
 
-- approved content brief
-- category and optional author/template/media selections
-- prompt template override when provided
+- content topic
+- category and optional author/media selections
+- versioned `blog_standard` prompt template
+- Knowledge Base context
+- existing post and internal link context
 
 ### Outputs
 
-- draft post content
-- draft-oriented metadata and related persistence side effects
+- draft article content
+- short description
+- full article markdown
+- optional HTML body
+- FAQ suggestions
+- SEO-oriented metadata suggestions
 
 ### Guardrails
 
-- only approved briefs may generate drafts
 - resulting content stays in draft
 - no auto-publish path exists
-- existing generated post state should be reused on retry when appropriate
+- retries should reuse existing generated post state when appropriate
+- the agent should write one article, not a block collection
 
 ## Internal Tooling Used By Agents
 
-The current internal tool set includes:
-
 - `CheckDuplicateTopicTool`
 - `SaveTopicIdeaTool`
-- `SaveContentBriefTool`
 - `SavePostDraftTool`
 - `SearchExistingPostsTool`
 - `FindInternalLinksTool`
 
-These tools let agents:
-
-- check for duplicates before saving
-- persist through service-layer rules
-- look up related published content
-- suggest internal links without bypassing domain boundaries
-
 ## Workflow Ownership
 
-Agents are not triggered directly from controllers in the current architecture.
+Agents are not triggered directly from controllers.
 
-Instead, controllers and commands call orchestration services such as:
+Controllers and commands call orchestration services such as:
 
 - `TopicDiscoveryWorkflow`
-- `ContentBriefWorkflow`
 - `DraftGenerationWorkflow`
 - `AiWorkflowOrchestrator`
 
-This separation matters because future agents should preserve:
+This preserves:
 
 - thin controllers
 - explicit workflow boundaries
 - persistent AI job tracking
 - retry-safe behavior
 
-## Admin Placeholder Relationship
+## Admin Relationship
 
-The current admin-facing placeholders for agent-backed work are:
+The main admin-facing operational surfaces are:
 
 - Topic Queue
-- Content Briefs
+- Posts
 - AI Jobs
 - Prompt Management
 
-These are the operational surfaces that future admin UI work is expected to consume.
-
 ## Summary
 
-The current agents are specialized editorial workers:
+The current editorial agents are specialized workers:
 
-- topic discovery suggests
-- brief generation plans
-- blog writing drafts
+- topic discovery scores and routes ideas
+- blog writing produces one draft article
 
-All final publishing decisions remain human-owned.
+Publishing remains human-owned.

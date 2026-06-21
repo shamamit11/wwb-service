@@ -2,81 +2,69 @@
 
 ## Product Context
 
-Wide Web Blog is a blogging platform where the MVP starts with an admin user who can create and publish blog posts.
+Wide Web Blog is a blogging platform with a simplified editorial backend centered on topic discovery, article drafting, manual review, and publishing.
 
-The current service roadmap now includes a concrete Phase 3 AI content engine for:
+The current backend direction is:
 
-- topic discovery inside approved niche clusters
-- content brief generation from approved topics
-- draft post generation from approved briefs
-- human-reviewed AI-assisted editorial workflows
+- knowledge-base-grounded topic discovery
+- score-based topic routing
+- automatic draft generation for high-scoring topics
+- article-first post storage
+- human-reviewed publishing
 
-Later phases may expand into richer SEO automation, image workflows, and external AI client integrations.
+Later phases may expand admin editing UX, image workflows, and deeper SEO automation.
 
 ## Repository Scope
 
 This repository is `widewebblog/service`.
 
-It is responsible for the Laravel backend/service only.
+It owns the Laravel backend only.
 
 Sibling apps:
 
 - `../admin`
 - `../fe`
 
-are separate applications.
-
-The service agent must not scan or modify sibling apps unless the task explicitly requires it.
+are separate applications and should not be scanned by default.
 
 ## Service Responsibilities
 
-The Laravel service is responsible for:
+The service owns:
 
 - API endpoints
 - authentication and authorization
-- blog post management
-- category management
-- tag management if implemented
-- CMS-related backend data
-- AI content generation pipeline
+- posts, categories, tags, pages, media, and site settings
+- topic queue and topic scoring workflow
+- knowledge base support
 - AI prompt template management and versioning
 - AI job, generation-step, token, and cost tracking
-- topic and content brief workflow management
-- SEO metadata
+- SEO metadata and schema generation
 - slugs
-- media and image storage
 - database schema and migrations
-- business rules
-- validation
-- API resources and responses
-- background jobs and events when needed
-- integration with external AI, image, and storage services
+- validation, business rules, and resources
+- background jobs and scheduled tasks
 
-## MVP Scope
+## Current MVP Scope
 
-For MVP:
-
-- Admin can create, update, publish, unpublish, and delete blog posts.
-- Admin can manage blog categories.
-- Blog posts should support SEO fields.
-- Blog posts should support featured images or media.
+- Admin can create, update, publish, unpublish, and delete posts.
+- Posts are article-first and do not use templates or post blocks.
+- Admin can manage categories, tags, media, knowledge base, and site settings.
+- Public frontend consumes published content from the service.
 - AI workflows are service-driven and draft-first.
-- Public frontend will consume published content from the service.
 
 ### AI Content Engine MVP
 
-- Knowledge Base entries can ground AI workflows.
-- Topic discovery creates suggested topics only.
-- Only approved topics can generate content briefs.
-- Only approved content briefs can generate draft posts.
-- All AI-generated posts remain `draft` until manual admin approval.
-- Images are manual in this phase. AI may suggest image ideas, placement notes, and alt text only.
-- AI prompts must be database-backed and versioned, not hardcoded in agents.
-- AI workflows must be auditable through job and step tracking.
+- Knowledge Base entries ground AI workflows.
+- `TopicDiscoveryAgent` creates scored topics in approved clusters.
+- topics below `90` are pruned automatically.
+- topics above `90` queue blog draft generation automatically.
+- `BlogWriterAgent` generates one full article draft.
+- all AI-generated posts remain `draft` until manual admin approval.
+- images remain manual; AI may only suggest ideas, placement notes, and alt text.
+- prompts are database-backed and versioned.
+- the editable main-flow prompt families are `topic_standard` and `blog_standard`.
 
-### AI Content Clusters
-
-Topic discovery must stay within these clusters unless a later task expands them:
+### Approved Topic Clusters
 
 - `ai_tools`
 - `ai_for_blogging`
@@ -87,31 +75,25 @@ Topic discovery must stay within these clusters unless a later task expands them
 
 ## Non-Goals For Service Agent
 
-The service agent should not implement:
-
-- admin UI screens unless explicitly asked
-- public frontend UI unless explicitly asked
-- whole-repository refactors
-- new architecture that conflicts with documented patterns
-- unrequested package or library changes
+- admin UI implementation unless explicitly requested
+- public frontend UI implementation unless explicitly requested
+- reintroducing templates, content briefs, or block composition
+- unrequested package changes
+- direct publishing by AI
 
 ## Technology Baseline
 
-- Laravel 13 for backend application logic and APIs
-- Eloquent models and migrations for persistence
+- Laravel 13
+- Eloquent and migrations
+- Pest for tests
 - Cloudflare R2 for media storage
-- future AI and image providers behind service-side abstractions
+- provider-agnostic AI client abstractions
+- database-backed queue and cache defaults
 
 ## Product Constraints
 
 - AI-generated content must never publish directly.
-- AI-generated drafts require explicit admin review and approval.
-- Only approved upstream entities may move forward in the AI pipeline.
-- Retry logic must not duplicate topics, briefs, or posts.
-- Long-running AI work should use the explicit `ai` queue.
-- Public frontend should consume only published content states.
-- Agent work should remain task-driven and based on minimal context loading.
-
-## Working Assumption
-
-This `.agent/` documentation was created before concrete Laravel source files were present in this workspace. Update command and architecture details when the actual service repository files become available, but preserve the documented service boundaries.
+- AI-generated drafts require explicit admin review.
+- retries must not duplicate topics or posts.
+- long-running AI work uses the explicit `ai` queue.
+- prompt ownership for topic/blog generation lives in versioned prompt templates, not `site_settings`.

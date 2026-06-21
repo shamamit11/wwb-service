@@ -8,7 +8,6 @@ Use this file for stable auditing rules with Spatie Activitylog.
 
 - admin-authenticated create, update, delete, restore, and publish actions
 - sensitive settings changes
-- template configuration changes
 - SEO metadata changes with material impact
 - media deletions and attribution changes
 - AI workflow approvals or rejections when user-visible
@@ -34,7 +33,6 @@ Use this file for stable auditing rules with Spatie Activitylog.
 - `post.published`
 - `seo_metadata.updated`
 - `media.deleted`
-- `template.activated`
 - `ai_job.approved`
 
 ## Retention And Volume

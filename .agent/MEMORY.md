@@ -20,11 +20,14 @@ Store only stable, reusable service knowledge here. Do not write temporary task 
 - Response formatting belongs in API Resources.
 - External API calls should be isolated behind client classes.
 - AI content and image generation should be implemented behind service and client abstractions, not directly inside controllers.
+- The editorial AI flow is topic discovery -> topic scoring -> automatic low-score pruning -> automatic draft generation for scores above 90 -> human review -> manual publish.
 - AI-generated content must remain in draft until explicit admin approval.
-- The Phase 3 AI content engine currently follows a fixed editorial sequence: topic discovery -> topic approval -> content brief generation -> brief approval -> blog draft generation -> manual review and publish.
-- Topic discovery, content brief generation, and blog draft generation are tracked through AI workflow services and AI job records.
-- Prompt templates are database-backed and versioned, with active prompt versions resolved at runtime rather than hardcoded workflow prompts.
+- Posts are article-first records rather than block-based compositions.
+- The system no longer uses content briefs, templates, template blocks, or post content blocks.
+- Prompt management is database-backed and versioned, but limited to the standard prompt families used by the main flow: topic generation and blog generation.
+- Site settings should not duplicate active topic/blog prompt instruction fields when versioned prompt templates are the source of truth.
 - Images remain manual in the current AI phase; AI may only provide image ideas, placement notes, and alt text suggestions.
+- Queue and cache defaults are database-backed; Redis is not a required baseline dependency.
 - SEO fields and published content should be designed for consumption by the public frontend.
 
 ## Update Policy

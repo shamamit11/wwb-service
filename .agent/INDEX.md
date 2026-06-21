@@ -88,11 +88,6 @@ For media, image, or storage pipeline work:
 - `.agent/knowledge-base/module-map.md`
 - `.agent/skills/media-service.md`
 
-For templates, post blocks, or rendering structure work:
-- `.agent/knowledge-base/content-lifecycle.md`
-- `.agent/knowledge-base/module-map.md`
-- `.agent/skills/template-engine.md`
-
 For knowledge base, topic support, or originality-supporting content workflows:
 - `.agent/knowledge-base/content-lifecycle.md`
 - `.agent/knowledge-base/module-map.md`
@@ -191,7 +186,6 @@ When sibling context is needed:
 - `.agent/skills/activitylog-audit.md`: audit logging and Spatie Activitylog guidance
 - `.agent/skills/database.md`: migrations, models, repositories, and query guidance
 - `.agent/skills/queue-scheduler.md`: jobs, retries, queues, and scheduled workflow guidance
-- `.agent/skills/template-engine.md`: template and post-block structure guidance
 - `.agent/skills/knowledge-base.md`: knowledge item and originality-support workflow guidance
 - `.agent/skills/ai-orchestration.md`: provider abstraction, AI jobs, and cost-tracking workflow guidance
 - `.agent/skills/livewire-admin.md`: service-local or cross-reference admin guidance only when relevant

@@ -13,7 +13,7 @@ Use this skill for features that create auditable admin actions or require Spati
 ## Use This When
 
 - adding create, update, delete, publish, or approval flows
-- changing settings or templates
+- changing settings or prompt configuration
 - adding AI workflow approval steps
 - deciding what should or should not be audited
 

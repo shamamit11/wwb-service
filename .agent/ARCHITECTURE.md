@@ -2,7 +2,7 @@
 
 ## Service Scope
 
-This document describes the expected Laravel 13 backend architecture for `widewebblog/service`.
+This document describes the current Laravel backend architecture for `widewebblog/service`.
 
 The service owns:
 
@@ -12,38 +12,16 @@ The service owns:
 - media handling
 - SEO data
 - AI content workflows
+- prompt template management
 - integrations
 
-It does not own the `../admin` or `../fe` applications by default.
+It does not own `../admin` or `../fe` by default.
 
-## Design Pattern Decision
+## Default Layering
 
-The service follows a layered Laravel architecture:
+Use this pattern unless an existing module already establishes a narrower local pattern:
 
-`Controller -> FormRequest -> DTO -> Service/Action -> Repository -> Model/External Client -> API Resource`
-
-This is the default pattern for new backend features.
-
-Reasons:
-
-- Keeps controllers thin.
-- Keeps validation separate.
-- Keeps business logic testable.
-- Keeps persistence logic reusable.
-- Keeps API response formatting consistent.
-- Makes AI coding-agent changes safer and smaller.
-
-Agents must follow this pattern unless the existing module already uses a different established local pattern or the task explicitly instructs otherwise.
-
-## Preferred Flow
-
-For standard use cases:
-
-`Controller -> FormRequest -> DTO -> Service/Action -> Repository -> Model/External Client -> API Resource`
-
-For complex workflows:
-
-`Controller -> FormRequest -> DTO -> Application Service -> Domain Service/Action -> Repository/External Client -> Event/Job -> API Resource`
+`Controller -> FormRequest -> DTO -> Service/Workflow -> Repository -> Model/External Client -> API Resource`
 
 For AI workflows:
 
@@ -53,172 +31,74 @@ For AI workflows:
 
 ### Controllers
 
-Controllers should be thin.
-
-Controllers may:
+Controllers stay thin. They may:
 
 - accept requests
-- use FormRequest validation
-- create DTOs from validated input
-- call service or action classes
-- return API resources or JSON responses
+- validate via FormRequests
+- turn validated input into DTOs
+- call services or workflows
+- return resources or JSON responses
 
-Controllers should not contain:
-
-- business logic
-- query-heavy logic
-- AI prompt construction
-- storage logic
-- external API orchestration
-- complex conditionals
+Controllers should not contain business logic, storage orchestration, or AI prompting logic.
 
 ### Form Requests
 
-Use FormRequest classes for validation.
-
-FormRequests should handle:
-
-- input validation
-- authorization when request-specific
-- normalizing validated request data when appropriate
-
-Avoid putting business logic in FormRequests.
+FormRequests handle validation and lightweight normalization only.
 
 ### DTOs
 
-Use DTOs to pass structured validated data into services.
+DTOs are readonly or effectively immutable payload objects. They should not query the database or receive injected services.
 
-DTOs should:
-
-- be simple immutable or readonly objects where possible
-- be created from validated request data
-- avoid dependency injection
-- avoid database queries
-
-Suggested naming:
+Typical examples:
 
 - `CreatePostData`
 - `UpdatePostData`
-- `GenerateContentData`
+- `DiscoverContentTopicsData`
+- `QueueBlogDraftGenerationData`
 - `UploadMediaData`
 
-### Services And Actions
+### Services And Workflows
 
-Use service or action classes for business use cases.
+Services own business rules. Workflow services own multi-step orchestration, retries, and job dispatch.
 
-Examples:
+Typical examples:
 
 - `CreatePostService`
 - `UpdatePostService`
 - `PublishPostService`
-- `GeneratePostContentService`
-- `UploadMediaService`
-
-Services may:
-
-- coordinate repositories
-- apply business rules
-- dispatch jobs or events
-- call external clients
-- manage transactions where needed
-
-Services should not directly format API responses.
+- `TopicDiscoveryWorkflow`
+- `DraftGenerationWorkflow`
 
 ### Repositories
 
-Use repositories for persistence and query logic.
-
-Repositories should:
-
-- encapsulate Eloquent queries
-- handle reusable query filters
-- keep services clean
-- return models, collections, paginators, or domain-specific results
-
-Suggested names:
-
-- `PostRepository`
-- `CategoryRepository`
-- `MediaRepository`
-
-Do not place business workflows in repositories.
+Repositories encapsulate Eloquent query and persistence logic. They should not own business workflows.
 
 ### Models
 
-Models should represent database entities.
-
-Models may include:
-
-- relationships
-- casts
-- scopes
-- accessors or mutators when useful
-- fillable or guarded configuration
-
-Avoid large business workflows inside models.
+Models define relationships, casts, scopes, and lightweight attribute behavior. Keep larger workflows outside the model.
 
 ### API Resources
 
-Use API Resource classes for response formatting.
+Resources format responses and should remain independent from service logic.
 
-Resources should:
+### Jobs
 
-- transform models into consistent API responses
-- hide internal fields
-- include relationships when loaded
-- keep controllers and services response-agnostic
-
-### Jobs And Events
-
-Use jobs for slow, asynchronous, or retryable work.
-
-Examples:
-
-- generate AI content
-- generate images
-- process uploaded media
-- build sitemap
-- refresh SEO metadata
-
-AI generation jobs should use the explicit `ai` queue and must be safe to retry without duplicating topics, briefs, or posts.
-
-Use events when other parts of the service need to react to a domain change.
-
-Examples:
-
-- `PostPublished`
-- `PostUnpublished`
-- `MediaUploaded`
-- `AiContentGenerated`
+Jobs are used for slow or retryable work. AI jobs should use the explicit `ai` queue and must be safe to retry without duplicating topics or posts.
 
 ### External Clients
 
-External API integrations should be isolated behind client classes.
-
-Examples:
-
-- `OpenAiContentClient`
-- `ImageGenerationClient`
-- `StorageClient`
-
-Do not call external APIs directly from controllers.
-
-For AI providers specifically:
-
-- isolate provider SDK usage behind an internal AI client abstraction
-- keep agents provider-agnostic
-- capture raw response, parsed response, usage metadata, and error state in structured results
+External APIs must stay behind abstractions. AI providers are accessed through internal AI client abstractions so agents remain provider-agnostic.
 
 ## AI Workflow Architecture
 
-The Phase 3 AI content engine is a staged workflow, not a single generation endpoint.
+The current AI content engine is a controlled editorial pipeline.
 
 Core stages:
 
 1. Knowledge Base context is selected and formatted.
-2. `TopicDiscoveryAgent` suggests topics inside approved clusters.
-3. approved topics feed `ContentBriefAgent`.
-4. approved briefs feed `BlogWriterAgent`.
+2. `TopicDiscoveryAgent` suggests scored topics inside approved clusters.
+3. low-scoring topics are pruned automatically.
+4. high-scoring topics queue `BlogWriterAgent` automatically.
 5. generated posts remain `draft` for admin review and manual publishing.
 
 Supporting components:
@@ -226,38 +106,42 @@ Supporting components:
 - database-backed prompt templates and versions
 - AI workflow orchestration services
 - internal AI tools for duplicate checks, persistence, post search, and internal link lookup
-- `ai_jobs` lifecycle tracking
-- `ai_generation_steps` per-agent execution tracking
-- token and cost recording when usage metadata is available
+- `ai_jobs` tracking
+- `ai_generation_steps` tracking
+- token and cost recording when available
 
 Non-negotiable rules:
 
-- prompts must not be hardcoded inside agent classes
-- controllers should dispatch workflows, not contain orchestration logic
-- every meaningful AI workflow must create an `ai_jobs` record
-- every agent execution must create an `ai_generation_steps` record
+- prompts for the main topic/blog flow must be versioned in prompt templates
+- controllers dispatch workflows rather than orchestrating steps directly
+- every meaningful AI workflow creates an `ai_jobs` record
+- every agent execution creates an `ai_generation_steps` record
 - failures must be visible and retryable without creating duplicate domain records
+- AI never publishes directly
 
-### Transactions
+## Content Architecture
 
-Use database transactions in services when a use case writes multiple related records.
+Posts are article-first.
 
-Example:
+Canonical content fields:
 
-```php
-DB::transaction(function () {
-    // create post
-    // attach categories
-    // create SEO metadata
-});
-```
+- `full_article_markdown`
+- optional `full_article_html`
+- `short_description`
+- `description`
+- `faq`
+
+Templates, content briefs, and block collections are not part of the active service architecture.
+
+## Transactions
+
+Use database transactions when a use case writes multiple related records or changes state across multiple tables.
 
 ## Response Standard
 
-Preferred response style:
-
-- use Laravel API Resources for model responses
-- use a consistent JSON shape for status and error responses
+- use API Resources for model responses
+- keep error payloads consistent
+- keep services response-agnostic
 - use pagination resources for list endpoints
 - use proper HTTP status codes
 
