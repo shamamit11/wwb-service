@@ -169,6 +169,9 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     private function buildPromptVariables(TopicDiscoveryInput $input): array
     {
         return [
+            'category_id' => $input->categoryId,
+            'category_name' => $input->categoryName,
+            'category_slug' => $input->categorySlug,
             'cluster' => $input->cluster,
             'target_count' => max(1, $input->targetCount),
             'audience' => $input->audience,
@@ -301,7 +304,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 
             $duplicateCheck = $this->checkDuplicateTopic->check(
                 title: $topic->title,
-                cluster: $topic->cluster,
+                categoryId: $input->categoryId,
                 primaryKeyword: $topic->primaryKeyword,
                 slug: $topic->slug,
             );
@@ -315,7 +318,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 continue;
             }
 
-            $savedTopics[] = $this->saveTopicIdea->save($topic, $input->audience);
+            $savedTopics[] = $this->saveTopicIdea->save($topic, $input->categoryId, $input->audience);
         }
 
         return [$savedTopics, $skippedDuplicates];
@@ -327,6 +330,9 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     private function buildJobInputPayload(TopicDiscoveryInput $input): array
     {
         return [
+            'category_id' => $input->categoryId,
+            'category_name' => $input->categoryName,
+            'category_slug' => $input->categorySlug,
             'cluster' => $input->cluster,
             'target_count' => max(1, $input->targetCount),
             'audience' => $input->audience,

@@ -89,14 +89,14 @@ class AiWorkflowOrchestrator
     private function retryTopicDiscovery(AiJob $job): AiJob
     {
         $payload = is_array($job->input_payload) ? $job->input_payload : [];
-        $cluster = $payload['cluster'] ?? null;
+        $categoryId = $payload['category_id'] ?? null;
 
-        if (! is_string($cluster) || $cluster === '') {
-            throw new RuntimeException("Retry topic discovery job [{$job->id}] is missing a valid [cluster] value.");
+        if (! is_int($categoryId) && ! (is_string($categoryId) && ctype_digit($categoryId))) {
+            throw new RuntimeException("Retry topic discovery job [{$job->id}] is missing a valid [category_id] value.");
         }
 
         return $this->dispatchTopicDiscovery(new DiscoverContentTopicsData(
-            cluster: $cluster,
+            categoryId: (int) $categoryId,
             count: is_int($payload['count'] ?? null) ? $payload['count'] : (int) ($payload['count'] ?? 10),
             audience: is_string($payload['audience'] ?? null) && $payload['audience'] !== '' ? $payload['audience'] : null,
             promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) && $payload['prompt_template_key'] !== '' ? $payload['prompt_template_key'] : null,

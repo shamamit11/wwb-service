@@ -14,6 +14,12 @@ class ContentTopicResource extends ApiResource
     {
         return [
             'id' => $this->resource->id,
+            'category_id' => $this->resource->category_id,
+            'category' => $this->whenLoaded('category', fn (): ?array => $this->resource->category === null ? null : [
+                'id' => $this->resource->category->id,
+                'name' => $this->resource->category->name,
+                'slug' => $this->resource->category->slug,
+            ]),
             'title' => $this->resource->title,
             'slug' => $this->resource->slug,
             'cluster' => $this->resource->cluster,

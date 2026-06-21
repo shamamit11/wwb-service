@@ -33,6 +33,7 @@ class ListContentTopicsTool extends Tool
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', 'in:'.implode(',', ContentTopic::STATUSES)],
+            'category_id' => ['nullable', 'integer', 'min:1'],
             'cluster' => ['nullable', 'string', 'in:'.implode(',', ContentTopic::CLUSTERS)],
             'source' => ['nullable', 'string', 'in:'.implode(',', ContentTopic::SOURCES)],
             'sort' => ['nullable', 'string', 'in:created_at,-created_at,updated_at,-updated_at,approved_at,-approved_at,used_at,-used_at,priority_score,-priority_score,title,-title'],
@@ -43,6 +44,7 @@ class ListContentTopicsTool extends Tool
         $results = $this->topics->handle(new ContentTopicFiltersData(
             search: $validated['search'] ?? null,
             status: $validated['status'] ?? null,
+            categoryId: isset($validated['category_id']) ? (int) $validated['category_id'] : null,
             cluster: $validated['cluster'] ?? null,
             source: $validated['source'] ?? null,
             sort: $validated['sort'] ?? '-created_at',
@@ -59,6 +61,7 @@ class ListContentTopicsTool extends Tool
         return [
             'search' => $schema->string()->description('Free-text search across topic fields.'),
             'status' => $schema->string()->description('Filter by topic status.'),
+            'category_id' => $schema->integer()->description('Filter by category ID.'),
             'cluster' => $schema->string()->description('Filter by topic cluster.'),
             'source' => $schema->string()->description('Filter by topic source.'),
             'sort' => $schema->string()->description('Sort field, using the admin API sort options.'),

@@ -24,6 +24,7 @@ class UpdateContentTopicService
         $old = $this->auditAttributes($topic);
 
         $updated = $this->topics->update($topic, new UpdateContentTopicData(
+            categoryId: $data->categoryId,
             title: $data->title,
             slug: $this->slugResolver->resolve($data->title, $data->slug, (int) $topic->id),
             cluster: $data->cluster,
@@ -31,6 +32,7 @@ class UpdateContentTopicService
             secondaryKeywords: $data->secondaryKeywords,
             searchIntent: $data->searchIntent,
             priorityScore: $data->priorityScore,
+            scoreBreakdown: $data->scoreBreakdown,
             difficultyNote: $data->difficultyNote,
             source: $data->source,
             notes: $data->notes,
@@ -50,14 +52,14 @@ class UpdateContentTopicService
 
     private function guardAgainstDuplicate(ContentTopic $topic, UpdateContentTopicData $data): void
     {
-        if (! $this->topics->existsDuplicate($data->title, $data->cluster, $data->primaryKeyword, (int) $topic->id)) {
+        if (! $this->topics->existsDuplicate($data->title, $data->categoryId, $data->primaryKeyword, (int) $topic->id)) {
             return;
         }
 
         throw new DuplicateContentTopicException(
             title: $data->title,
-            cluster: $data->cluster,
-            message: "A similar topic already exists in the [{$data->cluster}] cluster.",
+            cluster: (string) $data->categoryId,
+            message: 'A similar topic already exists in this category.',
         );
     }
 
@@ -67,6 +69,7 @@ class UpdateContentTopicService
     private function auditAttributes(ContentTopic $topic): array
     {
         return [
+            'category_id' => $topic->category_id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'cluster' => $topic->cluster,

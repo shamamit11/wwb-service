@@ -10,6 +10,9 @@ return new class extends Migration
     {
         Schema::create('content_topics', function (Blueprint $table): void {
             $table->id();
+            $table->foreignId('category_id')
+                ->constrained('categories')
+                ->restrictOnDelete();
             $table->string('title', 255);
             $table->string('slug', 190)->unique();
             $table->string('cluster', 60);
@@ -26,6 +29,7 @@ return new class extends Migration
             $table->timestamp('used_at')->nullable();
             $table->timestamps();
 
+            $table->index(['category_id', 'status']);
             $table->index(['cluster', 'status']);
             $table->index(['status', 'created_at']);
             $table->index('primary_keyword');

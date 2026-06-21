@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
+    'category_id',
     'title',
     'slug',
     'cluster',
@@ -82,6 +84,14 @@ class ContentTopic extends Model
             'rejected_at' => 'datetime',
             'used_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Category, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id')->withTrashed();
     }
 
     public function isApproved(): bool

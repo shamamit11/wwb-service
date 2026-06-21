@@ -32,7 +32,7 @@ class GenerateBlogDraftTool extends Tool
         $validated = $request->validate([
             'content_topic_id' => ['required', 'integer', 'min:1'],
             'author_user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'featured_media_id' => ['sometimes', 'nullable', 'integer', 'exists:media,id'],
             'visibility' => ['sometimes', 'string', 'in:'.implode(',', Post::VISIBILITIES)],
             'generation_mode' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', BlogDraftGenerationMode::values())],
@@ -41,7 +41,7 @@ class GenerateBlogDraftTool extends Tool
         $topic = $this->readTopic->handle((int) $validated['content_topic_id']);
         $job = $this->workflow->handle($topic, new QueueBlogDraftGenerationData(
             authorUserId: isset($validated['author_user_id']) ? (int) $validated['author_user_id'] : null,
-            categoryId: (int) $validated['category_id'],
+            categoryId: isset($validated['category_id']) ? (int) $validated['category_id'] : (int) $topic->category_id,
             featuredMediaId: isset($validated['featured_media_id']) ? (int) $validated['featured_media_id'] : null,
             visibility: $validated['visibility'] ?? Post::VISIBILITY_PUBLIC,
             generationMode: $validated['generation_mode'] ?? null,
@@ -58,7 +58,7 @@ class GenerateBlogDraftTool extends Tool
         return [
             'content_topic_id' => $schema->integer()->required()->description('Approved topic ID.'),
             'author_user_id' => $schema->integer()->description('Optional post author ID.'),
-            'category_id' => $schema->integer()->required()->description('Category ID for the generated draft.'),
+            'category_id' => $schema->integer()->description('Optional category override. Defaults to the topic category.'),
             'featured_media_id' => $schema->integer()->description('Optional featured media ID.'),
             'visibility' => $schema->string()->description('Draft visibility.'),
             'generation_mode' => $schema->string()->description('Optional editorial mode: tutorial, comparison, opinionated_analysis, or checklist.'),

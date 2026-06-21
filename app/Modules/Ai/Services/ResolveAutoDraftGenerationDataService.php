@@ -24,41 +24,13 @@ class ResolveAutoDraftGenerationDataService
 
     private function resolveCategory(?ContentTopic $topic): ?Category
     {
-        $preferredSlug = $this->preferredCategorySlug($topic);
-
-        if ($preferredSlug !== null) {
-            $preferred = Category::query()
-                ->where('is_active', true)
-                ->where('slug', $preferredSlug)
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->first();
-
-            if ($preferred instanceof Category) {
-                return $preferred;
-            }
-        }
-
-        return Category::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->first();
-    }
-
-    private function preferredCategorySlug(?ContentTopic $topic): ?string
-    {
         if (! $topic instanceof ContentTopic) {
             return null;
         }
 
-        return match ($topic->cluster) {
-            ContentTopic::CLUSTER_AI_TOOLS => 'ai-tools',
-            ContentTopic::CLUSTER_AI_FOR_BLOGGING, ContentTopic::CLUSTER_CONTENT_MARKETING => 'content-marketing',
-            ContentTopic::CLUSTER_SEO => 'seo',
-            ContentTopic::CLUSTER_PRODUCTIVITY_AUTOMATION => 'productivity-automation',
-            ContentTopic::CLUSTER_DEVELOPER_AI => 'developer-ai',
-            default => null,
-        };
+        return Category::query()
+            ->where('is_active', true)
+            ->whereKey($topic->category_id)
+            ->first();
     }
 }

@@ -46,6 +46,7 @@ trait SerializesMcpPayloads
     {
         return [
             'id' => $topic->id,
+            'category_id' => $topic->category_id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'cluster' => $topic->cluster,

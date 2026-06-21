@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\ContentTopic;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -23,12 +22,21 @@ Schedule::command('ai:prune-low-score-topics')
     ->hourly()
     ->withoutOverlapping();
 
-foreach (ContentTopic::CLUSTERS as $index => $cluster) {
+$discoveryCategories = [
+    'ai-tools',
+    'ai-agents',
+    'seo',
+    'content-marketing',
+    'productivity-automation',
+    'developer-ai',
+];
+
+foreach ($discoveryCategories as $index => $categorySlug) {
     $hour = 2 + intdiv($index, 4);
     $minute = ($index % 4) * 15;
 
-    Schedule::command("ai:discover-topics --cluster={$cluster} --count=10")
+    Schedule::command("ai:discover-topics --category={$categorySlug} --count=10")
         ->dailyAt(sprintf('%02d:%02d', $hour, $minute))
         ->withoutOverlapping()
-        ->name("ai-discover-topics:{$cluster}");
+        ->name("ai-discover-topics:{$categorySlug}");
 }

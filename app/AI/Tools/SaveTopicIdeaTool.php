@@ -13,9 +13,10 @@ class SaveTopicIdeaTool
         private readonly CreateContentTopicService $createTopic,
     ) {}
 
-    public function save(TopicSuggestionData $topic, ?string $audience = null): ContentTopic
+    public function save(TopicSuggestionData $topic, int $categoryId, ?string $audience = null): ContentTopic
     {
         return $this->createTopic->handle(new CreateContentTopicData(
+            categoryId: $categoryId,
             title: $topic->title,
             slug: $topic->slug,
             cluster: $topic->cluster,

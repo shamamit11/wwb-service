@@ -24,14 +24,16 @@ class CreateTopicSuggestionTool extends Tool
     public function __construct(
         private readonly CheckDuplicateTopicTool $duplicates,
         private readonly SaveTopicIdeaTool $saveTopic,
+        private readonly \App\Modules\Ai\Services\ResolveTopicDiscoveryClusterService $clusters,
     ) {}
 
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
+            'category_id' => ['required', 'integer', 'min:1'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:160'],
-            'cluster' => ['required', 'string', 'in:'.implode(',', ContentTopic::CLUSTERS)],
+            'cluster' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', ContentTopic::CLUSTERS)],
             'primary_keyword' => ['sometimes', 'nullable', 'string', 'max:255'],
             'secondary_keywords' => ['sometimes', 'array'],
             'secondary_keywords.*' => ['string', 'max:255'],
@@ -42,9 +44,31 @@ class CreateTopicSuggestionTool extends Tool
             'audience' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
+        $category = \App\Models\Category::query()->where('is_active', true)->find((int) $validated['category_id']);
+
+        if (! $category instanceof \App\Models\Category) {
+            return Response::structured([
+                'created' => false,
+                'duplicate_check' => ['is_duplicate' => false, 'matches' => []],
+                'topic' => null,
+                'error' => 'Active category could not be found.',
+            ]);
+        }
+
+        $cluster = $validated['cluster'] ?? $this->clusters->forCategory($category);
+
+        if (! is_string($cluster) || $cluster === '') {
+            return Response::structured([
+                'created' => false,
+                'duplicate_check' => ['is_duplicate' => false, 'matches' => []],
+                'topic' => null,
+                'error' => 'Category is not mapped to a supported topic cluster.',
+            ]);
+        }
+
         $duplicateCheck = $this->duplicates->check(
             title: $validated['title'],
-            cluster: $validated['cluster'],
+            categoryId: (int) $validated['category_id'],
             primaryKeyword: $validated['primary_keyword'] ?? null,
             slug: $validated['slug'],
         );
@@ -60,14 +84,14 @@ class CreateTopicSuggestionTool extends Tool
         $topic = $this->saveTopic->save(new TopicSuggestionData(
             title: $validated['title'],
             slug: $validated['slug'],
-            cluster: $validated['cluster'],
+            cluster: $cluster,
             primaryKeyword: $validated['primary_keyword'] ?? null,
             secondaryKeywords: $this->normalizeStringList($validated['secondary_keywords'] ?? []),
             searchIntent: $validated['search_intent'] ?? null,
             priorityScore: isset($validated['priority_score']) ? (string) $validated['priority_score'] : null,
             difficultyNote: $validated['difficulty_note'] ?? null,
             summary: $validated['summary'] ?? null,
-        ), $validated['audience'] ?? null);
+        ), (int) $validated['category_id'], $validated['audience'] ?? null);
 
         return Response::structured([
             'created' => true,
@@ -79,9 +103,10 @@ class CreateTopicSuggestionTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
+            'category_id' => $schema->integer()->required()->description('Category ID for the suggested topic.'),
             'title' => $schema->string()->required()->description('Proposed topic title.'),
             'slug' => $schema->string()->required()->description('Preferred slug for the suggested topic.'),
-            'cluster' => $schema->string()->required()->description('Topic cluster.'),
+            'cluster' => $schema->string()->description('Optional topic cluster override. Usually derived from the category.'),
             'primary_keyword' => $schema->string()->description('Primary SEO keyword if known.'),
             'secondary_keywords' => $schema->array(
                 items: $schema->string()

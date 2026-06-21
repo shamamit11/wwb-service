@@ -10,6 +10,7 @@ final readonly class UpdateContentTopicData extends DataTransferObject
      * @param  list<string>  $secondaryKeywords
      */
     public function __construct(
+        public int $categoryId,
         public string $title,
         public ?string $slug,
         public string $cluster,

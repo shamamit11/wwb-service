@@ -28,6 +28,7 @@ class GenerateBlogDraftFromTopicService
         ?int $aiJobId = null,
     ): GeneratedBlogDraftData {
         $existing = $this->posts->findBySourceContentTopicId((int) $topic->id);
+        $topic->loadMissing('category');
 
         if ($existing instanceof Post) {
             return new GeneratedBlogDraftData($existing, false);
@@ -52,8 +53,14 @@ class GenerateBlogDraftFromTopicService
                 keywords: array_values(array_filter([
                     $topic->primary_keyword,
                     ...($topic->secondary_keywords ?? []),
+                    $topic->category?->name,
+                    $topic->category?->slug,
                     $topic->cluster,
                 ], static fn (mixed $value): bool => is_string($value) && $value !== '')),
+                metadataFilters: array_filter([
+                    'category_slugs' => $topic->category?->slug !== null ? [$topic->category->slug] : null,
+                    'clusters' => [$topic->cluster],
+                ], static fn (mixed $value): bool => $value !== null),
                 maxEntries: 8,
                 maxEntryCharacters: 340,
                 maxTotalCharacters: 2200,

@@ -23,6 +23,7 @@ class UpdateContentTopicRequest extends FormRequest
         $contentTopic = $this->route('contentTopic');
 
         return [
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:160', Rule::unique('content_topics', 'slug')->ignore($contentTopic->id)],
             'cluster' => ['required', 'string', Rule::in(ContentTopic::CLUSTERS)],
@@ -45,10 +46,11 @@ class UpdateContentTopicRequest extends FormRequest
 
     public function toData(): UpdateContentTopicData
     {
-        /** @var array{title:string,slug?:string|null,cluster:string,primary_keyword?:string|null,secondary_keywords?:array<int,string>|null,search_intent?:string|null,priority_score?:int|float|string|null,score_breakdown?:array<string,int|float|string|null>|null,difficulty_note?:string|null,source:string,notes?:string|null} $validated */
+        /** @var array{category_id:int,title:string,slug?:string|null,cluster:string,primary_keyword?:string|null,secondary_keywords?:array<int,string>|null,search_intent?:string|null,priority_score?:int|float|string|null,score_breakdown?:array<string,int|float|string|null>|null,difficulty_note?:string|null,source:string,notes?:string|null} $validated */
         $validated = $this->validated();
 
         return new UpdateContentTopicData(
+            categoryId: $validated['category_id'],
             title: $validated['title'],
             slug: $validated['slug'] ?? null,
             cluster: $validated['cluster'],
