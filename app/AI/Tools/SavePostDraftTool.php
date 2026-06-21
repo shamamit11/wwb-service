@@ -68,8 +68,8 @@ class SavePostDraftTool
                 slug: $result->slug,
                 shortDescription: $result->shortDescription,
                 description: $result->description,
-                fullArticleMarkdown: $result->markdownBody,
                 fullArticleHtml: $result->fullArticleHtml,
+                fullArticleDelta: $result->fullArticleDelta,
                 faq: array_map(
                     static fn (array $faq): array => [
                         'question' => $faq['question'],
@@ -92,8 +92,8 @@ class SavePostDraftTool
                 slug: $result->slug,
                 shortDescription: $result->shortDescription,
                 description: $result->description,
-                fullArticleMarkdown: $result->markdownBody,
                 fullArticleHtml: $result->fullArticleHtml,
+                fullArticleDelta: $result->fullArticleDelta,
                 faq: array_map(
                     static fn (array $faq): array => [
                         'question' => $faq['question'],
@@ -146,7 +146,8 @@ class SavePostDraftTool
             'primary_keyword' => $primaryKeyword,
             'secondary_keywords' => array_values($secondaryKeywords),
             'search_intent' => $searchIntent,
-            'markdown_body' => $result->markdownBody,
+            'html_body' => $result->fullArticleHtml,
+            'quill_delta' => $result->fullArticleDelta,
             'faq_suggestions' => $result->faqSuggestions,
             'suggested_tags' => $result->suggestedTags,
             'image_placement_notes' => $result->imagePlacementNotes,

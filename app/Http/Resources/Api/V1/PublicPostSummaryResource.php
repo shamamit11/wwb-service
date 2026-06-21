@@ -66,13 +66,13 @@ class PublicPostSummaryResource extends ApiResource
 
     private function readingTimeMinutes(): ?int
     {
-        $markdown = trim((string) ($this->resource->full_article_markdown ?? ''));
+        $html = trim((string) ($this->resource->full_article_html ?? ''));
 
-        if ($markdown === '') {
+        if ($html === '') {
             return null;
         }
 
-        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
 
         return max(1, (int) ceil(count($matches[0]) / 200));
     }

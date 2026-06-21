@@ -40,7 +40,7 @@ class ArticleSchemaBuilder
             ],
             'articleSection' => $post->category?->name,
             'keywords' => $metadata?->focus_keyword ?: ($post->tags->pluck('name')->implode(', ') ?: null),
-            'wordCount' => $this->wordCount($post->full_article_markdown),
+            'wordCount' => $this->wordCount($post->full_article_html),
             'isAccessibleForFree' => true,
             'breadcrumb' => [
                 '@id' => "{$canonical}#breadcrumb",
@@ -70,13 +70,13 @@ class ArticleSchemaBuilder
         return array_replace_recursive($schema, $overrides);
     }
 
-    private function wordCount(?string $markdown): int
+    private function wordCount(?string $html): int
     {
-        if ($markdown === null || trim($markdown) === '') {
+        if ($html === null || trim($html) === '') {
             return 0;
         }
 
-        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
 
         return count($matches[0]);
     }

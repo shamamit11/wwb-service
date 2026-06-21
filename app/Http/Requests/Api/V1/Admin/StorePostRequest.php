@@ -24,8 +24,8 @@ class StorePostRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:190', 'unique:posts,slug'],
             'short_description' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
-            'full_article_markdown' => ['required', 'string'],
-            'full_article_html' => ['nullable', 'string'],
+            'full_article_html' => ['required', 'string'],
+            'full_article_delta' => ['nullable', 'array'],
             'faq' => ['nullable', 'array'],
             'faq.*.question' => ['required_with:faq', 'string'],
             'faq.*.answer' => ['required_with:faq', 'string'],
@@ -42,7 +42,7 @@ class StorePostRequest extends FormRequest
 
     public function toData(int $userId): CreatePostCommandData
     {
-        /** @var array{title:string,slug?:string|null,short_description?:string|null,description?:string|null,full_article_markdown:string,full_article_html?:string|null,faq?:array<int,array{question:string,answer:string}>|null,category_id:int,featured_media_id?:int|null,status:string,visibility:string,published_at?:string|null,meta?:array<string,mixed>|null,tag_ids?:array<int,int>} $validated */
+        /** @var array{title:string,slug?:string|null,short_description?:string|null,description?:string|null,full_article_html:string,full_article_delta?:array<int|string,mixed>|null,faq?:array<int,array{question:string,answer:string}>|null,category_id:int,featured_media_id?:int|null,status:string,visibility:string,published_at?:string|null,meta?:array<string,mixed>|null,tag_ids?:array<int,int>} $validated */
         $validated = $this->validated();
 
         return new CreatePostCommandData(
@@ -53,8 +53,8 @@ class StorePostRequest extends FormRequest
             slug: $validated['slug'] ?? '',
             shortDescription: $validated['short_description'] ?? null,
             description: $validated['description'] ?? null,
-            fullArticleMarkdown: $validated['full_article_markdown'],
-            fullArticleHtml: $validated['full_article_html'] ?? null,
+            fullArticleHtml: $validated['full_article_html'],
+            fullArticleDelta: is_array($validated['full_article_delta'] ?? null) ? $validated['full_article_delta'] : null,
             faq: $validated['faq'] ?? [],
             status: $validated['status'],
             visibility: $validated['visibility'],

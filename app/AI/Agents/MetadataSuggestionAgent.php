@@ -145,7 +145,7 @@ PROMPT;
             'Existing tags: '.$this->listOrFallback($input->existingTags),
             'Knowledge base context: '.$this->listOrFallback($input->knowledgeBaseContext),
             'Editorial instructions: '.$this->stringOrFallback($input->instructions),
-            'Article markdown:'."\n".$input->existingMarkdownBody,
+            'Article body:'."\n".$input->existingArticleBody,
         ];
 
         return implode("\n\n", $sections);

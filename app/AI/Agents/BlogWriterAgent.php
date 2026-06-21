@@ -93,7 +93,7 @@ class BlogWriterAgent implements ContentAgentInterface
                 'post_id' => (int) $post->id,
                 'title' => $parsedResponse->title,
                 'slug' => $post->slug,
-                'full_article_markdown_length' => mb_strlen($parsedResponse->markdownBody),
+                'full_article_html_length' => mb_strlen($parsedResponse->fullArticleHtml),
                 'faq_suggestions' => $parsedResponse->faqSuggestions,
                 'suggested_tags' => $parsedResponse->suggestedTags,
                 'image_placement_notes' => $parsedResponse->imagePlacementNotes,
@@ -238,10 +238,10 @@ class BlogWriterAgent implements ContentAgentInterface
 
         $title = $this->normalizeString($decoded['title'] ?? null) ?? $input->title;
         $slug = $this->normalizeString($decoded['slug'] ?? null) ?? $input->slug;
-        $markdownBody = $this->normalizeString($decoded['full_article_markdown'] ?? $decoded['markdown_body'] ?? null);
+        $fullArticleHtml = $this->normalizeString($decoded['full_article_html'] ?? $decoded['article_html'] ?? null);
 
-        if ($markdownBody === null) {
-            throw new RuntimeException('Blog writer response did not include full_article_markdown.');
+        if ($fullArticleHtml === null) {
+            throw new RuntimeException('Blog writer response did not include full_article_html.');
         }
 
         $faqSuggestions = $this->normalizeFaqSuggestions($decoded['faq_suggestions'] ?? []);
@@ -249,10 +249,10 @@ class BlogWriterAgent implements ContentAgentInterface
         return new BlogDraftResult(
             title: $title,
             slug: (string) \Illuminate\Support\Str::slug($slug),
-            markdownBody: $markdownBody,
+            fullArticleHtml: $fullArticleHtml,
+            fullArticleDelta: $this->normalizeArray($decoded['full_article_delta'] ?? $decoded['quill_delta'] ?? null),
             shortDescription: $this->normalizeString($decoded['short_description'] ?? null),
             description: $this->normalizeString($decoded['description'] ?? null),
-            fullArticleHtml: $this->normalizeString($decoded['full_article_html'] ?? null),
             excerpt: $this->normalizeString($decoded['excerpt'] ?? null),
             seoTitle: $this->normalizeString($decoded['seo_title'] ?? null),
             metaDescription: $this->normalizeString($decoded['meta_description'] ?? null),
@@ -352,6 +352,14 @@ class BlogWriterAgent implements ContentAgentInterface
         $normalized = trim($value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @return array<int|string, mixed>|null
+     */
+    private function normalizeArray(mixed $value): ?array
+    {
+        return is_array($value) ? $value : null;
     }
 
     /**

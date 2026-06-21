@@ -16,9 +16,9 @@ class ContentScoreCalculator
         $recommendations = [];
         $focusKeyword = mb_strtolower((string) ($post->seo?->focus_keyword ?? ''));
         $hasFocusKeyword = $focusKeyword !== '';
-        $markdown = trim((string) ($post->full_article_markdown ?? ''));
-        $wordCount = $this->wordCount($markdown);
-        $hasHeading = preg_match('/^##?\s+/m', $markdown) === 1;
+        $html = trim((string) ($post->full_article_html ?? ''));
+        $wordCount = $this->wordCount($html);
+        $hasHeading = preg_match('/<h[1-6]\b/i', $html) === 1;
         $hasFaq = is_array($post->faq) && $post->faq !== [];
 
         if (($post->short_description ?? null) !== null) {
@@ -47,9 +47,9 @@ class ContentScoreCalculator
 
         if ($hasHeading) {
             $score += 5;
-            $checks[] = $this->check('headings', true, 5, 'Markdown heading structure is present.');
+            $checks[] = $this->check('headings', true, 5, 'Heading structure is present.');
         } else {
-            $checks[] = $this->check('headings', false, 0, 'No markdown headings were found.');
+            $checks[] = $this->check('headings', false, 0, 'No article headings were found.');
             $recommendations[] = 'Add heading structure to the article.';
         }
 
@@ -79,13 +79,13 @@ class ContentScoreCalculator
         ];
     }
 
-    private function wordCount(string $markdown): int
+    private function wordCount(string $html): int
     {
-        if ($markdown === '') {
+        if ($html === '') {
             return 0;
         }
 
-        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
 
         return count($matches[0]);
     }

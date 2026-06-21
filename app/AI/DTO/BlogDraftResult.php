@@ -13,10 +13,10 @@ final readonly class BlogDraftResult extends AgentOutput
     public function __construct(
         public string $title,
         public string $slug,
-        public string $markdownBody,
+        public string $fullArticleHtml,
+        public ?array $fullArticleDelta = null,
         public ?string $shortDescription = null,
         public ?string $description = null,
-        public ?string $fullArticleHtml = null,
         public ?string $excerpt = null,
         public ?string $seoTitle = null,
         public ?string $metaDescription = null,

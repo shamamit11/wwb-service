@@ -33,8 +33,8 @@ Canonical post fields include:
 - `slug`
 - `short_description`
 - `description`
-- `full_article_markdown`
 - `full_article_html`
+- `full_article_delta`
 - `faq`
 - `status`
 - `visibility`

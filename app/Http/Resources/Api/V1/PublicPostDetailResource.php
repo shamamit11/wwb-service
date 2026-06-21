@@ -18,7 +18,7 @@ class PublicPostDetailResource extends ApiResource
         $canonicalUrls = app(CanonicalUrlService::class);
         /** @var GenerateSchemaPayloadService $schemas */
         $schemas = app(GenerateSchemaPayloadService::class);
-        $contentMarkdown = $this->contentMarkdown();
+        $contentHtml = $this->contentHtml();
         $relatedPosts = $this->resource->relationLoaded('relatedPosts')
             ? $this->resource->getRelation('relatedPosts')
             : collect();
@@ -32,13 +32,12 @@ class PublicPostDetailResource extends ApiResource
             'canonical_url' => $canonicalUrls->for($this->resource),
             'published_at' => $this->resource->published_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
-            'reading_time_minutes' => $this->readingTimeMinutes($contentMarkdown),
-            'read_time' => $this->formatReadTime($this->readingTimeMinutes($contentMarkdown)),
-            'word_count' => $this->wordCount($contentMarkdown),
-            'content' => $contentMarkdown,
-            'content_markdown' => $contentMarkdown,
-            'full_article_markdown' => $this->resource->full_article_markdown,
+            'reading_time_minutes' => $this->readingTimeMinutes($contentHtml),
+            'read_time' => $this->formatReadTime($this->readingTimeMinutes($contentHtml)),
+            'word_count' => $this->wordCount($contentHtml),
+            'content' => $contentHtml,
             'full_article_html' => $this->resource->full_article_html,
+            'full_article_delta' => $this->resource->full_article_delta,
             'faq' => $this->resource->faq ?? [],
             'author' => $this->resource->author === null ? null : [
                 'id' => $this->resource->author->id,
@@ -80,18 +79,18 @@ class PublicPostDetailResource extends ApiResource
         return (new PublicMediaResource($this->resource->featuredMedia))->resolve()['url'] ?? null;
     }
 
-    private function contentMarkdown(): ?string
+    private function contentHtml(): ?string
     {
-        if (filled($this->resource->full_article_markdown)) {
-            return trim((string) $this->resource->full_article_markdown);
+        if (filled($this->resource->full_article_html)) {
+            return trim((string) $this->resource->full_article_html);
         }
 
         return null;
     }
 
-    private function readingTimeMinutes(?string $markdown): ?int
+    private function readingTimeMinutes(?string $html): ?int
     {
-        $wordCount = $this->wordCount($markdown);
+        $wordCount = $this->wordCount($html);
 
         if ($wordCount <= 0) {
             return null;
@@ -100,13 +99,13 @@ class PublicPostDetailResource extends ApiResource
         return max(1, (int) ceil($wordCount / 200));
     }
 
-    private function wordCount(?string $markdown): int
+    private function wordCount(?string $html): int
     {
-        if ($markdown === null || trim($markdown) === '') {
+        if ($html === null || trim($html) === '') {
             return 0;
         }
 
-        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
 
         return count($matches[0]);
     }

@@ -18,8 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'slug',
     'short_description',
     'description',
-    'full_article_markdown',
     'full_article_html',
+    'full_article_delta',
     'faq',
     'status',
     'visibility',
@@ -77,6 +77,7 @@ class Post extends Model
             'published_at' => 'datetime',
             'faq' => 'array',
             'meta' => 'array',
+            'full_article_delta' => 'array',
         ];
     }
 

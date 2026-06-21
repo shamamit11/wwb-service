@@ -26,8 +26,8 @@ return new class extends Migration
             $table->string('slug', 190)->unique();
             $table->string('short_description', 500)->nullable();
             $table->text('description')->nullable();
-            $table->longText('full_article_markdown')->nullable();
             $table->longText('full_article_html')->nullable();
+            $table->json('full_article_delta')->nullable();
             $table->json('faq')->nullable();
             $table->enum('status', Post::STATUSES);
             $table->enum('visibility', Post::VISIBILITIES)->default(Post::VISIBILITY_PUBLIC);

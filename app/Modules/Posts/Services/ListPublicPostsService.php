@@ -35,7 +35,7 @@ class ListPublicPostsService
                             ->orWhere('slug', 'like', "%{$search}%")
                             ->orWhere('short_description', 'like', "%{$search}%")
                             ->orWhere('description', 'like', "%{$search}%")
-                            ->orWhere('full_article_markdown', 'like', "%{$search}%")
+                            ->orWhere('full_article_html', 'like', "%{$search}%")
                         ->orWhereHas('category', fn (Builder $categoryQuery) => $categoryQuery
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('slug', 'like', "%{$search}%"))

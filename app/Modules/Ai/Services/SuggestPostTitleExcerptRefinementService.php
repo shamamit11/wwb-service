@@ -35,7 +35,7 @@ class SuggestPostTitleExcerptRefinementService
             postStatus: $post->status,
             primaryKeyword: $this->normalizeString($meta['primary_keyword'] ?? null),
             secondaryKeywords: $this->normalizeStringList($meta['secondary_keywords'] ?? []),
-            existingMarkdownBody: $this->resolveMarkdownBody($post, $meta),
+            existingArticleBody: $this->resolveArticleBody($post, $meta),
             existingTags: $post->tags->pluck('name')->filter()->values()->all(),
             knowledgeBaseContext: $this->knowledgeContext->forPrompt(new KnowledgeContextQueryData(
                 subject: $post->title,
@@ -63,15 +63,15 @@ class SuggestPostTitleExcerptRefinementService
     /**
      * @param  array<string, mixed>  $meta
      */
-    private function resolveMarkdownBody(Post $post, array $meta): string
+    private function resolveArticleBody(Post $post, array $meta): string
     {
-        $markdown = $this->normalizeString($meta['markdown_body'] ?? null);
+        $html = $this->normalizeString($meta['html_body'] ?? null);
 
-        if ($markdown !== null) {
-            return $markdown;
+        if ($html !== null) {
+            return strip_tags($html);
         }
 
-        return trim((string) ($post->full_article_markdown ?? ''));
+        return trim(strip_tags((string) ($post->full_article_html ?? '')));
     }
 
     private function normalizeString(mixed $value): ?string

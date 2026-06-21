@@ -76,7 +76,8 @@ Posts are expected to support:
 - `title`
 - `short_description`
 - `description`
-- `full_article_html` and/or `full_article_markdown`
+- `full_article_html`
+- `full_article_delta`
 - `featured_media_id`
 - `faq` as structured JSON
 - SEO metadata

@@ -21,7 +21,7 @@ final readonly class PostMetadataSuggestionInput extends AgentInput
         public ?string $existingFocusKeyword,
         public ?string $existingMetaTitle,
         public ?string $existingMetaDescription,
-        public string $existingMarkdownBody,
+        public string $existingArticleBody,
         public array $existingTags = [],
         public array $knowledgeBaseContext = [],
         public ?string $instructions = null,

@@ -21,8 +21,8 @@ class EloquentPostRepository implements PostRepository
             'slug' => $data->slug,
             'short_description' => $data->shortDescription,
             'description' => $data->description,
-            'full_article_markdown' => $data->fullArticleMarkdown,
             'full_article_html' => $data->fullArticleHtml,
+            'full_article_delta' => $data->fullArticleDelta,
             'faq' => $data->faq,
             'status' => $data->status,
             'visibility' => $data->visibility,
@@ -45,8 +45,8 @@ class EloquentPostRepository implements PostRepository
             'slug' => $data->slug,
             'short_description' => $data->shortDescription,
             'description' => $data->description,
-            'full_article_markdown' => $data->fullArticleMarkdown,
             'full_article_html' => $data->fullArticleHtml,
+            'full_article_delta' => $data->fullArticleDelta,
             'faq' => $data->faq,
             'status' => $data->status,
             'visibility' => $data->visibility,
@@ -166,7 +166,7 @@ class EloquentPostRepository implements PostRepository
                         ->orWhere('slug', 'like', "%{$search}%")
                         ->orWhere('short_description', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%")
-                        ->orWhere('full_article_markdown', 'like', "%{$search}%");
+                        ->orWhere('full_article_html', 'like', "%{$search}%");
                 });
             })
             ->when($filters->status, fn ($query, string $status) => $query->where('status', $status))

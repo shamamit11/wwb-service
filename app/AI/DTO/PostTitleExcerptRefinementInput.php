@@ -18,7 +18,7 @@ final readonly class PostTitleExcerptRefinementInput extends AgentInput
         public string $postStatus,
         public ?string $primaryKeyword,
         public array $secondaryKeywords,
-        public string $existingMarkdownBody,
+        public string $existingArticleBody,
         public array $existingTags = [],
         public array $knowledgeBaseContext = [],
         public ?string $instructions = null,
