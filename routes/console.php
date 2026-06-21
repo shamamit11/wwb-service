@@ -19,6 +19,10 @@ Schedule::command('queue:prune-failed --hours=168')
     ->dailyAt('01:30')
     ->withoutOverlapping();
 
+Schedule::command('ai:prune-low-score-topics')
+    ->hourly()
+    ->withoutOverlapping();
+
 foreach (ContentTopic::CLUSTERS as $index => $cluster) {
     $hour = 2 + intdiv($index, 4);
     $minute = ($index % 4) * 15;

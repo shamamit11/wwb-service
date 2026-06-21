@@ -28,6 +28,12 @@ class StoreContentTopicRequest extends FormRequest
             'secondary_keywords.*' => ['string', 'max:255'],
             'search_intent' => ['nullable', 'string', 'max:255'],
             'priority_score' => ['nullable', 'numeric', 'between:0,999.99'],
+            'score_breakdown' => ['nullable', 'array'],
+            'score_breakdown.trend_score' => ['nullable', 'numeric', 'between:0,35'],
+            'score_breakdown.knowledge_base_fit' => ['nullable', 'numeric', 'between:0,20'],
+            'score_breakdown.business_value' => ['nullable', 'numeric', 'between:0,20'],
+            'score_breakdown.originality_gap' => ['nullable', 'numeric', 'between:0,15'],
+            'score_breakdown.execution_confidence' => ['nullable', 'numeric', 'between:0,10'],
             'difficulty_note' => ['nullable', 'string'],
             'source' => ['nullable', 'string', Rule::in(ContentTopic::SOURCES)],
             'status' => ['nullable', 'string', Rule::in(ContentTopic::STATUSES)],
@@ -37,7 +43,7 @@ class StoreContentTopicRequest extends FormRequest
 
     public function toData(): CreateContentTopicData
     {
-        /** @var array{title:string,slug?:string|null,cluster:string,primary_keyword?:string|null,secondary_keywords?:array<int,string>|null,search_intent?:string|null,priority_score?:int|float|string|null,difficulty_note?:string|null,source?:string|null,status?:string|null,notes?:string|null} $validated */
+        /** @var array{title:string,slug?:string|null,cluster:string,primary_keyword?:string|null,secondary_keywords?:array<int,string>|null,search_intent?:string|null,priority_score?:int|float|string|null,score_breakdown?:array<string,int|float|string|null>|null,difficulty_note?:string|null,source?:string|null,status?:string|null,notes?:string|null} $validated */
         $validated = $this->validated();
 
         return new CreateContentTopicData(
@@ -48,6 +54,7 @@ class StoreContentTopicRequest extends FormRequest
             secondaryKeywords: array_values($validated['secondary_keywords'] ?? []),
             searchIntent: $validated['search_intent'] ?? null,
             priorityScore: isset($validated['priority_score']) ? (string) $validated['priority_score'] : null,
+            scoreBreakdown: is_array($validated['score_breakdown'] ?? null) ? $validated['score_breakdown'] : null,
             difficultyNote: $validated['difficulty_note'] ?? null,
             source: $validated['source'] ?? ContentTopic::SOURCE_MANUAL,
             status: $validated['status'] ?? ContentTopic::STATUS_SUGGESTED,

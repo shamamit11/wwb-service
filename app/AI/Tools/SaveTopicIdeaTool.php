@@ -23,6 +23,7 @@ class SaveTopicIdeaTool
             secondaryKeywords: $topic->secondaryKeywords,
             searchIntent: $topic->searchIntent,
             priorityScore: $topic->priorityScore,
+            scoreBreakdown: $topic->scoreBreakdown,
             difficultyNote: $topic->difficultyNote,
             source: ContentTopic::SOURCE_AI_SUGGESTED,
             status: ContentTopic::STATUS_SUGGESTED,

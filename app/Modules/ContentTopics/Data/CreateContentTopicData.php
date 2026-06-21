@@ -18,6 +18,7 @@ final readonly class CreateContentTopicData extends DataTransferObject
         public array $secondaryKeywords = [],
         public ?string $searchIntent = null,
         public ?string $priorityScore = null,
+        public ?array $scoreBreakdown = null,
         public ?string $difficultyNote = null,
         public string $source = ContentTopic::SOURCE_MANUAL,
         public string $status = ContentTopic::STATUS_SUGGESTED,

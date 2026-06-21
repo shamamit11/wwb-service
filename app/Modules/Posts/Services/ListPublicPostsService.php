@@ -30,13 +30,12 @@ class ListPublicPostsService
         return $this->baseQuery()
             ->when($filters->search, function (Builder $query, string $search): void {
                 $query->where(function (Builder $inner) use ($search): void {
-                    $inner
-                        ->where('title', 'like', "%{$search}%")
-                        ->orWhere('slug', 'like', "%{$search}%")
-                        ->orWhere('excerpt', 'like', "%{$search}%")
-                        ->orWhereHas('blocks', fn (Builder $blockQuery) => $blockQuery
-                            ->where('content_markdown', 'like', "%{$search}%")
-                            ->orWhere('plain_text_cache', 'like', "%{$search}%"))
+                        $inner
+                            ->where('title', 'like', "%{$search}%")
+                            ->orWhere('slug', 'like', "%{$search}%")
+                            ->orWhere('short_description', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%")
+                            ->orWhere('full_article_markdown', 'like', "%{$search}%")
                         ->orWhereHas('category', fn (Builder $categoryQuery) => $categoryQuery
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('slug', 'like', "%{$search}%"))
@@ -60,7 +59,7 @@ class ListPublicPostsService
     protected function baseQuery(): Builder
     {
         return Post::query()
-            ->with(['author', 'category', 'tags', 'featuredMedia', 'template', 'seo.ogImageMedia'])
+            ->with(['author', 'category', 'tags', 'featuredMedia', 'seo.ogImageMedia'])
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('visibility', Post::VISIBILITY_PUBLIC)
             ->whereNotNull('published_at')

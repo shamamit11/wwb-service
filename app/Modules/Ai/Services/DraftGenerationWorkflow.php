@@ -5,14 +5,13 @@ namespace App\Modules\Ai\Services;
 use App\Jobs\AI\GenerateBlogDraftJob;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
-use App\Models\ContentBrief;
+use App\Models\ContentTopic;
 use App\Models\Post;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 use App\Modules\Ai\Repositories\AiJobRepository;
-use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
 use App\Modules\Posts\Repositories\PostRepository;
-use App\Modules\Posts\Services\GenerateBlogDraftFromBriefService;
+use App\Modules\Posts\Services\GenerateBlogDraftFromTopicService;
 use RuntimeException;
 use Throwable;
 
@@ -21,24 +20,22 @@ class DraftGenerationWorkflow
     public function __construct(
         private readonly AiJobRepository $jobs,
         private readonly TrackAiJobService $trackAiJob,
-        private readonly ContentBriefRepository $briefs,
         private readonly PostRepository $posts,
-        private readonly GenerateBlogDraftFromBriefService $generateBlogDraft,
+        private readonly GenerateBlogDraftFromTopicService $generateBlogDraft,
     ) {}
 
-    public function queue(ContentBrief $brief, QueueBlogDraftGenerationData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
+    public function queue(ContentTopic $topic, QueueBlogDraftGenerationData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
     {
-        if (! $brief->canGenerateDraft() && $this->posts->findBySourceContentBriefId((int) $brief->id) === null) {
-            throw new \App\Modules\Posts\Exceptions\BlogDraftGenerationNotAllowedException(
-                briefStatus: $brief->status,
-                message: "Blog draft can only be generated from approved content briefs. Current status is [{$brief->status}].",
+        if (! $topic->canGenerateDraft() && $this->posts->findBySourceContentTopicId((int) $topic->id) === null) {
+            throw new RuntimeException(
+                "Blog draft can only be generated from approved topics. Current status is [{$topic->status}].",
             );
         }
 
         $activeJob = AiJob::query()
             ->where('type', AiPromptTemplate::TYPE_BLOG_WRITER)
-            ->where('entity_type', 'content_brief')
-            ->where('entity_id', (int) $brief->id)
+            ->where('entity_type', 'content_topic')
+            ->where('entity_id', (int) $topic->id)
             ->whereIn('status', [
                 AiJob::STATUS_PENDING,
                 AiJob::STATUS_QUEUED,
@@ -54,17 +51,14 @@ class DraftGenerationWorkflow
         $job = $this->jobs->create(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_BLOG_WRITER,
             status: AiJob::STATUS_QUEUED,
-            entityType: 'content_brief',
-            entityId: (int) $brief->id,
+            entityType: 'content_topic',
+            entityId: (int) $topic->id,
             inputPayload: [
-                'content_brief_id' => (int) $brief->id,
+                'content_topic_id' => (int) $topic->id,
                 'author_user_id' => $data->authorUserId,
                 'category_id' => $data->categoryId,
-                'template_id' => $data->templateId,
                 'featured_media_id' => $data->featuredMediaId,
                 'visibility' => $data->visibility,
-                'prompt_template_key' => $data->promptTemplateKey,
-                'generation_mode' => $data->generationMode,
             ],
             attempts: max(1, $attempts),
             retryOfAiJobId: $retryOfAiJobId,
@@ -85,20 +79,20 @@ class DraftGenerationWorkflow
 
         try {
             $payload = is_array($job->input_payload) ? $job->input_payload : [];
-            $briefId = $this->requirePositiveInt($payload['content_brief_id'] ?? null, 'content_brief_id');
-            $brief = $this->briefs->findById($briefId);
+            $topicId = $this->requirePositiveInt($payload['content_topic_id'] ?? null, 'content_topic_id');
+            $topic = ContentTopic::query()->find($topicId);
 
-            if ($brief === null) {
-                throw new RuntimeException("Content brief [{$briefId}] could not be found.");
+            if (! $topic instanceof ContentTopic) {
+                throw new RuntimeException("Content topic [{$topicId}] could not be found.");
             }
 
-            $existing = $this->posts->findBySourceContentBriefId((int) $brief->id);
+            $existing = $this->posts->findBySourceContentTopicId((int) $topic->id);
 
             if ($existing instanceof Post) {
                 $job = $this->trackAiJob->startJob($job);
                 $this->trackAiJob->completeJob($job, [
                     'post_id' => (int) $existing->id,
-                    'content_topic_id' => (int) $brief->content_topic_id,
+                    'content_topic_id' => (int) $topic->id,
                     'reused_existing_post' => true,
                 ]);
 
@@ -106,15 +100,12 @@ class DraftGenerationWorkflow
             }
 
             $this->generateBlogDraft->handle(
-                brief: $brief,
+                topic: $topic,
                 authorUserId: $this->nullablePositiveInt($payload['author_user_id'] ?? null) ?? 1,
                 categoryId: $this->requirePositiveInt($payload['category_id'] ?? null, 'category_id'),
-                templateId: $this->nullablePositiveInt($payload['template_id'] ?? null),
                 featuredMediaId: $this->nullablePositiveInt($payload['featured_media_id'] ?? null),
                 visibility: $this->normalizeVisibility($payload['visibility'] ?? null),
                 aiJobId: (int) $job->id,
-                promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
-                generationMode: is_string($payload['generation_mode'] ?? null) ? $payload['generation_mode'] : null,
             );
         } catch (Throwable $throwable) {
             $job = $this->jobs->findById($aiJobId);

@@ -20,12 +20,12 @@ class PublicPostSummaryResource extends ApiResource
             'id' => $this->resource->id,
             'title' => $this->resource->title,
             'slug' => $this->resource->slug,
-            'excerpt' => $this->resource->excerpt,
+            'short_description' => $this->resource->short_description,
             'canonical_url' => $canonicalUrls->for($this->resource),
             'published_at' => $this->resource->published_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
-            'reading_time_minutes' => $this->resource->reading_time_minutes,
-            'read_time' => $this->formatReadTime($this->resource->reading_time_minutes),
+            'reading_time_minutes' => $this->readingTimeMinutes(),
+            'read_time' => $this->formatReadTime($this->readingTimeMinutes()),
             'featured_image' => $this->featuredImageUrl(),
             'featured_media' => $this->whenLoaded('featuredMedia', fn (): ?array => $this->resource->featuredMedia === null ? null : (new PublicMediaResource($this->resource->featuredMedia))->resolve()),
             'author' => $this->whenLoaded('author', fn (): ?array => $this->resource->author === null ? null : [
@@ -62,5 +62,18 @@ class PublicPostSummaryResource extends ApiResource
         }
 
         return (new PublicMediaResource($this->resource->featuredMedia))->resolve()['url'] ?? null;
+    }
+
+    private function readingTimeMinutes(): ?int
+    {
+        $markdown = trim((string) ($this->resource->full_article_markdown ?? ''));
+
+        if ($markdown === '') {
+            return null;
+        }
+
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
+
+        return max(1, (int) ceil(count($matches[0]) / 200));
     }
 }

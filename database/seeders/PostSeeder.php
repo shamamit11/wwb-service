@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Media;
 use App\Models\Post;
-use App\Models\Template;
 use Database\Seeders\Concerns\SeederSupport;
 use Illuminate\Database\Seeder;
 
@@ -29,10 +28,9 @@ class PostSeeder extends Seeder
             return;
         }
 
-        $tutorialTemplate = Template::query()->where('slug', 'tutorial')->first();
         $featuredMedia = Media::query()->where('object_key', 'seed/media/ai-agent-memory-cover.webp')->first();
 
-        foreach ($this->records($admin->id, $category->id, $tutorialTemplate?->id, $featuredMedia?->id) as $attributes) {
+        foreach ($this->records($admin->id, $category->id, $featuredMedia?->id) as $attributes) {
             Post::query()->updateOrCreate(
                 ['slug' => $attributes['slug']],
                 $attributes,
@@ -43,25 +41,22 @@ class PostSeeder extends Seeder
     /**
      * @return list<array<string, mixed>>
      */
-    private function records(int $adminUserId, int $categoryId, ?int $templateId, ?int $featuredMediaId): array
+    private function records(int $adminUserId, int $categoryId, ?int $featuredMediaId): array
     {
         return [
             [
                 'author_user_id' => $adminUserId,
                 'category_id' => $categoryId,
-                'template_id' => $templateId,
                 'featured_media_id' => $featuredMediaId,
                 'title' => 'How AI Agent Memory Works',
                 'slug' => 'how-ai-agent-memory-works',
-                'excerpt' => 'A practical look at short-term and long-term memory patterns in AI agents.',
+                'short_description' => 'A practical look at short-term and long-term memory patterns in AI agents.',
+                'description' => 'An editorial overview of how memory shapes agent behavior.',
+                'full_article_markdown' => "# How AI Agent Memory Works\n\nMemory patterns determine how agents retain useful context over time.",
+                'faq' => [],
                 'status' => Post::STATUS_PUBLISHED,
                 'visibility' => Post::VISIBILITY_PUBLIC,
                 'published_at' => now()->subDay(),
-                'scheduled_for' => null,
-                'content_version' => 1,
-                'reading_time_minutes' => 8,
-                'word_count' => 1200,
-                'is_featured' => true,
                 'meta' => [
                     'seeded' => true,
                     'seo' => ['title' => 'How AI Agent Memory Works'],
@@ -70,19 +65,16 @@ class PostSeeder extends Seeder
             [
                 'author_user_id' => $adminUserId,
                 'category_id' => $categoryId,
-                'template_id' => $templateId,
                 'featured_media_id' => null,
                 'title' => 'Laravel Queue Timeout Patterns',
                 'slug' => 'laravel-queue-timeout-patterns',
-                'excerpt' => 'Editorial draft covering retries, timeouts, and idempotency.',
+                'short_description' => 'Editorial draft covering retries, timeouts, and idempotency.',
+                'description' => 'A draft article about operational queue safety.',
+                'full_article_markdown' => "# Laravel Queue Timeout Patterns\n\nRetries happen, so idempotency matters.",
+                'faq' => [],
                 'status' => Post::STATUS_DRAFT,
                 'visibility' => Post::VISIBILITY_INTERNAL,
                 'published_at' => null,
-                'scheduled_for' => null,
-                'content_version' => 1,
-                'reading_time_minutes' => 6,
-                'word_count' => 900,
-                'is_featured' => false,
                 'meta' => [
                     'seeded' => true,
                     'workflow' => ['state' => 'draft'],

@@ -16,19 +16,17 @@ class EloquentPostRepository implements PostRepository
         $post = Post::query()->create([
             'author_user_id' => $data->authorUserId,
             'category_id' => $data->categoryId,
-            'template_id' => $data->templateId,
             'featured_media_id' => $data->featuredMediaId,
             'title' => $data->title,
             'slug' => $data->slug,
-            'excerpt' => $data->excerpt,
+            'short_description' => $data->shortDescription,
+            'description' => $data->description,
+            'full_article_markdown' => $data->fullArticleMarkdown,
+            'full_article_html' => $data->fullArticleHtml,
+            'faq' => $data->faq,
             'status' => $data->status,
             'visibility' => $data->visibility,
             'published_at' => $data->publishedAt,
-            'scheduled_for' => $data->scheduledFor,
-            'content_version' => $data->contentVersion,
-            'reading_time_minutes' => $data->readingTimeMinutes,
-            'word_count' => $data->wordCount,
-            'is_featured' => $data->isFeatured,
             'meta' => $data->meta,
         ]);
 
@@ -42,19 +40,17 @@ class EloquentPostRepository implements PostRepository
         $post->update([
             'author_user_id' => $data->authorUserId,
             'category_id' => $data->categoryId,
-            'template_id' => $data->templateId,
             'featured_media_id' => $data->featuredMediaId,
             'title' => $data->title,
             'slug' => $data->slug,
-            'excerpt' => $data->excerpt,
+            'short_description' => $data->shortDescription,
+            'description' => $data->description,
+            'full_article_markdown' => $data->fullArticleMarkdown,
+            'full_article_html' => $data->fullArticleHtml,
+            'faq' => $data->faq,
             'status' => $data->status,
             'visibility' => $data->visibility,
             'published_at' => $data->publishedAt,
-            'scheduled_for' => $data->scheduledFor,
-            'content_version' => $data->contentVersion,
-            'reading_time_minutes' => $data->readingTimeMinutes,
-            'word_count' => $data->wordCount,
-            'is_featured' => $data->isFeatured,
             'meta' => $data->meta,
         ]);
 
@@ -68,7 +64,6 @@ class EloquentPostRepository implements PostRepository
         $post->update([
             'status' => $data->status,
             'published_at' => $data->publishedAt,
-            'scheduled_for' => $data->scheduledFor,
         ]);
 
         return $this->refreshWithRelations($post);
@@ -95,11 +90,11 @@ class EloquentPostRepository implements PostRepository
             ->first();
     }
 
-    public function findBySourceContentBriefId(int $contentBriefId): ?Post
+    public function findBySourceContentTopicId(int $contentTopicId): ?Post
     {
         return Post::query()
             ->with($this->relations())
-            ->where('meta->source_content_brief_id', $contentBriefId)
+            ->where('meta->source_content_topic_id', $contentTopicId)
             ->first();
     }
 
@@ -169,7 +164,9 @@ class EloquentPostRepository implements PostRepository
                     $innerQuery
                         ->where('title', 'like', "%{$search}%")
                         ->orWhere('slug', 'like', "%{$search}%")
-                        ->orWhere('excerpt', 'like', "%{$search}%");
+                        ->orWhere('short_description', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('full_article_markdown', 'like', "%{$search}%");
                 });
             })
             ->when($filters->status, fn ($query, string $status) => $query->where('status', $status))
@@ -177,14 +174,12 @@ class EloquentPostRepository implements PostRepository
             ->when($filters->categorySlug, function ($query, string $categorySlug): void {
                 $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('slug', $categorySlug));
             })
-            ->when($filters->isFeatured !== null, fn ($query) => $query->where('is_featured', $filters->isFeatured))
             ->when($filters->authorUserId, fn ($query, int $authorUserId) => $query->where('author_user_id', $authorUserId))
             ->when($filters->isAiGenerated !== null, function ($query) use ($filters): void {
                 if ($filters->isAiGenerated) {
                     $query->where(function ($innerQuery): void {
                         $innerQuery
-                            ->whereNotNull('meta->source_content_brief_id')
-                            ->orWhereNotNull('meta->source_content_topic_id')
+                            ->whereNotNull('meta->source_content_topic_id')
                             ->orWhereNotNull('meta->ai_job_id')
                             ->orWhereNotNull('meta->generated_by');
                     });
@@ -194,13 +189,11 @@ class EloquentPostRepository implements PostRepository
 
                 $query->where(function ($innerQuery): void {
                     $innerQuery
-                        ->whereNull('meta->source_content_brief_id')
                         ->whereNull('meta->source_content_topic_id')
                         ->whereNull('meta->ai_job_id')
                         ->whereNull('meta->generated_by');
                 });
             })
-            ->when($filters->sourceContentBriefId, fn ($query, int $sourceContentBriefId) => $query->where('meta->source_content_brief_id', $sourceContentBriefId))
             ->when($filters->sourceContentTopicId, fn ($query, int $sourceContentTopicId) => $query->where('meta->source_content_topic_id', $sourceContentTopicId))
             ->when($filters->generatedByAiJobId, fn ($query, int $generatedByAiJobId) => $query->where('meta->ai_job_id', $generatedByAiJobId))
             ->orderBy($sortColumn, $descending ? 'desc' : 'asc')
@@ -222,7 +215,6 @@ class EloquentPostRepository implements PostRepository
             ->when($categorySlug, function ($query, string $categorySlug): void {
                 $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('slug', $categorySlug)->where('is_active', true));
             })
-            ->when($featuredOnly, fn ($query) => $query->where('is_featured', true))
             ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->get();
@@ -254,6 +246,6 @@ class EloquentPostRepository implements PostRepository
      */
     private function relations(): array
     {
-        return ['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock', 'seo'];
+        return ['author', 'category', 'featuredMedia', 'tags', 'seo'];
     }
 }

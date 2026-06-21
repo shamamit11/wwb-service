@@ -8,6 +8,5 @@ final readonly class QueuePostMetadataSuggestionData extends DataTransferObject
 {
     public function __construct(
         public ?string $instructions = null,
-        public ?string $promptTemplateKey = null,
     ) {}
 }

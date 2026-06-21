@@ -23,16 +23,15 @@ class SuggestPostMetadataService
         Post $post,
         ?string $instructions = null,
         ?int $aiJobId = null,
-        ?string $promptTemplateKey = null,
     ): AgentResult {
-        $post = $this->posts->findById((int) $post->id) ?? $post->loadMissing(['tags', 'blocks', 'seo']);
+        $post = $this->posts->findById((int) $post->id) ?? $post->loadMissing(['tags', 'seo']);
         $meta = is_array($post->meta) ? $post->meta : [];
 
         $result = $this->agent->run(new PostMetadataSuggestionInput(
             postId: (int) $post->id,
             postTitle: $post->title,
             postSlug: $post->slug,
-            postExcerpt: $post->excerpt,
+            postExcerpt: $post->short_description,
             postStatus: $post->status,
             primaryKeyword: $this->normalizeString($meta['primary_keyword'] ?? null),
             secondaryKeywords: $this->normalizeStringList($meta['secondary_keywords'] ?? []),
@@ -52,12 +51,9 @@ class SuggestPostMetadataService
                 maxEntryCharacters: 280,
                 maxTotalCharacters: 1800,
             )),
-            briefOutline: $this->resolveBriefOutline($meta),
-            briefHeadings: $this->resolveBriefHeadings($meta),
             instructions: $instructions,
             metadata: array_filter([
                 'ai_job_id' => $aiJobId,
-                'prompt_template_key' => $promptTemplateKey,
             ], static fn (mixed $value): bool => $value !== null),
         ));
 
@@ -79,38 +75,7 @@ class SuggestPostMetadataService
             return $markdown;
         }
 
-        $blocks = $post->blocks->sortBy('sort_order');
-        $parts = [];
-
-        foreach ($blocks as $block) {
-            $content = trim((string) ($block->content_markdown ?? ''));
-
-            if ($content !== '') {
-                $parts[] = $content;
-            }
-        }
-
-        return trim(implode("\n\n", $parts));
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     * @return list<array<string, mixed>>
-     */
-    private function resolveBriefOutline(array $meta): array
-    {
-        $outline = $meta['brief_outline'] ?? null;
-
-        return is_array($outline) ? array_values(array_filter($outline, 'is_array')) : [];
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     * @return list<string>
-     */
-    private function resolveBriefHeadings(array $meta): array
-    {
-        return $this->normalizeStringList($meta['brief_headings'] ?? []);
+        return trim((string) ($post->full_article_markdown ?? ''));
     }
 
     private function normalizeString(mixed $value): ?string

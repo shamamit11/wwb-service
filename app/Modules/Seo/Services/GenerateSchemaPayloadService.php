@@ -32,7 +32,7 @@ class GenerateSchemaPayloadService
         [$seoable, $normalizedType] = $this->resolver->handle($seoableType, $seoableId);
 
         return match ($normalizedType) {
-            'post' => $this->forPost($seoable->loadMissing(['author', 'category', 'tags', 'blocks', 'seo.ogImageMedia'])),
+            'post' => $this->forPost($seoable->loadMissing(['author', 'category', 'tags', 'seo.ogImageMedia'])),
             'category' => $this->forCategory($seoable->loadMissing(['seo'])),
             default => throw new NotFoundHttpException('Schema target not found.'),
         };

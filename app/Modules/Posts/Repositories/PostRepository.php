@@ -23,7 +23,7 @@ interface PostRepository
 
     public function findByUlid(string $ulid): ?Post;
 
-    public function findBySourceContentBriefId(int $contentBriefId): ?Post;
+    public function findBySourceContentTopicId(int $contentTopicId): ?Post;
 
     public function findBySlug(string $slug): ?Post;
 

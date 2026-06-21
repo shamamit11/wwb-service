@@ -19,7 +19,6 @@ class QueuePostTitleExcerptRefinementRequest extends FormRequest
     {
         return [
             'instructions' => ['sometimes', 'nullable', 'string'],
-            'prompt_template_key' => ['sometimes', 'nullable', 'string', 'max:190'],
         ];
     }
 
@@ -30,7 +29,6 @@ class QueuePostTitleExcerptRefinementRequest extends FormRequest
 
         return new QueuePostTitleExcerptRefinementData(
             instructions: isset($validated['instructions']) ? (string) $validated['instructions'] : null,
-            promptTemplateKey: $validated['prompt_template_key'] ?? null,
         );
     }
 }

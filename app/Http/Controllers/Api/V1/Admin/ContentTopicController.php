@@ -7,10 +7,11 @@ use App\Http\Requests\Api\V1\Admin\ListContentTopicsRequest;
 use App\Http\Requests\Api\V1\Admin\StoreContentTopicRequest;
 use App\Http\Requests\Api\V1\Admin\TransitionContentTopicRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateContentTopicRequest;
-use App\Http\Resources\Api\V1\ContentBriefResource;
+use App\Http\Resources\Api\V1\AiJobResource;
 use App\Http\Resources\Api\V1\ContentTopicResource;
 use App\Models\ContentTopic;
-use App\Modules\Ai\Services\ContentBriefWorkflow;
+use App\Modules\Ai\Services\DraftGenerationWorkflow;
+use App\Modules\Ai\Services\ResolveAutoDraftGenerationDataService;
 use App\Modules\ContentTopics\Services\ApproveContentTopicService;
 use App\Modules\ContentTopics\Services\CreateContentTopicService;
 use App\Modules\ContentTopics\Services\DeleteContentTopicService;
@@ -89,27 +90,24 @@ class ContentTopicController extends Controller
         return new ContentTopicResource($service->handle($contentTopic, $request->notes()));
     }
 
-    public function generateBrief(
+    public function generateDraft(
         ContentTopic $contentTopic,
-        ContentBriefWorkflow $service,
+        ResolveAutoDraftGenerationDataService $resolveData,
+        DraftGenerationWorkflow $service,
     ): JsonResponse {
-        $job = $service->queue($contentTopic);
+        $data = $resolveData->handle($contentTopic);
 
-        if ($job !== null) {
+        if ($data === null) {
             return response()->json([
-                'message' => 'Content brief generation queued.',
-                'data' => (object) [],
-                'meta' => [
-                    'ai_job_id' => $job->id,
-                    'ai_job_status' => $job->status,
+                'message' => 'No active category is available for automatic draft generation.',
+                'errors' => [
+                    'category_id' => ['No active category could be resolved for this topic.'],
                 ],
-            ], Response::HTTP_ACCEPTED);
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $result = $service->generate($contentTopic);
-
-        return (new ContentBriefResource($result->brief))
+        return (new AiJobResource($service->queue($contentTopic, $data)))
             ->response()
-            ->setStatusCode(Response::HTTP_OK);
+            ->setStatusCode(Response::HTTP_ACCEPTED);
     }
 }

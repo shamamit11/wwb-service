@@ -30,7 +30,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 {
     use DecodesJsonResponse;
 
-    private const DEFAULT_PROMPT_KEY = 'topic_discovery_default';
+    private const DEFAULT_PROMPT_KEY = AiPromptTemplate::KEY_TOPIC_STANDARD;
 
     public function __construct(
         private readonly AiClient $aiClient,
@@ -65,7 +65,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 
         try {
             $this->guardCluster($input->cluster);
-
             $promptTemplate = $this->resolvePromptTemplate($input);
             $renderedPrompt = $this->renderPrompt->render($promptTemplate, $this->buildPromptVariables($input));
 
@@ -212,7 +211,8 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 primaryKeyword: $this->normalizeString($topicPayload['primary_keyword'] ?? null),
                 secondaryKeywords: $this->normalizeStringList($topicPayload['secondary_keywords'] ?? []),
                 searchIntent: $this->normalizeString($topicPayload['search_intent'] ?? null),
-                priorityScore: $this->normalizeDecimal($topicPayload['priority_score'] ?? null),
+                priorityScore: $this->resolvePriorityScore($topicPayload),
+                scoreBreakdown: $this->resolveScoreBreakdown($topicPayload),
                 difficultyNote: $this->normalizeString($topicPayload['difficulty_note'] ?? null),
                 summary: $this->normalizeString($topicPayload['summary'] ?? null),
             );
@@ -223,6 +223,57 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         }
 
         return new TopicDiscoveryResult($topics);
+    }
+
+    /**
+     * @param  array<string, mixed>  $topicPayload
+     */
+    private function resolvePriorityScore(array $topicPayload): ?string
+    {
+        $explicit = $this->normalizeDecimal($topicPayload['priority_score'] ?? null);
+
+        if ($explicit !== null) {
+            return $explicit;
+        }
+
+        $breakdown = $this->resolveScoreBreakdown($topicPayload);
+
+        if ($breakdown === null) {
+            return null;
+        }
+
+        $total = array_sum(array_map(static fn (mixed $value): float => (float) $value, $breakdown));
+
+        return number_format($total, 2, '.', '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $topicPayload
+     * @return array<string, float>|null
+     */
+    private function resolveScoreBreakdown(array $topicPayload): ?array
+    {
+        $map = [
+            'trend_score' => 35.0,
+            'knowledge_base_fit' => 20.0,
+            'business_value' => 20.0,
+            'originality_gap' => 15.0,
+            'execution_confidence' => 10.0,
+        ];
+
+        $scores = [];
+
+        foreach ($map as $key => $max) {
+            $value = $topicPayload[$key] ?? null;
+
+            if (! is_numeric($value)) {
+                return null;
+            }
+
+            $scores[$key] = max(0.0, min($max, (float) $value));
+        }
+
+        return $scores;
     }
 
     /**

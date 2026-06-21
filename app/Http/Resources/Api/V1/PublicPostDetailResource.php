@@ -3,7 +3,6 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Http\Resources\Api\ApiResource;
-use App\Models\Template;
 use App\Modules\Seo\Services\CanonicalUrlService;
 use App\Modules\Seo\Services\GenerateSchemaPayloadService;
 use Illuminate\Http\Request;
@@ -28,15 +27,19 @@ class PublicPostDetailResource extends ApiResource
             'id' => $this->resource->id,
             'title' => $this->resource->title,
             'slug' => $this->resource->slug,
-            'excerpt' => $this->resource->excerpt,
+            'short_description' => $this->resource->short_description,
+            'description' => $this->resource->description,
             'canonical_url' => $canonicalUrls->for($this->resource),
             'published_at' => $this->resource->published_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
-            'reading_time_minutes' => $this->resource->reading_time_minutes,
-            'read_time' => $this->formatReadTime($this->resource->reading_time_minutes),
-            'word_count' => $this->resource->word_count,
+            'reading_time_minutes' => $this->readingTimeMinutes($contentMarkdown),
+            'read_time' => $this->formatReadTime($this->readingTimeMinutes($contentMarkdown)),
+            'word_count' => $this->wordCount($contentMarkdown),
             'content' => $contentMarkdown,
             'content_markdown' => $contentMarkdown,
+            'full_article_markdown' => $this->resource->full_article_markdown,
+            'full_article_html' => $this->resource->full_article_html,
+            'faq' => $this->resource->faq ?? [],
             'author' => $this->resource->author === null ? null : [
                 'id' => $this->resource->author->id,
                 'name' => $this->resource->author->name,
@@ -53,13 +56,9 @@ class PublicPostDetailResource extends ApiResource
                 'name' => $tag->name,
                 'slug' => $tag->slug,
             ])->values()->all(),
-            'template' => $this->resource->template !== null && $this->resource->template->status === Template::STATUS_ACTIVE
-                ? (new PublicTemplateResource($this->resource->template))->resolve()
-                : null,
             'seo' => $this->resource->seo === null ? null : (new PublicSeoMetadataResource($this->resource->seo->loadMissing('ogImageMedia')))->resolve(),
             'related_posts' => PublicPostSummaryResource::collection($relatedPosts)->resolve(),
             'schema' => $schemas->handle('post', $this->resource->id),
-            'blocks' => PublicPostBlockResource::collection($this->resource->blocks)->resolve(),
         ];
     }
 
@@ -83,16 +82,32 @@ class PublicPostDetailResource extends ApiResource
 
     private function contentMarkdown(): ?string
     {
-        $parts = $this->resource->blocks
-            ->map(fn ($block): ?string => filled($block->content_markdown) ? trim((string) $block->content_markdown) : null)
-            ->filter(fn (?string $content): bool => $content !== null && $content !== '')
-            ->values()
-            ->all();
+        if (filled($this->resource->full_article_markdown)) {
+            return trim((string) $this->resource->full_article_markdown);
+        }
 
-        if ($parts === []) {
+        return null;
+    }
+
+    private function readingTimeMinutes(?string $markdown): ?int
+    {
+        $wordCount = $this->wordCount($markdown);
+
+        if ($wordCount <= 0) {
             return null;
         }
 
-        return implode("\n\n", $parts);
+        return max(1, (int) ceil($wordCount / 200));
+    }
+
+    private function wordCount(?string $markdown): int
+    {
+        if ($markdown === null || trim($markdown) === '') {
+            return 0;
+        }
+
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
+
+        return count($matches[0]);
     }
 }

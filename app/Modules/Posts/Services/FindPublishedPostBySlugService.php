@@ -11,7 +11,7 @@ class FindPublishedPostBySlugService
     public function handle(string $slug): Post
     {
         $post = Post::query()
-            ->with(['author', 'category', 'tags', 'featuredMedia', 'template', 'blocks', 'seo.ogImageMedia'])
+            ->with(['author', 'category', 'tags', 'featuredMedia', 'seo.ogImageMedia'])
             ->where('slug', $slug)
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('visibility', Post::VISIBILITY_PUBLIC)

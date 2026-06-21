@@ -21,7 +21,7 @@ class RssFeedEntryResource extends ApiResource
             'id' => $this->resource->id,
             'slug' => $this->resource->slug,
             'title' => $this->resource->title,
-            'description' => $this->resource->seo?->meta_description ?? $this->resource->excerpt,
+            'description' => $this->resource->seo?->meta_description ?? $this->resource->short_description,
             'link' => $canonicalUrls->for($this->resource),
             'published_at' => $this->resource->published_at?->toISOString(),
             'last_modified_at' => $this->resource->updated_at?->toISOString(),

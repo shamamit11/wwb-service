@@ -22,6 +22,7 @@ class InternalLinkingServiceTest extends TestCase
         parent::setUp();
 
         config()->set('app.url', 'https://widewebblog.test');
+        config()->set('app.frontend_url', 'https://www.widewebblog.com');
     }
 
     public function test_related_content_service_returns_relevant_published_posts_and_active_knowledge_base_entries(): void
@@ -36,7 +37,7 @@ class InternalLinkingServiceTest extends TestCase
         $source = $this->createPost($author, $category, [
             'title' => 'How AI Agent Memory Works',
             'slug' => 'how-ai-agent-memory-works',
-            'excerpt' => 'A practical guide to AI agent memory.',
+            'short_description' => 'A practical guide to AI agent memory.',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-12 09:30:00',
@@ -50,7 +51,7 @@ class InternalLinkingServiceTest extends TestCase
         $relatedPost = $this->createPost($author, $category, [
             'title' => 'AI Agent Memory Patterns',
             'slug' => 'ai-agent-memory-patterns',
-            'excerpt' => 'Patterns for retaining useful agent context.',
+            'short_description' => 'Patterns for retaining useful agent context.',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-10 08:00:00',
@@ -64,7 +65,7 @@ class InternalLinkingServiceTest extends TestCase
         $this->createPost($author, $otherCategory, [
             'title' => 'Private SEO Notes',
             'slug' => 'private-seo-notes',
-            'excerpt' => 'Not public.',
+            'short_description' => 'Not public.',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PRIVATE,
             'published_at' => '2026-06-09 08:00:00',
@@ -115,8 +116,8 @@ class InternalLinkingServiceTest extends TestCase
         $this->assertSame('knowledge_base_entry', $results[1]->contentType);
         $this->assertSame($knowledgeBaseEntry->id, $results[1]->id);
         $this->assertContains('memory', $results[0]->matchedTerms);
-        $this->assertSame('https://widewebblog.test/ai-agent-memory-patterns/', $results[0]->url);
-        $this->assertSame('https://widewebblog.test/knowledge-base/agent-memory-research-notes/', $results[1]->url);
+        $this->assertSame('https://www.widewebblog.com/ai-agent-memory-patterns/', $results[0]->url);
+        $this->assertSame('https://www.widewebblog.com/knowledge-base/agent-memory-research-notes/', $results[1]->url);
     }
 
     public function test_internal_link_suggestion_service_supports_draft_context(): void
@@ -128,7 +129,7 @@ class InternalLinkingServiceTest extends TestCase
         $publishedPost = $this->createPost($author, $category, [
             'title' => 'Memory Retrieval for AI Agents',
             'slug' => 'memory-retrieval-for-ai-agents',
-            'excerpt' => 'How retrieval helps memory-driven agents.',
+            'short_description' => 'How retrieval helps memory-driven agents.',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-10 08:00:00',
@@ -198,19 +199,17 @@ class InternalLinkingServiceTest extends TestCase
         $post = Post::query()->create(array_merge([
             'author_user_id' => $author->id,
             'category_id' => $category->id,
-            'template_id' => null,
             'featured_media_id' => null,
             'title' => 'Sample Post',
             'slug' => 'sample-post',
-            'excerpt' => null,
+            'short_description' => null,
+            'description' => null,
+            'full_article_markdown' => '# Sample Post',
+            'full_article_html' => null,
+            'faq' => [],
             'status' => Post::STATUS_DRAFT,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => null,
-            'scheduled_for' => null,
-            'content_version' => 1,
-            'reading_time_minutes' => null,
-            'word_count' => null,
-            'is_featured' => false,
             'meta' => null,
         ], $overrides));
 

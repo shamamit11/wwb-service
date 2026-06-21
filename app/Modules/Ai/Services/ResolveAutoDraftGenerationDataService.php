@@ -3,15 +3,13 @@
 namespace App\Modules\Ai\Services;
 
 use App\Models\Category;
-use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 
 class ResolveAutoDraftGenerationDataService
 {
-    public function handle(ContentBrief $brief): ?QueueBlogDraftGenerationData
+    public function handle(ContentTopic $topic): ?QueueBlogDraftGenerationData
     {
-        $topic = $brief->topic;
         $category = $this->resolveCategory($topic);
 
         if (! $category instanceof Category) {

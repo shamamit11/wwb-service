@@ -17,6 +17,7 @@ final readonly class TopicSuggestionData extends DataTransferObject
         public array $secondaryKeywords = [],
         public ?string $searchIntent = null,
         public ?string $priorityScore = null,
+        public ?array $scoreBreakdown = null,
         public ?string $difficultyNote = null,
         public ?string $summary = null,
     ) {}

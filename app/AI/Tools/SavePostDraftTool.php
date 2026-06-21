@@ -3,16 +3,11 @@
 namespace App\AI\Tools;
 
 use App\AI\DTO\BlogDraftResult;
-use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Models\Post;
 use App\Models\Tag;
-use App\Modules\ContentBriefs\Data\UpdateContentBriefData;
-use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
-use App\Modules\ContentBriefs\Services\UpdateContentBriefService;
 use App\Modules\ContentTopics\Services\MarkContentTopicUsedService;
 use App\Modules\Posts\Data\CreatePostCommandData;
-use App\Modules\Posts\Data\PostBlockPayloadData;
 use App\Modules\Posts\Data\UpdatePostCommandData;
 use App\Modules\Posts\Repositories\PostRepository;
 use App\Modules\Posts\Services\CreatePostService;
@@ -25,13 +20,11 @@ use RuntimeException;
 class SavePostDraftTool
 {
     public function __construct(
-        private readonly ContentBriefRepository $briefs,
         private readonly PostRepository $posts,
         private readonly TagRepository $tags,
         private readonly CreatePostService $createPost,
         private readonly UpdatePostService $updatePost,
         private readonly UpsertSeoMetadataService $upsertSeoMetadata,
-        private readonly UpdateContentBriefService $updateContentBrief,
         private readonly MarkContentTopicUsedService $markTopicUsed,
     ) {}
 
@@ -39,7 +32,6 @@ class SavePostDraftTool
      * @param  array<string, mixed>  $metadata
      */
     public function save(
-        int $contentBriefId,
         int $contentTopicId,
         ?string $primaryKeyword,
         array $secondaryKeywords,
@@ -47,19 +39,12 @@ class SavePostDraftTool
         BlogDraftResult $result,
         array $metadata = [],
     ): Post {
-        $brief = $this->briefs->findById($contentBriefId);
-
-        if (! $brief instanceof ContentBrief) {
-            throw new RuntimeException("Content brief [{$contentBriefId}] was not found.");
-        }
-
         $authorUserId = $this->resolveAuthorUserId($metadata['author_user_id'] ?? null);
         $categoryId = $this->requirePositiveInt($metadata['category_id'] ?? null, 'category_id');
-        $templateId = $this->nullablePositiveInt($metadata['template_id'] ?? null, 'template_id');
         $featuredMediaId = $this->nullablePositiveInt($metadata['featured_media_id'] ?? null, 'featured_media_id');
         $visibility = $this->normalizeVisibility($metadata['visibility'] ?? null);
 
-        $existing = $this->posts->findBySourceContentBriefId($contentBriefId);
+        $existing = $this->posts->findBySourceContentTopicId($contentTopicId);
         $matchedTagIds = $this->resolveSuggestedTagIds($result->suggestedTags);
         $tagIds = $existing instanceof Post
             ? array_values(array_unique(array_merge($existing->tags->modelKeys(), $matchedTagIds)))
@@ -67,7 +52,6 @@ class SavePostDraftTool
 
         $meta = $this->buildMeta(
             existingMeta: $existing?->meta,
-            contentBriefId: $contentBriefId,
             contentTopicId: $contentTopicId,
             primaryKeyword: $primaryKeyword,
             secondaryKeywords: $secondaryKeywords,
@@ -75,56 +59,53 @@ class SavePostDraftTool
             result: $result,
         );
 
-        $blocks = array_map(
-            static fn (array $block): PostBlockPayloadData => new PostBlockPayloadData(
-                blockType: (string) $block['block_type'],
-                sortOrder: (int) $block['sort_order'],
-                content: is_array($block['content'] ?? null) ? $block['content'] : [],
-            ),
-            $result->contentBlocks,
-        );
-
         if ($existing instanceof Post) {
             $post = $this->updatePost->handle($existing, new UpdatePostCommandData(
                 authorUserId: $authorUserId,
                 categoryId: $categoryId,
-                templateId: $templateId,
                 featuredMediaId: $featuredMediaId,
                 title: $result->title,
                 slug: $result->slug,
-                excerpt: $result->excerpt,
+                shortDescription: $result->shortDescription,
+                description: $result->description,
+                fullArticleMarkdown: $result->markdownBody,
+                fullArticleHtml: $result->fullArticleHtml,
+                faq: array_map(
+                    static fn (array $faq): array => [
+                        'question' => $faq['question'],
+                        'answer' => $faq['answer_markdown'],
+                    ],
+                    $result->faqSuggestions,
+                ),
                 status: Post::STATUS_DRAFT,
                 visibility: $visibility,
                 publishedAt: null,
-                scheduledFor: null,
-                contentVersion: max(1, (int) $existing->content_version) + 1,
-                readingTimeMinutes: $this->readingTimeMinutes($result->markdownBody),
-                wordCount: $this->wordCount($result->markdownBody),
-                isFeatured: false,
                 meta: $meta,
                 tagIds: $tagIds,
-                blocks: $blocks,
             ));
         } else {
             $post = $this->createPost->handle(new CreatePostCommandData(
                 authorUserId: $authorUserId,
                 categoryId: $categoryId,
-                templateId: $templateId,
                 featuredMediaId: $featuredMediaId,
                 title: $result->title,
                 slug: $result->slug,
-                excerpt: $result->excerpt,
+                shortDescription: $result->shortDescription,
+                description: $result->description,
+                fullArticleMarkdown: $result->markdownBody,
+                fullArticleHtml: $result->fullArticleHtml,
+                faq: array_map(
+                    static fn (array $faq): array => [
+                        'question' => $faq['question'],
+                        'answer' => $faq['answer_markdown'],
+                    ],
+                    $result->faqSuggestions,
+                ),
                 status: Post::STATUS_DRAFT,
                 visibility: $visibility,
                 publishedAt: null,
-                scheduledFor: null,
-                contentVersion: 1,
-                readingTimeMinutes: $this->readingTimeMinutes($result->markdownBody),
-                wordCount: $this->wordCount($result->markdownBody),
-                isFeatured: false,
                 meta: $meta,
                 tagIds: $tagIds,
-                blocks: $blocks,
             ));
         }
 
@@ -142,9 +123,9 @@ class SavePostDraftTool
             focusKeyword: $primaryKeyword,
         ));
 
-        $this->markBriefAndTopicUsed($brief);
+        $this->markTopicUsedById($contentTopicId);
 
-        return $post->refresh()->load(['author', 'category', 'template', 'featuredMedia', 'tags', 'blocks.sourceTemplateBlock', 'seo']);
+        return $post->refresh()->load(['author', 'category', 'featuredMedia', 'tags', 'seo']);
     }
 
     /**
@@ -154,15 +135,13 @@ class SavePostDraftTool
      */
     private function buildMeta(
         ?array $existingMeta,
-        int $contentBriefId,
         int $contentTopicId,
         ?string $primaryKeyword,
         array $secondaryKeywords,
         ?string $searchIntent,
         BlogDraftResult $result,
     ): array {
-        return array_merge($existingMeta ?? [], [
-            'source_content_brief_id' => $contentBriefId,
+        $meta = array_merge($existingMeta ?? [], [
             'source_content_topic_id' => $contentTopicId,
             'primary_keyword' => $primaryKeyword,
             'secondary_keywords' => array_values($secondaryKeywords),
@@ -174,6 +153,8 @@ class SavePostDraftTool
             'alt_text_suggestions' => $result->altTextSuggestions,
             'generated_by' => 'BlogWriterAgent',
         ]);
+
+        return $meta;
     }
 
     /**
@@ -222,15 +203,9 @@ class SavePostDraftTool
         return array_values(array_unique($tagIds));
     }
 
-    private function markBriefAndTopicUsed(ContentBrief $brief): void
+    private function markTopicUsedById(int $contentTopicId): void
     {
-        if ($brief->status === ContentBrief::STATUS_APPROVED) {
-            $brief = $this->updateContentBrief->handle($brief, new UpdateContentBriefData(
-                status: ContentBrief::STATUS_USED,
-            ));
-        }
-
-        $topic = $brief->topic;
+        $topic = ContentTopic::query()->find($contentTopicId);
 
         if ($topic instanceof ContentTopic && $topic->status === ContentTopic::STATUS_APPROVED) {
             $this->markTopicUsed->handle($topic);
@@ -275,17 +250,5 @@ class SavePostDraftTool
         }
 
         return Post::VISIBILITY_PUBLIC;
-    }
-
-    private function wordCount(string $markdown): int
-    {
-        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($markdown), $matches);
-
-        return count($matches[0]);
-    }
-
-    private function readingTimeMinutes(string $markdown): int
-    {
-        return max(1, (int) ceil($this->wordCount($markdown) / 200));
     }
 }

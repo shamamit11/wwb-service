@@ -24,8 +24,8 @@ class UpdateAiPromptTemplateRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:160'],
-            'key' => ['required', 'string', 'max:180', 'alpha_dash:ascii', Rule::unique('ai_prompt_templates', 'key')->ignore($template->id)],
-            'type' => ['required', 'string', Rule::in(AiPromptTemplate::TYPES)],
+            'key' => ['required', 'string', 'max:180', 'alpha_dash:ascii', Rule::in(AiPromptTemplate::MANAGED_KEYS), Rule::unique('ai_prompt_templates', 'key')->ignore($template->id)],
+            'type' => ['required', 'string', Rule::in(AiPromptTemplate::MANAGED_TYPES)],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'string', Rule::in(AiPromptTemplate::STATUSES)],
         ];
@@ -35,6 +35,11 @@ class UpdateAiPromptTemplateRequest extends FormRequest
     {
         /** @var array{name:string,key:string,type:string,description?:string|null,status:string} $validated */
         $validated = $this->validated();
+        $expectedType = AiPromptTemplate::MANAGED_KEY_TYPE_MAP[$validated['key']] ?? null;
+
+        if ($expectedType !== $validated['type']) {
+            abort(422, 'Prompt template key and type do not match the supported standard prompt families.');
+        }
 
         return new UpdateAiPromptTemplateData(
             name: $validated['name'],

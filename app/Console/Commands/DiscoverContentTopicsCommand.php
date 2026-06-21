@@ -13,7 +13,6 @@ class DiscoverContentTopicsCommand extends Command
         {--cluster= : Approved content cluster to target}
         {--count=10 : Number of topic suggestions to request}
         {--audience= : Optional target audience context}
-        {--prompt-template-key= : Optional prompt template key override}
         {--sync : Run immediately instead of dispatching to the queue}';
 
     protected $description = 'Discover AI-generated content topics inside an approved Wide Web Blog cluster.';
@@ -23,8 +22,6 @@ class DiscoverContentTopicsCommand extends Command
         $cluster = $this->option('cluster');
         $count = (int) $this->option('count');
         $audience = $this->option('audience');
-        $promptTemplateKey = $this->option('prompt-template-key');
-
         if (! is_string($cluster) || $cluster === '') {
             $this->components->error('The --cluster option is required.');
 
@@ -49,7 +46,6 @@ class DiscoverContentTopicsCommand extends Command
                 cluster: $cluster,
                 count: $count,
                 audience: is_string($audience) && $audience !== '' ? $audience : null,
-                promptTemplateKey: is_string($promptTemplateKey) && $promptTemplateKey !== '' ? $promptTemplateKey : null,
                 metadata: ['trigger' => 'command_sync'],
             ));
 
@@ -67,7 +63,6 @@ class DiscoverContentTopicsCommand extends Command
             cluster: $cluster,
             count: $count,
             audience: is_string($audience) && $audience !== '' ? $audience : null,
-            promptTemplateKey: is_string($promptTemplateKey) && $promptTemplateKey !== '' ? $promptTemplateKey : null,
             metadata: ['trigger' => 'command_queue'],
         ));
 

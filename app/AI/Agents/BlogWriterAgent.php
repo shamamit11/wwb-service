@@ -13,7 +13,6 @@ use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\FindInternalLinksTool;
 use App\AI\Tools\SavePostDraftTool;
 use App\AI\Tools\SearchExistingPostsTool;
-use App\Enums\ContentBlockType;
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
@@ -30,7 +29,7 @@ class BlogWriterAgent implements ContentAgentInterface
 {
     use DecodesJsonResponse;
 
-    private const DEFAULT_PROMPT_KEY = 'blog_writer_default';
+    private const DEFAULT_PROMPT_KEY = AiPromptTemplate::KEY_BLOG_STANDARD;
 
     public function __construct(
         private readonly AiClient $aiClient,
@@ -81,7 +80,6 @@ class BlogWriterAgent implements ContentAgentInterface
 
             $parsedResponse = $this->parseResponse($response->content, $contextualInput);
             $post = $this->savePostDraft->save(
-                contentBriefId: $contextualInput->contentBriefId,
                 contentTopicId: $contextualInput->contentTopicId,
                 primaryKeyword: $contextualInput->primaryKeyword,
                 secondaryKeywords: $contextualInput->secondaryKeywords,
@@ -95,7 +93,7 @@ class BlogWriterAgent implements ContentAgentInterface
                 'post_id' => (int) $post->id,
                 'title' => $parsedResponse->title,
                 'slug' => $post->slug,
-                'block_count' => count($parsedResponse->contentBlocks),
+                'full_article_markdown_length' => mb_strlen($parsedResponse->markdownBody),
                 'faq_suggestions' => $parsedResponse->faqSuggestions,
                 'suggested_tags' => $parsedResponse->suggestedTags,
                 'image_placement_notes' => $parsedResponse->imagePlacementNotes,
@@ -159,7 +157,6 @@ class BlogWriterAgent implements ContentAgentInterface
             );
 
         return new BlogDraftInput(
-            contentBriefId: $input->contentBriefId,
             contentTopicId: $input->contentTopicId,
             title: $input->title,
             slug: $input->slug,
@@ -241,42 +238,22 @@ class BlogWriterAgent implements ContentAgentInterface
 
         $title = $this->normalizeString($decoded['title'] ?? null) ?? $input->title;
         $slug = $this->normalizeString($decoded['slug'] ?? null) ?? $input->slug;
-        $markdownBody = $this->normalizeString($decoded['markdown_body'] ?? null);
+        $markdownBody = $this->normalizeString($decoded['full_article_markdown'] ?? $decoded['markdown_body'] ?? null);
 
         if ($markdownBody === null) {
-            throw new RuntimeException('Blog writer response did not include markdown_body.');
-        }
-
-        $contentBlocks = $this->normalizeContentBlocks($decoded['content_blocks'] ?? []);
-
-        if ($contentBlocks === []) {
-            throw new RuntimeException('Blog writer response did not include any valid content_blocks.');
+            throw new RuntimeException('Blog writer response did not include full_article_markdown.');
         }
 
         $faqSuggestions = $this->normalizeFaqSuggestions($decoded['faq_suggestions'] ?? []);
-
-        if ($faqSuggestions !== [] && ! $this->containsFaqBlock($contentBlocks)) {
-            $contentBlocks[] = [
-                'block_type' => ContentBlockType::FAQ->value,
-                'sort_order' => count($contentBlocks) + 1,
-                'content' => [
-                    'items' => array_map(
-                        static fn (array $faq): array => [
-                            'question' => $faq['question'],
-                            'answer_markdown' => $faq['answer_markdown'],
-                        ],
-                        $faqSuggestions,
-                    ),
-                ],
-            ];
-        }
 
         return new BlogDraftResult(
             title: $title,
             slug: (string) \Illuminate\Support\Str::slug($slug),
             markdownBody: $markdownBody,
+            shortDescription: $this->normalizeString($decoded['short_description'] ?? null),
+            description: $this->normalizeString($decoded['description'] ?? null),
+            fullArticleHtml: $this->normalizeString($decoded['full_article_html'] ?? null),
             excerpt: $this->normalizeString($decoded['excerpt'] ?? null),
-            contentBlocks: $contentBlocks,
             seoTitle: $this->normalizeString($decoded['seo_title'] ?? null),
             metaDescription: $this->normalizeString($decoded['meta_description'] ?? null),
             faqSuggestions: $faqSuggestions,
@@ -292,7 +269,6 @@ class BlogWriterAgent implements ContentAgentInterface
     private function buildJobInputPayload(BlogDraftInput $input): array
     {
         return [
-            'content_brief_id' => $input->contentBriefId,
             'content_topic_id' => $input->contentTopicId,
             'title' => $input->title,
             'slug' => $input->slug,
@@ -578,8 +554,8 @@ class BlogWriterAgent implements ContentAgentInterface
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_BLOG_WRITER,
             status: \App\Models\AiJob::STATUS_PENDING,
-            entityType: 'content_brief',
-            entityId: $input->contentBriefId,
+            entityType: 'content_topic',
+            entityId: $input->contentTopicId,
             provider: $this->resolveProvider($input),
             model: $this->resolveModel($input),
             inputPayload: $this->buildJobInputPayload($input),

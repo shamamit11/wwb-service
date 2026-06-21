@@ -23,10 +23,8 @@ class GenerateBlogDraftRequest extends FormRequest
         return [
             'author_user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'template_id' => ['sometimes', 'nullable', 'integer', 'exists:templates,id'],
             'featured_media_id' => ['sometimes', 'nullable', 'integer', 'exists:media,id'],
             'visibility' => ['sometimes', 'string', Rule::in(Post::VISIBILITIES)],
-            'prompt_template_key' => ['sometimes', 'nullable', 'string', 'max:190'],
             'generation_mode' => ['sometimes', 'nullable', 'string', Rule::in(BlogDraftGenerationMode::values())],
         ];
     }
@@ -39,10 +37,8 @@ class GenerateBlogDraftRequest extends FormRequest
         return new QueueBlogDraftGenerationData(
             authorUserId: isset($validated['author_user_id']) ? (int) $validated['author_user_id'] : null,
             categoryId: (int) $validated['category_id'],
-            templateId: isset($validated['template_id']) ? (int) $validated['template_id'] : null,
             featuredMediaId: isset($validated['featured_media_id']) ? (int) $validated['featured_media_id'] : null,
             visibility: isset($validated['visibility']) ? (string) $validated['visibility'] : Post::VISIBILITY_PUBLIC,
-            promptTemplateKey: $validated['prompt_template_key'] ?? null,
             generationMode: isset($validated['generation_mode']) ? (string) $validated['generation_mode'] : null,
         );
     }

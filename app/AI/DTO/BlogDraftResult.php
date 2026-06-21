@@ -5,7 +5,6 @@ namespace App\AI\DTO;
 final readonly class BlogDraftResult extends AgentOutput
 {
     /**
-     * @param  list<array<string, mixed>>  $contentBlocks
      * @param  list<array<string, mixed>>  $faqSuggestions
      * @param  list<string>  $suggestedTags
      * @param  list<string>  $imagePlacementNotes
@@ -15,8 +14,10 @@ final readonly class BlogDraftResult extends AgentOutput
         public string $title,
         public string $slug,
         public string $markdownBody,
+        public ?string $shortDescription = null,
+        public ?string $description = null,
+        public ?string $fullArticleHtml = null,
         public ?string $excerpt = null,
-        public array $contentBlocks = [],
         public ?string $seoTitle = null,
         public ?string $metaDescription = null,
         public array $faqSuggestions = [],

@@ -20,7 +20,7 @@ class ListAiPromptTemplatesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['nullable', 'string', Rule::in(AiPromptTemplate::TYPES)],
+            'type' => ['nullable', 'string', Rule::in(AiPromptTemplate::MANAGED_TYPES)],
             'status' => ['nullable', 'string', Rule::in(AiPromptTemplate::STATUSES)],
             'search' => ['nullable', 'string', 'max:255'],
             'sort' => ['nullable', 'string', Rule::in(['name', '-name', 'key', '-key', 'type', '-type', 'created_at', '-created_at', 'updated_at', '-updated_at'])],

@@ -8,6 +8,5 @@ final readonly class QueuePostTitleExcerptRefinementData extends DataTransferObj
 {
     public function __construct(
         public ?string $instructions = null,
-        public ?string $promptTemplateKey = null,
     ) {}
 }

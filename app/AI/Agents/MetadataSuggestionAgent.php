@@ -10,13 +10,10 @@ use App\AI\DTO\PostMetadataSuggestionInput;
 use App\AI\DTO\PostMetadataSuggestionResult;
 use App\AI\Support\DecodesJsonResponse;
 use App\Infrastructure\Ai\Contracts\AiClient;
-use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Repositories\AiJobRepository;
-use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
 use App\Modules\Ai\Services\RecordAiUsageService;
-use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
 use RuntimeException;
 use Throwable;
@@ -25,13 +22,11 @@ class MetadataSuggestionAgent implements ContentAgentInterface
 {
     use DecodesJsonResponse;
 
-    private const DEFAULT_PROMPT_KEY = 'post_metadata_suggestion_default';
+    private const JOB_TYPE = 'post_metadata_suggestion';
 
     public function __construct(
         private readonly AiClient $aiClient,
-        private readonly AiPromptTemplateRepository $promptTemplates,
         private readonly AiJobRepository $jobs,
-        private readonly RenderAiPromptTemplateService $renderPrompt,
         private readonly TrackAiJobService $trackAiJob,
         private readonly RecordAiUsageService $recordAiUsage,
     ) {}
@@ -56,16 +51,9 @@ class MetadataSuggestionAgent implements ContentAgentInterface
         $step = $this->trackAiJob->startStep($step);
 
         try {
-            $promptTemplate = $this->resolvePromptTemplate($input);
-            $renderedPrompt = $this->renderPrompt->render($promptTemplate, $this->buildPromptVariables($input));
-
-            if ($renderedPrompt->missingVariables !== []) {
-                throw new RuntimeException('Prompt template is missing required variables: '.implode(', ', $renderedPrompt->missingVariables));
-            }
-
             $response = $this->aiClient->generateText($input->toGenerateTextRequest(
-                systemPrompt: $renderedPrompt->systemPrompt,
-                prompt: $renderedPrompt->userPrompt,
+                systemPrompt: $this->buildSystemPrompt(),
+                prompt: $this->buildUserPrompt($input),
             ));
 
             $parsedResponse = $this->parseResponse($response->content, $input);
@@ -118,43 +106,49 @@ class MetadataSuggestionAgent implements ContentAgentInterface
         }
     }
 
-    private function resolvePromptTemplate(PostMetadataSuggestionInput $input): AiPromptTemplate
+    private function buildSystemPrompt(): string
     {
-        $promptKey = $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY;
-        $promptKey = is_string($promptKey) && $promptKey !== '' ? $promptKey : self::DEFAULT_PROMPT_KEY;
+        return <<<'PROMPT'
+You are an SEO-focused editorial assistant for a professional blog.
 
-        $template = $this->promptTemplates->findByKey($promptKey)
-            ?? $this->promptTemplates->findActiveByType(AiPromptTemplate::TYPE_SEO_OPTIMIZER);
+Return valid JSON only with this shape:
+{
+  "title": "optional improved public title",
+  "excerpt": "optional improved short description",
+  "meta_title": "SEO title up to 60 characters",
+  "meta_description": "SEO description up to 160 characters",
+  "focus_keyword": "single best focus keyword",
+  "schema_hints": ["optional hint"],
+  "rationale": "short explanation"
+}
 
-        if (! $template instanceof AiPromptTemplate || ! $template->activeVersion) {
-            throw new RuntimeException('No active metadata suggestion prompt template is configured.');
-        }
-
-        return $template;
+Rules:
+- Keep recommendations specific, professional, and aligned with the article content.
+- Avoid hype, clickbait, and keyword stuffing.
+- If the current title or excerpt is already strong, you may return a minimally changed version.
+- `schema_hints` must be a short list of useful structured-data or FAQ suggestions.
+PROMPT;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function buildPromptVariables(PostMetadataSuggestionInput $input): array
+    private function buildUserPrompt(PostMetadataSuggestionInput $input): string
     {
-        return [
-            'post_title' => $input->postTitle,
-            'post_slug' => $input->postSlug,
-            'post_excerpt' => $input->postExcerpt,
-            'post_status' => $input->postStatus,
-            'primary_keyword' => $input->primaryKeyword,
-            'secondary_keywords' => $input->secondaryKeywords,
-            'existing_focus_keyword' => $input->existingFocusKeyword,
-            'existing_meta_title' => $input->existingMetaTitle,
-            'existing_meta_description' => $input->existingMetaDescription,
-            'existing_markdown_body' => $input->existingMarkdownBody,
-            'existing_tags' => $input->existingTags,
-            'knowledge_context' => $input->knowledgeBaseContext,
-            'brief_outline' => $input->briefOutline,
-            'brief_headings' => $input->briefHeadings,
-            'instructions' => $input->instructions,
+        $sections = [
+            'Post title: '.$input->postTitle,
+            'Post slug: '.$input->postSlug,
+            'Post status: '.$input->postStatus,
+            'Current short description: '.$this->stringOrFallback($input->postExcerpt),
+            'Primary keyword: '.$this->stringOrFallback($input->primaryKeyword),
+            'Secondary keywords: '.$this->listOrFallback($input->secondaryKeywords),
+            'Existing focus keyword: '.$this->stringOrFallback($input->existingFocusKeyword),
+            'Existing meta title: '.$this->stringOrFallback($input->existingMetaTitle),
+            'Existing meta description: '.$this->stringOrFallback($input->existingMetaDescription),
+            'Existing tags: '.$this->listOrFallback($input->existingTags),
+            'Knowledge base context: '.$this->listOrFallback($input->knowledgeBaseContext),
+            'Editorial instructions: '.$this->stringOrFallback($input->instructions),
+            'Article markdown:'."\n".$input->existingMarkdownBody,
         ];
+
+        return implode("\n\n", $sections);
     }
 
     private function parseResponse(string $rawContent, PostMetadataSuggestionInput $input): PostMetadataSuggestionResult
@@ -184,7 +178,6 @@ class MetadataSuggestionAgent implements ContentAgentInterface
         return [
             'post_id' => $input->postId,
             'instructions' => $input->instructions,
-            'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
     }
 
@@ -213,6 +206,24 @@ class MetadataSuggestionAgent implements ContentAgentInterface
             fn (mixed $item): ?string => $this->normalizeString($item),
             $value,
         )));
+    }
+
+    /**
+     * @param  list<string>  $values
+     */
+    private function listOrFallback(array $values): string
+    {
+        $values = array_values(array_filter(array_map(
+            fn (mixed $item): ?string => $this->normalizeString($item),
+            $values,
+        )));
+
+        return $values === [] ? 'none' : implode(', ', $values);
+    }
+
+    private function stringOrFallback(?string $value): string
+    {
+        return $this->normalizeString($value) ?? 'none';
     }
 
     private function resolveProvider(PostMetadataSuggestionInput $input): ?string
@@ -254,7 +265,7 @@ class MetadataSuggestionAgent implements ContentAgentInterface
         }
 
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
-            type: AiPromptTemplate::TYPE_SEO_OPTIMIZER,
+            type: self::JOB_TYPE,
             status: \App\Models\AiJob::STATUS_PENDING,
             entityType: 'post',
             entityId: $input->postId,

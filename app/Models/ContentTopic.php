@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'title',
@@ -14,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'secondary_keywords',
     'search_intent',
     'priority_score',
+    'score_breakdown',
     'difficulty_note',
     'source',
     'status',
@@ -77,6 +77,7 @@ class ContentTopic extends Model
         return [
             'secondary_keywords' => 'array',
             'priority_score' => 'decimal:2',
+            'score_breakdown' => 'array',
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
             'used_at' => 'datetime',
@@ -88,16 +89,8 @@ class ContentTopic extends Model
         return $this->status === self::STATUS_APPROVED;
     }
 
-    public function canGenerateContentBrief(): bool
+    public function canGenerateDraft(): bool
     {
         return $this->isApproved();
-    }
-
-    /**
-     * @return HasOne<ContentBrief, $this>
-     */
-    public function contentBrief(): HasOne
-    {
-        return $this->hasOne(ContentBrief::class, 'content_topic_id');
     }
 }

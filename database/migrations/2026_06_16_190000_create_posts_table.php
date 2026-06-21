@@ -18,36 +18,29 @@ return new class extends Migration
             $table->foreignId('category_id')
                 ->constrained('categories')
                 ->restrictOnDelete();
-            $table->foreignId('template_id')
-                ->nullable()
-                ->constrained('templates')
-                ->nullOnDelete();
             $table->foreignId('featured_media_id')
                 ->nullable()
                 ->constrained('media')
                 ->nullOnDelete();
             $table->string('title', 255);
             $table->string('slug', 190)->unique();
-            $table->text('excerpt')->nullable();
+            $table->string('short_description', 500)->nullable();
+            $table->text('description')->nullable();
+            $table->longText('full_article_markdown')->nullable();
+            $table->longText('full_article_html')->nullable();
+            $table->json('faq')->nullable();
             $table->enum('status', Post::STATUSES);
             $table->enum('visibility', Post::VISIBILITIES)->default(Post::VISIBILITY_PUBLIC);
             $table->timestamp('published_at')->nullable();
-            $table->timestamp('scheduled_for')->nullable();
-            $table->unsignedInteger('content_version')->default(1);
-            $table->unsignedSmallInteger('reading_time_minutes')->nullable();
-            $table->unsignedInteger('word_count')->nullable();
-            $table->boolean('is_featured')->default(false);
             $table->json('meta')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
             $table->index('author_user_id');
             $table->index('category_id');
-            $table->index('template_id');
             $table->index('featured_media_id');
             $table->index(['status', 'published_at']);
             $table->index(['category_id', 'status', 'published_at']);
-            $table->index(['is_featured', 'status', 'published_at']);
         });
     }
 

@@ -5,24 +5,23 @@ namespace App\Modules\Ai\Services;
 use App\AI\DTO\AgentResult;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
-use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Models\Post;
 use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 use App\Modules\Ai\Data\QueuePostMetadataSuggestionData;
-use App\Modules\Ai\Data\QueuePostRewriteData;
 use App\Modules\Ai\Data\QueuePostTitleExcerptRefinementData;
-use App\Modules\ContentBriefs\Data\GeneratedContentBriefData;
 use RuntimeException;
 
 class AiWorkflowOrchestrator
 {
+    private const JOB_TYPE_POST_METADATA_SUGGESTION = 'post_metadata_suggestion';
+
+    private const JOB_TYPE_POST_TITLE_EXCERPT_REFINEMENT = 'post_title_excerpt_refinement';
+
     public function __construct(
         private readonly TopicDiscoveryWorkflow $topicDiscovery,
-        private readonly ContentBriefWorkflow $contentBriefs,
         private readonly DraftGenerationWorkflow $drafts,
-        private readonly DraftRewriteWorkflow $rewrites,
         private readonly MetadataSuggestionWorkflow $metadata,
         private readonly TitleExcerptRefinementWorkflow $titleExcerptRefinements,
     ) {}
@@ -42,39 +41,14 @@ class AiWorkflowOrchestrator
         return $this->topicDiscovery->runQueued($aiJobId);
     }
 
-    public function generateContentBrief(ContentTopic $topic, ?string $promptTemplateKey = null): GeneratedContentBriefData
+    public function queueDraftGeneration(ContentTopic $topic, QueueBlogDraftGenerationData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
     {
-        return $this->contentBriefs->generate($topic, $promptTemplateKey);
-    }
-
-    public function queueContentBrief(ContentTopic $topic, ?string $promptTemplateKey = null, ?int $retryOfAiJobId = null, int $attempts = 1): ?AiJob
-    {
-        return $this->contentBriefs->queue($topic, $promptTemplateKey, $retryOfAiJobId, $attempts);
-    }
-
-    public function runQueuedContentBrief(int $aiJobId): GeneratedContentBriefData
-    {
-        return $this->contentBriefs->runQueued($aiJobId);
-    }
-
-    public function queueDraftGeneration(ContentBrief $brief, QueueBlogDraftGenerationData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
-    {
-        return $this->drafts->queue($brief, $data, $retryOfAiJobId, $attempts);
+        return $this->drafts->queue($topic, $data, $retryOfAiJobId, $attempts);
     }
 
     public function runQueuedDraftGeneration(int $aiJobId): void
     {
         $this->drafts->runQueued($aiJobId);
-    }
-
-    public function queuePostRewrite(Post $post, QueuePostRewriteData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
-    {
-        return $this->rewrites->queue($post, $data, $retryOfAiJobId, $attempts);
-    }
-
-    public function runQueuedPostRewrite(int $aiJobId): void
-    {
-        $this->rewrites->runQueued($aiJobId);
     }
 
     public function queuePostMetadataSuggestions(Post $post, QueuePostMetadataSuggestionData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
@@ -105,11 +79,9 @@ class AiWorkflowOrchestrator
 
         return match ($job->type) {
             AiPromptTemplate::TYPE_TOPIC_DISCOVERY => $this->retryTopicDiscovery($job),
-            AiPromptTemplate::TYPE_CONTENT_BRIEF => $this->retryContentBrief($job),
             AiPromptTemplate::TYPE_BLOG_WRITER => $this->retryBlogWriter($job),
-            AiPromptTemplate::TYPE_EDITOR => $this->retryEditor($job),
-            AiPromptTemplate::TYPE_SEO_OPTIMIZER => $this->retrySeoOptimizer($job),
-            AiPromptTemplate::TYPE_EDITORIAL_REFINER => $this->retryEditorialRefiner($job),
+            self::JOB_TYPE_POST_METADATA_SUGGESTION => $this->retrySeoOptimizer($job),
+            self::JOB_TYPE_POST_TITLE_EXCERPT_REFINEMENT => $this->retryEditorialRefiner($job),
             default => throw new RuntimeException("AI job retry is not supported for type [{$job->type}]."),
         };
     }
@@ -132,81 +104,26 @@ class AiWorkflowOrchestrator
         ), (int) $job->id, $job->attempts + 1);
     }
 
-    private function retryContentBrief(AiJob $job): AiJob
+    private function retryBlogWriter(AiJob $job): AiJob
     {
         $payload = is_array($job->input_payload) ? $job->input_payload : [];
         $topicId = $payload['content_topic_id'] ?? $job->entity_id;
 
         if (! is_int($topicId) && ! (is_string($topicId) && ctype_digit($topicId))) {
-            throw new RuntimeException("Retry content brief job [{$job->id}] is missing a valid [content_topic_id] value.");
+            throw new RuntimeException("Retry blog draft job [{$job->id}] is missing a valid [content_topic_id] value.");
         }
 
-        $retry = \App\Models\AiJob::query()->create([
-            'type' => AiPromptTemplate::TYPE_CONTENT_BRIEF,
-            'status' => AiJob::STATUS_QUEUED,
-            'entity_type' => 'content_topic',
-            'entity_id' => (int) $topicId,
-            'provider' => $job->provider,
-            'model' => $job->model,
-            'input_payload' => [
-                'content_topic_id' => (int) $topicId,
-                'prompt_template_key' => is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
-            ],
-            'attempts' => $job->attempts + 1,
-            'retry_of_ai_job_id' => (int) $job->id,
-        ]);
+        $topic = ContentTopic::query()->find((int) $topicId);
 
-        \App\Jobs\AI\GenerateContentBriefJob::dispatch((int) $retry->id);
-
-        return $retry->refresh()->loadCount('steps');
-    }
-
-    private function retryBlogWriter(AiJob $job): AiJob
-    {
-        $payload = is_array($job->input_payload) ? $job->input_payload : [];
-        $briefId = $payload['content_brief_id'] ?? $job->entity_id;
-
-        if (! is_int($briefId) && ! (is_string($briefId) && ctype_digit($briefId))) {
-            throw new RuntimeException("Retry blog draft job [{$job->id}] is missing a valid [content_brief_id] value.");
+        if (! $topic instanceof ContentTopic) {
+            throw new RuntimeException("Content topic [{$topicId}] could not be found.");
         }
 
-        $brief = ContentBrief::query()->find((int) $briefId);
-
-        if (! $brief instanceof ContentBrief) {
-            throw new RuntimeException("Content brief [{$briefId}] could not be found.");
-        }
-
-        return $this->queueDraftGeneration($brief, new QueueBlogDraftGenerationData(
+        return $this->queueDraftGeneration($topic, new QueueBlogDraftGenerationData(
             authorUserId: isset($payload['author_user_id']) && $payload['author_user_id'] !== null ? (int) $payload['author_user_id'] : null,
             categoryId: (int) $payload['category_id'],
-            templateId: isset($payload['template_id']) && $payload['template_id'] !== null ? (int) $payload['template_id'] : null,
             featuredMediaId: isset($payload['featured_media_id']) && $payload['featured_media_id'] !== null ? (int) $payload['featured_media_id'] : null,
             visibility: is_string($payload['visibility'] ?? null) ? $payload['visibility'] : \App\Models\Post::VISIBILITY_PUBLIC,
-            promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
-            generationMode: is_string($payload['generation_mode'] ?? null) ? $payload['generation_mode'] : null,
-        ), (int) $job->id, $job->attempts + 1);
-    }
-
-    private function retryEditor(AiJob $job): AiJob
-    {
-        $payload = is_array($job->input_payload) ? $job->input_payload : [];
-        $postId = $payload['post_id'] ?? $job->entity_id;
-
-        if (! is_int($postId) && ! (is_string($postId) && ctype_digit($postId))) {
-            throw new RuntimeException("Retry post rewrite job [{$job->id}] is missing a valid [post_id] value.");
-        }
-
-        $post = Post::query()->find((int) $postId);
-
-        if (! $post instanceof Post) {
-            throw new RuntimeException("Post [{$postId}] could not be found.");
-        }
-
-        return $this->queuePostRewrite($post, new QueuePostRewriteData(
-            scope: $this->rewrites->normalizeScope($payload['scope'] ?? null),
-            targetBlockIds: is_array($payload['target_block_ids'] ?? null) ? array_values(array_map(static fn (mixed $id): int => (int) $id, $payload['target_block_ids'])) : [],
-            instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
-            promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
         ), (int) $job->id, $job->attempts + 1);
     }
 
@@ -227,7 +144,6 @@ class AiWorkflowOrchestrator
 
         return $this->queuePostMetadataSuggestions($post, new QueuePostMetadataSuggestionData(
             instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
-            promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
         ), (int) $job->id, $job->attempts + 1);
     }
 
@@ -248,7 +164,6 @@ class AiWorkflowOrchestrator
 
         return $this->queuePostTitleExcerptRefinement($post, new QueuePostTitleExcerptRefinementData(
             instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
-            promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
         ), (int) $job->id, $job->attempts + 1);
     }
 }
