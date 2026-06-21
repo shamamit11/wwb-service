@@ -26,7 +26,7 @@ class ArticleSchemaBuilder
             '@type' => $metadata?->schema_type ?: 'Article',
             '@id' => "{$canonical}#article",
             'headline' => $metadata?->meta_title ?: $post->title,
-            'description' => $metadata?->meta_description ?: $post->excerpt,
+            'description' => $metadata?->meta_description ?: $post->short_description ?: $post->description,
             'url' => $canonical,
             'mainEntityOfPage' => $canonical,
             'datePublished' => $post->published_at?->toISOString(),
@@ -40,7 +40,7 @@ class ArticleSchemaBuilder
             ],
             'articleSection' => $post->category?->name,
             'keywords' => $metadata?->focus_keyword ?: ($post->tags->pluck('name')->implode(', ') ?: null),
-            'wordCount' => $post->word_count,
+            'wordCount' => $this->wordCount($post->full_article_html),
             'isAccessibleForFree' => true,
             'breadcrumb' => [
                 '@id' => "{$canonical}#breadcrumb",
@@ -68,5 +68,16 @@ class ArticleSchemaBuilder
         }
 
         return array_replace_recursive($schema, $overrides);
+    }
+
+    private function wordCount(?string $html): int
+    {
+        if ($html === null || trim($html) === '') {
+            return 0;
+        }
+
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
+
+        return count($matches[0]);
     }
 }

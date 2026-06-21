@@ -30,7 +30,7 @@ class ScorePostSeoService
             throw new NotFoundHttpException('SEO score target not found.');
         }
 
-        $post = $seoable->loadMissing(['author', 'category', 'tags', 'blocks', 'seo.ogImageMedia']);
+        $post = $seoable->loadMissing(['author', 'category', 'tags', 'seo.ogImageMedia']);
 
         $subscores = [
             'metadata' => $this->metadata->calculate($post),

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Seo\Scoring;
 
-use App\Enums\ContentBlockType;
 use App\Models\Post;
 use App\Modules\Seo\Services\GenerateSchemaPayloadService;
 
@@ -27,7 +26,7 @@ class SchemaScoreCalculator
         $score = 0;
         $checks = [];
         $recommendations = [];
-        $hasFaqBlock = $post->blocks->contains(fn ($block): bool => $block->block_type === ContentBlockType::FAQ->value);
+        $hasFaq = is_array($post->faq) && $post->faq !== [];
 
         if (array_intersect($types, ['Article', 'TechArticle'])) {
             $score += 10;
@@ -45,10 +44,10 @@ class SchemaScoreCalculator
             $recommendations[] = 'Provide breadcrumb schema.';
         }
 
-        if ($hasFaqBlock && in_array('FAQPage', $types, true)) {
+        if ($hasFaq && in_array('FAQPage', $types, true)) {
             $score += 5;
             $checks[] = $this->check('faq_schema', true, 5, 'FAQ schema matches the article content.');
-        } elseif (! $hasFaqBlock) {
+        } elseif (! $hasFaq) {
             $score += 5;
             $checks[] = $this->check('faq_schema', true, 5, 'FAQ schema is optional because no FAQ content exists.');
         } else {

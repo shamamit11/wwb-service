@@ -13,9 +13,10 @@ class SaveTopicIdeaTool
         private readonly CreateContentTopicService $createTopic,
     ) {}
 
-    public function save(TopicSuggestionData $topic, ?string $audience = null): ContentTopic
+    public function save(TopicSuggestionData $topic, int $categoryId, ?string $audience = null): ContentTopic
     {
         return $this->createTopic->handle(new CreateContentTopicData(
+            categoryId: $categoryId,
             title: $topic->title,
             slug: $topic->slug,
             cluster: $topic->cluster,
@@ -23,6 +24,7 @@ class SaveTopicIdeaTool
             secondaryKeywords: $topic->secondaryKeywords,
             searchIntent: $topic->searchIntent,
             priorityScore: $topic->priorityScore,
+            scoreBreakdown: $topic->scoreBreakdown,
             difficultyNote: $topic->difficultyNote,
             source: ContentTopic::SOURCE_AI_SUGGESTED,
             status: ContentTopic::STATUS_SUGGESTED,

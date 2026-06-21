@@ -5,6 +5,7 @@ namespace App\Modules\Ai\Services;
 use App\AI\Agents\TopicDiscoveryAgent;
 use App\AI\DTO\AgentResult;
 use App\Jobs\AI\DiscoverContentTopicsJob;
+use App\Models\Category;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
 use App\Models\ContentTopic;
@@ -24,18 +25,21 @@ class TopicDiscoveryWorkflow
         private readonly TopicDiscoveryAgent $agent,
         private readonly ContentTopicRepository $topics,
         private readonly KnowledgeContextService $knowledgeContext,
+        private readonly ResolveTopicDiscoveryClusterService $clusterResolver,
     ) {}
 
     public function dispatch(DiscoverContentTopicsData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
     {
-        $this->guardCluster($data->cluster);
+        $category = $this->resolveCategory($data->categoryId);
+        $cluster = $this->resolveCluster($category);
 
         $job = $this->jobs->create(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
             status: AiJob::STATUS_QUEUED,
             entityType: 'content_topic_batch',
             inputPayload: [
-                'cluster' => $data->cluster,
+                'category_id' => (int) $category->id,
+                'cluster' => $cluster,
                 'count' => max(1, $data->count),
                 'audience' => $data->audience,
                 'prompt_template_key' => $data->promptTemplateKey,
@@ -59,14 +63,10 @@ class TopicDiscoveryWorkflow
         }
 
         $payload = is_array($job->input_payload) ? $job->input_payload : [];
-        $cluster = $payload['cluster'] ?? null;
-
-        if (! is_string($cluster) || $cluster === '') {
-            throw new RuntimeException("Queued topic discovery job [{$aiJobId}] is missing a valid [cluster] value.");
-        }
+        $categoryId = $this->positiveInt($payload['category_id'] ?? null, 'category_id');
 
         return $this->run(new DiscoverContentTopicsData(
-            cluster: $cluster,
+            categoryId: $categoryId,
             count: $this->positiveInt($payload['count'] ?? null, 'count'),
             audience: is_string($payload['audience'] ?? null) && $payload['audience'] !== '' ? $payload['audience'] : null,
             promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) && $payload['prompt_template_key'] !== '' ? $payload['prompt_template_key'] : null,
@@ -76,17 +76,21 @@ class TopicDiscoveryWorkflow
 
     public function run(DiscoverContentTopicsData $data, ?int $aiJobId = null): AgentResult
     {
-        $this->guardCluster($data->cluster);
+        $category = $this->resolveCategory($data->categoryId);
+        $cluster = $this->resolveCluster($category);
 
         return $this->agent->run(new \App\AI\DTO\TopicDiscoveryInput(
-            cluster: $data->cluster,
+            categoryId: (int) $category->id,
+            categoryName: $category->name,
+            categorySlug: $category->slug,
+            cluster: $cluster,
             targetCount: max(1, $data->count),
             audience: $data->audience,
-            existingTopics: $this->existingTopics($data->cluster),
+            existingTopics: $this->existingTopics((int) $category->id),
             knowledgeContext: $this->knowledgeContext->forPrompt(new KnowledgeContextQueryData(
-                subject: str_replace('_', ' ', $data->cluster),
-                keywords: array_values(array_filter([$data->audience, $data->cluster], static fn (mixed $value): bool => is_string($value) && $value !== '')),
-                metadataFilters: $this->knowledgeMetadataFilters($data->metadata),
+                subject: $category->name,
+                keywords: array_values(array_filter([$data->audience, $category->name, $category->slug, $cluster], static fn (mixed $value): bool => is_string($value) && $value !== '')),
+                metadataFilters: $this->knowledgeMetadataFilters($category, $cluster, $data->metadata),
                 maxEntries: 6,
                 maxEntryCharacters: 280,
                 maxTotalCharacters: 1600,
@@ -99,22 +103,26 @@ class TopicDiscoveryWorkflow
         ));
     }
 
-    private function guardCluster(string $cluster): void
+    private function resolveCategory(int $categoryId): Category
     {
-        if (in_array($cluster, ContentTopic::CLUSTERS, true)) {
-            return;
+        $category = Category::query()
+            ->where('is_active', true)
+            ->find($categoryId);
+
+        if ($category instanceof Category) {
+            return $category;
         }
 
-        throw new RuntimeException("Unsupported content cluster [{$cluster}] for topic discovery.");
+        throw new RuntimeException("Active category [{$categoryId}] could not be found for topic discovery.");
     }
 
     /**
      * @return list<string>
      */
-    private function existingTopics(string $cluster): array
+    private function existingTopics(int $categoryId): array
     {
         return $this->topics->search(new ContentTopicFiltersData(
-            cluster: $cluster,
+            categoryId: $categoryId,
             sort: '-created_at',
         ))
             ->pluck('title')
@@ -127,11 +135,34 @@ class TopicDiscoveryWorkflow
      * @param  array<string, mixed>  $metadata
      * @return array<string, scalar|list<scalar>|null>
      */
-    private function knowledgeMetadataFilters(array $metadata): array
+    private function knowledgeMetadataFilters(Category $category, string $cluster, array $metadata): array
     {
-        $filters = $metadata['knowledge_context_filters'] ?? [];
+        $filters = is_array($metadata['knowledge_context_filters'] ?? null)
+            ? $metadata['knowledge_context_filters']
+            : [];
 
-        return is_array($filters) ? $filters : [];
+        $filters['category_slugs'] = array_values(array_unique(array_filter([
+            ...($filters['category_slugs'] ?? []),
+            $category->slug,
+        ], static fn (mixed $value): bool => is_string($value) && $value !== '')));
+
+        $filters['clusters'] = array_values(array_unique(array_filter([
+            ...($filters['clusters'] ?? []),
+            $cluster,
+        ], static fn (mixed $value): bool => is_string($value) && $value !== '')));
+
+        return $filters;
+    }
+
+    private function resolveCluster(Category $category): string
+    {
+        $cluster = $this->clusterResolver->forCategory($category);
+
+        if (is_string($cluster) && $cluster !== '') {
+            return $cluster;
+        }
+
+        throw new RuntimeException("Category [{$category->slug}] is not mapped to a supported topic discovery cluster.");
     }
 
     private function positiveInt(mixed $value, string $field): int

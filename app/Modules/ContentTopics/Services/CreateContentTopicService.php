@@ -19,9 +19,10 @@ class CreateContentTopicService
 
     public function handle(CreateContentTopicData $data): ContentTopic
     {
-        $this->guardAgainstDuplicate($data->title, $data->cluster, $data->primaryKeyword);
+        $this->guardAgainstDuplicate($data->title, $data->categoryId, $data->primaryKeyword);
 
         $topic = $this->topics->create(new CreateContentTopicData(
+            categoryId: $data->categoryId,
             title: $data->title,
             slug: $this->slugResolver->resolve($data->title, $data->slug),
             cluster: $data->cluster,
@@ -29,6 +30,7 @@ class CreateContentTopicService
             secondaryKeywords: $data->secondaryKeywords,
             searchIntent: $data->searchIntent,
             priorityScore: $data->priorityScore,
+            scoreBreakdown: $data->scoreBreakdown,
             difficultyNote: $data->difficultyNote,
             source: $data->source,
             status: $data->status,
@@ -46,16 +48,16 @@ class CreateContentTopicService
         return $this->autoAdvanceHighPriorityTopic->handle($topic);
     }
 
-    private function guardAgainstDuplicate(string $title, string $cluster, ?string $primaryKeyword): void
+    private function guardAgainstDuplicate(string $title, int $categoryId, ?string $primaryKeyword): void
     {
-        if (! $this->topics->existsDuplicate($title, $cluster, $primaryKeyword)) {
+        if (! $this->topics->existsDuplicate($title, $categoryId, $primaryKeyword)) {
             return;
         }
 
         throw new DuplicateContentTopicException(
             title: $title,
-            cluster: $cluster,
-            message: "A similar topic already exists in the [{$cluster}] cluster.",
+            cluster: (string) $categoryId,
+            message: 'A similar topic already exists in this category.',
         );
     }
 
@@ -65,6 +67,7 @@ class CreateContentTopicService
     private function auditAttributes(ContentTopic $topic): array
     {
         return [
+            'category_id' => $topic->category_id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'cluster' => $topic->cluster,

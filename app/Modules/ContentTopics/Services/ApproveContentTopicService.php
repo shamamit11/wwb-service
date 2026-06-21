@@ -3,7 +3,9 @@
 namespace App\Modules\ContentTopics\Services;
 
 use App\Models\ContentTopic;
-use App\Modules\Ai\Services\ContentBriefWorkflow;
+use App\Modules\Ai\Services\AiAutomationDailyLimitService;
+use App\Modules\Ai\Services\DraftGenerationWorkflow;
+use App\Modules\Ai\Services\ResolveAutoDraftGenerationDataService;
 use App\Modules\ContentTopics\Data\ContentTopicStateTransitionData;
 use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionException;
 use App\Modules\ContentTopics\Repositories\ContentTopicRepository;
@@ -14,7 +16,9 @@ class ApproveContentTopicService
     public function __construct(
         private readonly ContentTopicRepository $topics,
         private readonly AuditActivityLogger $audit,
-        private readonly ContentBriefWorkflow $contentBriefs,
+        private readonly ResolveAutoDraftGenerationDataService $resolveAutoDraftGenerationData,
+        private readonly DraftGenerationWorkflow $drafts,
+        private readonly AiAutomationDailyLimitService $dailyLimits,
     ) {}
 
     public function handle(ContentTopic $topic, ?string $notes = null, bool $autoContinueToDraft = false): ContentTopic
@@ -46,7 +50,13 @@ class ApproveContentTopicService
             old: $old,
         );
 
-        $this->contentBriefs->queue($updated, autoContinueToDraft: $autoContinueToDraft);
+        if ($autoContinueToDraft) {
+            $data = $this->resolveAutoDraftGenerationData->handle($updated);
+
+            if ($data !== null && $this->dailyLimits->canQueueAutomaticDraft()) {
+                $this->drafts->queue($updated, $data);
+            }
+        }
 
         return $updated;
     }

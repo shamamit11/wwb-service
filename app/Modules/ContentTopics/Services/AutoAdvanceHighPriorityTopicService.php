@@ -2,21 +2,18 @@
 
 namespace App\Modules\ContentTopics\Services;
 
-use App\Models\ContentBrief;
 use App\Models\ContentTopic;
-use App\Modules\Ai\Services\ContentBriefWorkflow;
-use App\Modules\ContentBriefs\Repositories\ContentBriefRepository;
-use App\Modules\ContentBriefs\Services\ContinueContentBriefToDraftService;
+use App\Modules\Ai\Services\AiAutomationDailyLimitService;
+use App\Modules\Ai\Services\DraftGenerationWorkflow;
+use App\Modules\Ai\Services\ResolveAutoDraftGenerationDataService;
 
 class AutoAdvanceHighPriorityTopicService
 {
-    private const AUTO_APPROVAL_PRIORITY_THRESHOLD = 90.0;
-
     public function __construct(
         private readonly ApproveContentTopicService $approveTopic,
-        private readonly ContentBriefWorkflow $briefWorkflow,
-        private readonly ContentBriefRepository $briefs,
-        private readonly ContinueContentBriefToDraftService $continueBriefToDraft,
+        private readonly ResolveAutoDraftGenerationDataService $resolveAutoDraftGenerationData,
+        private readonly DraftGenerationWorkflow $drafts,
+        private readonly AiAutomationDailyLimitService $dailyLimits,
     ) {}
 
     public function handle(ContentTopic $topic): ContentTopic
@@ -33,15 +30,11 @@ class AutoAdvanceHighPriorityTopicService
             return $topic;
         }
 
-        $brief = $this->briefs->findByTopicId((int) $topic->id);
+        $data = $this->resolveAutoDraftGenerationData->handle($topic);
 
-        if (! $brief instanceof ContentBrief) {
-            $this->briefWorkflow->queue($topic, autoContinueToDraft: true);
-
-            return $topic;
+        if ($data !== null && $this->dailyLimits->canQueueAutomaticDraft()) {
+            $this->drafts->queue($topic, $data);
         }
-
-        $this->continueBriefToDraft->handle($brief);
 
         return $topic;
     }
@@ -52,6 +45,6 @@ class AutoAdvanceHighPriorityTopicService
             return false;
         }
 
-        return (float) $topic->priority_score > self::AUTO_APPROVAL_PRIORITY_THRESHOLD;
+        return $this->dailyLimits->isHighPriorityScore($topic->priority_score);
     }
 }

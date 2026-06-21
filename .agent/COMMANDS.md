@@ -2,18 +2,7 @@
 
 This file is service-specific for `widewebblog/service`.
 
-Use these commands as Laravel 13 defaults only after verifying the actual repository supports them.
-
-Before running any command, check `composer.json`, `package.json`, `Makefile`, project docs, or `vendor/bin` when those files exist.
-
-Current workspace note:
-
-- No `composer.json` was present when this document was updated.
-- No `package.json` was present when this document was updated.
-- No `Makefile` was present when this document was updated.
-- No project README was present when this document was updated.
-
-Treat the commands below as expected Laravel service commands to confirm once the real repository files exist.
+The repository is a Laravel 13 backend with Composer, Pest, Vite assets, database-backed cache/queue defaults, and an explicit `ai` queue for long-running AI work.
 
 ## Setup
 
@@ -21,15 +10,16 @@ Treat the commands below as expected Laravel service commands to confirm once th
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate
+php artisan migrate:fresh --seed
 ```
 
 ## Development
 
 ```bash
 php artisan serve
-php artisan queue:work
+php artisan queue:work --queue=ai,default
 php artisan schedule:work
+npm run dev
 ```
 
 ## Database
@@ -38,6 +28,7 @@ php artisan schedule:work
 php artisan migrate
 php artisan migrate:fresh --seed
 php artisan db:seed
+php artisan topics:prune-low-score
 ```
 
 ## Testing
@@ -45,20 +36,16 @@ php artisan db:seed
 ```bash
 php artisan test
 php artisan test --filter=ExampleTest
+composer test
 ```
 
 Run the smallest meaningful test command first.
 
 ## Code Quality
 
-Before running code quality commands, confirm the tool exists in `composer.json` or `vendor/bin`.
-
-Typical examples:
-
 ```bash
 vendor/bin/pint
 vendor/bin/phpstan analyse
-vendor/bin/phpunit
 ```
 
 ## Cache And Config
@@ -81,4 +68,4 @@ Do not invent API documentation commands.
 - Work from `widewebblog/service` unless the task explicitly requires otherwise.
 - Avoid heavy or broad commands when a narrower validation command is enough.
 - Record planned and executed validation in `.agent/tasks/current-task.md`.
-- Do not assume frontend tooling applies to this repository unless confirmed by project files.
+- Redis is not required for default local development in this repository.

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\ContentTopic;
 use Illuminate\Database\Seeder;
 
@@ -9,21 +10,27 @@ class ContentTopicSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach ($this->records() as $attributes) {
+        foreach ($this->records() as [$categorySlug, $attributes]) {
+            $categoryId = Category::query()->where('slug', $categorySlug)->value('id');
+
+            if (! is_int($categoryId)) {
+                continue;
+            }
+
             ContentTopic::query()->updateOrCreate(
                 ['slug' => $attributes['slug']],
-                $attributes,
+                ['category_id' => $categoryId, ...$attributes],
             );
         }
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return list<array{0:string,1:array<string, mixed>}>
      */
     private function records(): array
     {
         return [
-            [
+            ['ai-agents', [
                 'title' => 'AI Content Audit Checklist for Editorial Teams',
                 'slug' => 'ai-content-audit-checklist-for-editorial-teams',
                 'cluster' => ContentTopic::CLUSTER_AI_FOR_BLOGGING,
@@ -38,8 +45,8 @@ class ContentTopicSeeder extends Seeder
                 'approved_at' => now()->subDay(),
                 'rejected_at' => null,
                 'used_at' => null,
-            ],
-            [
+            ]],
+            ['ai-tools', [
                 'title' => 'Best AI Research Workflows for Blog Planning',
                 'slug' => 'best-ai-research-workflows-for-blog-planning',
                 'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
@@ -54,8 +61,8 @@ class ContentTopicSeeder extends Seeder
                 'approved_at' => null,
                 'rejected_at' => null,
                 'used_at' => null,
-            ],
-            [
+            ]],
+            ['developer-ai', [
                 'title' => 'Laravel Queue Guardrails for AI Jobs',
                 'slug' => 'laravel-queue-guardrails-for-ai-jobs',
                 'cluster' => ContentTopic::CLUSTER_DEVELOPER_AI,
@@ -70,7 +77,7 @@ class ContentTopicSeeder extends Seeder
                 'approved_at' => now()->subDays(3),
                 'rejected_at' => null,
                 'used_at' => now()->subDays(2),
-            ],
+            ]],
         ];
     }
 }

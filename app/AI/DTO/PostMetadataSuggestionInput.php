@@ -8,8 +8,6 @@ final readonly class PostMetadataSuggestionInput extends AgentInput
      * @param  list<string>  $secondaryKeywords
      * @param  list<string>  $existingTags
      * @param  list<string>  $knowledgeBaseContext
-     * @param  list<array<string, mixed>>  $briefOutline
-     * @param  list<string>  $briefHeadings
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
@@ -23,11 +21,9 @@ final readonly class PostMetadataSuggestionInput extends AgentInput
         public ?string $existingFocusKeyword,
         public ?string $existingMetaTitle,
         public ?string $existingMetaDescription,
-        public string $existingMarkdownBody,
+        public string $existingArticleBody,
         public array $existingTags = [],
         public array $knowledgeBaseContext = [],
-        public array $briefOutline = [],
-        public array $briefHeadings = [],
         public ?string $instructions = null,
         ?string $provider = null,
         ?string $model = null,

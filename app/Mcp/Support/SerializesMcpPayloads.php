@@ -3,7 +3,6 @@
 namespace App\Mcp\Support;
 
 use App\Models\AiJob;
-use App\Models\ContentBrief;
 use App\Models\ContentTopic;
 use App\Models\KnowledgeBaseEntry;
 
@@ -47,6 +46,7 @@ trait SerializesMcpPayloads
     {
         return [
             'id' => $topic->id,
+            'category_id' => $topic->category_id,
             'title' => $topic->title,
             'slug' => $topic->slug,
             'cluster' => $topic->cluster,
@@ -58,40 +58,12 @@ trait SerializesMcpPayloads
             'source' => $topic->source,
             'status' => $topic->status,
             'notes' => $topic->notes,
-            'can_generate_content_brief' => $topic->canGenerateContentBrief(),
+            'can_generate_draft' => $topic->canGenerateDraft(),
             'approved_at' => $topic->approved_at?->toISOString(),
             'rejected_at' => $topic->rejected_at?->toISOString(),
             'used_at' => $topic->used_at?->toISOString(),
             'created_at' => $topic->created_at?->toISOString(),
             'updated_at' => $topic->updated_at?->toISOString(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function serializeBrief(ContentBrief $brief): array
-    {
-        return [
-            'id' => $brief->id,
-            'content_topic_id' => $brief->content_topic_id,
-            'title' => $brief->title,
-            'slug' => $brief->slug,
-            'meta_title' => $brief->meta_title,
-            'meta_description' => $brief->meta_description,
-            'primary_keyword' => $brief->primary_keyword,
-            'secondary_keywords' => $brief->secondary_keywords ?? [],
-            'search_intent' => $brief->search_intent,
-            'outline' => $brief->outline ?? [],
-            'headings' => $brief->headings ?? [],
-            'faq_suggestions' => $brief->faq_suggestions ?? [],
-            'internal_link_suggestions' => $brief->internal_link_suggestions ?? [],
-            'image_suggestions' => $brief->image_suggestions ?? [],
-            'status' => $brief->status,
-            'can_generate_draft' => $brief->canGenerateDraft(),
-            'approved_at' => $brief->approved_at?->toISOString(),
-            'created_at' => $brief->created_at?->toISOString(),
-            'updated_at' => $brief->updated_at?->toISOString(),
         ];
     }
 

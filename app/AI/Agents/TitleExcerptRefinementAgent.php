@@ -11,13 +11,10 @@ use App\AI\DTO\PostTitleExcerptRefinementResult;
 use App\AI\Support\DecodesJsonResponse;
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Models\AiJob;
-use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Repositories\AiJobRepository;
-use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
 use App\Modules\Ai\Services\RecordAiUsageService;
-use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
 use RuntimeException;
 use Throwable;
@@ -26,13 +23,11 @@ class TitleExcerptRefinementAgent implements ContentAgentInterface
 {
     use DecodesJsonResponse;
 
-    private const DEFAULT_PROMPT_KEY = 'post_title_excerpt_refinement_default';
+    private const JOB_TYPE = 'post_title_excerpt_refinement';
 
     public function __construct(
         private readonly AiClient $aiClient,
-        private readonly AiPromptTemplateRepository $promptTemplates,
         private readonly AiJobRepository $jobs,
-        private readonly RenderAiPromptTemplateService $renderPrompt,
         private readonly TrackAiJobService $trackAiJob,
         private readonly RecordAiUsageService $recordAiUsage,
     ) {}
@@ -57,16 +52,9 @@ class TitleExcerptRefinementAgent implements ContentAgentInterface
         $step = $this->trackAiJob->startStep($step);
 
         try {
-            $promptTemplate = $this->resolvePromptTemplate($input);
-            $renderedPrompt = $this->renderPrompt->render($promptTemplate, $this->buildPromptVariables($input));
-
-            if ($renderedPrompt->missingVariables !== []) {
-                throw new RuntimeException('Prompt template is missing required variables: '.implode(', ', $renderedPrompt->missingVariables));
-            }
-
             $response = $this->aiClient->generateText($input->toGenerateTextRequest(
-                systemPrompt: $renderedPrompt->systemPrompt,
-                prompt: $renderedPrompt->userPrompt,
+                systemPrompt: $this->buildSystemPrompt(),
+                prompt: $this->buildUserPrompt($input),
             ));
 
             $parsedResponse = $this->parseResponse($response->content);
@@ -117,40 +105,44 @@ class TitleExcerptRefinementAgent implements ContentAgentInterface
         }
     }
 
-    private function resolvePromptTemplate(PostTitleExcerptRefinementInput $input): AiPromptTemplate
+    private function buildSystemPrompt(): string
     {
-        $promptKey = $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY;
-        $promptKey = is_string($promptKey) && $promptKey !== '' ? $promptKey : self::DEFAULT_PROMPT_KEY;
+        return <<<'PROMPT'
+You are an editorial copy assistant for a professional blog.
 
-        $template = $this->promptTemplates->findByKey($promptKey)
-            ?? $this->promptTemplates->findActiveByType(AiPromptTemplate::TYPE_EDITORIAL_REFINER);
+Return valid JSON only with this shape:
+{
+  "recommended_title": "best improved title",
+  "recommended_excerpt": "best improved short description",
+  "headline_variations": ["alternative title"],
+  "excerpt_variations": ["alternative excerpt"],
+  "rationale": "short explanation"
+}
 
-        if (! $template instanceof AiPromptTemplate || ! $template->activeVersion) {
-            throw new RuntimeException('No active title/excerpt refinement prompt template is configured.');
-        }
-
-        return $template;
+Rules:
+- Keep the voice credible, specific, and professional.
+- Avoid clickbait and exaggerated claims.
+- Optimize for clarity and search intent, not gimmicks.
+- Provide concise variations that remain faithful to the article.
+PROMPT;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function buildPromptVariables(PostTitleExcerptRefinementInput $input): array
+    private function buildUserPrompt(PostTitleExcerptRefinementInput $input): string
     {
-        return [
-            'post_title' => $input->postTitle,
-            'post_slug' => $input->postSlug,
-            'post_excerpt' => $input->postExcerpt,
-            'post_status' => $input->postStatus,
-            'primary_keyword' => $input->primaryKeyword,
-            'secondary_keywords' => $input->secondaryKeywords,
-            'existing_markdown_body' => $input->existingMarkdownBody,
-            'existing_tags' => $input->existingTags,
-            'knowledge_context' => $input->knowledgeBaseContext,
-            'brief_outline' => $input->briefOutline,
-            'brief_headings' => $input->briefHeadings,
-            'instructions' => $input->instructions,
+        $sections = [
+            'Post title: '.$input->postTitle,
+            'Post slug: '.$input->postSlug,
+            'Post status: '.$input->postStatus,
+            'Current short description: '.$this->stringOrFallback($input->postExcerpt),
+            'Primary keyword: '.$this->stringOrFallback($input->primaryKeyword),
+            'Secondary keywords: '.$this->listOrFallback($input->secondaryKeywords),
+            'Existing tags: '.$this->listOrFallback($input->existingTags),
+            'Knowledge base context: '.$this->listOrFallback($input->knowledgeBaseContext),
+            'Editorial instructions: '.$this->stringOrFallback($input->instructions),
+            'Article body:'."\n".$input->existingArticleBody,
         ];
+
+        return implode("\n\n", $sections);
     }
 
     private function parseResponse(string $rawContent): PostTitleExcerptRefinementResult
@@ -178,7 +170,6 @@ class TitleExcerptRefinementAgent implements ContentAgentInterface
         return [
             'post_id' => $input->postId,
             'instructions' => $input->instructions,
-            'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
     }
 
@@ -207,6 +198,24 @@ class TitleExcerptRefinementAgent implements ContentAgentInterface
             fn (mixed $item): ?string => $this->normalizeString($item),
             $value,
         )));
+    }
+
+    /**
+     * @param  list<string>  $values
+     */
+    private function listOrFallback(array $values): string
+    {
+        $values = array_values(array_filter(array_map(
+            fn (mixed $item): ?string => $this->normalizeString($item),
+            $values,
+        )));
+
+        return $values === [] ? 'none' : implode(', ', $values);
+    }
+
+    private function stringOrFallback(?string $value): string
+    {
+        return $this->normalizeString($value) ?? 'none';
     }
 
     private function resolveProvider(PostTitleExcerptRefinementInput $input): ?string
@@ -248,7 +257,7 @@ class TitleExcerptRefinementAgent implements ContentAgentInterface
         }
 
         $job = $this->jobs->create(new CreateAiJobData(
-            type: AiPromptTemplate::TYPE_EDITORIAL_REFINER,
+            type: self::JOB_TYPE,
             status: AiJob::STATUS_PENDING,
             entityType: 'post',
             entityId: $input->postId,

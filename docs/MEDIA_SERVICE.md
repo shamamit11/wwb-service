@@ -148,13 +148,13 @@ Media deletion should be conservative.
 
 ### Allow Delete When
 
-- asset is not referenced by posts, templates, SEO metadata, or knowledge entries
+- asset is not referenced by posts, SEO metadata, or knowledge entries
 - asset is in failed or orphaned state
 
 ### Block Delete When
 
 - asset is used as featured media
-- asset is referenced by image blocks
+- asset is referenced by rendered article content or metadata-controlled media usage
 - asset is used as Open Graph image
 
 ### Delete Flow
@@ -169,7 +169,7 @@ Media deletion should be conservative.
 Track at least:
 
 - featured post usage
-- image block usage
+- article content usage where tracked
 - SEO image usage
 - knowledge base usage
 

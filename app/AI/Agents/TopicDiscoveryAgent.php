@@ -13,12 +13,14 @@ use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\CheckDuplicateTopicTool;
 use App\AI\Tools\SaveTopicIdeaTool;
 use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
 use App\Models\ContentTopic;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
-use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
 use App\Modules\Ai\Repositories\AiJobRepository;
+use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
+use App\Modules\Ai\Services\AiAutomationDailyLimitService;
 use App\Modules\Ai\Services\RecordAiUsageService;
 use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
@@ -30,7 +32,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 {
     use DecodesJsonResponse;
 
-    private const DEFAULT_PROMPT_KEY = 'topic_discovery_default';
+    private const DEFAULT_PROMPT_KEY = AiPromptTemplate::KEY_TOPIC_STANDARD;
 
     public function __construct(
         private readonly AiClient $aiClient,
@@ -39,6 +41,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         private readonly RenderAiPromptTemplateService $renderPrompt,
         private readonly TrackAiJobService $trackAiJob,
         private readonly RecordAiUsageService $recordAiUsage,
+        private readonly AiAutomationDailyLimitService $dailyLimits,
         private readonly CheckDuplicateTopicTool $checkDuplicateTopic,
         private readonly SaveTopicIdeaTool $saveTopicIdea,
     ) {}
@@ -65,7 +68,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 
         try {
             $this->guardCluster($input->cluster);
-
             $promptTemplate = $this->resolvePromptTemplate($input);
             $renderedPrompt = $this->renderPrompt->render($promptTemplate, $this->buildPromptVariables($input));
 
@@ -84,7 +86,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 targetCount: $input->targetCount,
             );
 
-            [$savedTopics, $skippedDuplicates] = $this->persistTopics($parsedResponse, $input);
+            [$savedTopics, $skippedDuplicates, $skippedDailyLimit] = $this->persistTopics($parsedResponse, $input);
 
             $usagePayload = $response->usage->toArray();
             $outputPayload = [
@@ -97,6 +99,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                     $savedTopics,
                 ),
                 'skipped_duplicates' => $skippedDuplicates,
+                'skipped_daily_limit' => $skippedDailyLimit,
             ];
 
             $step = $this->trackAiJob->completeStep($step, $outputPayload, $usagePayload);
@@ -119,6 +122,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                         $savedTopics,
                     ),
                     'skipped_duplicates' => $skippedDuplicates,
+                    'skipped_daily_limit' => $skippedDailyLimit,
                 ],
             );
         } catch (Throwable $throwable) {
@@ -170,6 +174,9 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     private function buildPromptVariables(TopicDiscoveryInput $input): array
     {
         return [
+            'category_id' => $input->categoryId,
+            'category_name' => $input->categoryName,
+            'category_slug' => $input->categorySlug,
             'cluster' => $input->cluster,
             'target_count' => max(1, $input->targetCount),
             'audience' => $input->audience,
@@ -212,7 +219,8 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 primaryKeyword: $this->normalizeString($topicPayload['primary_keyword'] ?? null),
                 secondaryKeywords: $this->normalizeStringList($topicPayload['secondary_keywords'] ?? []),
                 searchIntent: $this->normalizeString($topicPayload['search_intent'] ?? null),
-                priorityScore: $this->normalizeDecimal($topicPayload['priority_score'] ?? null),
+                priorityScore: $this->resolvePriorityScore($topicPayload),
+                scoreBreakdown: $this->resolveScoreBreakdown($topicPayload),
                 difficultyNote: $this->normalizeString($topicPayload['difficulty_note'] ?? null),
                 summary: $this->normalizeString($topicPayload['summary'] ?? null),
             );
@@ -226,12 +234,64 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     }
 
     /**
-     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>}
+     * @param  array<string, mixed>  $topicPayload
+     */
+    private function resolvePriorityScore(array $topicPayload): ?string
+    {
+        $explicit = $this->normalizeDecimal($topicPayload['priority_score'] ?? null);
+
+        if ($explicit !== null) {
+            return $explicit;
+        }
+
+        $breakdown = $this->resolveScoreBreakdown($topicPayload);
+
+        if ($breakdown === null) {
+            return null;
+        }
+
+        $total = array_sum(array_map(static fn (mixed $value): float => (float) $value, $breakdown));
+
+        return number_format($total, 2, '.', '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $topicPayload
+     * @return array<string, float>|null
+     */
+    private function resolveScoreBreakdown(array $topicPayload): ?array
+    {
+        $map = [
+            'trend_score' => 35.0,
+            'knowledge_base_fit' => 20.0,
+            'business_value' => 20.0,
+            'originality_gap' => 15.0,
+            'execution_confidence' => 10.0,
+        ];
+
+        $scores = [];
+
+        foreach ($map as $key => $max) {
+            $value = $topicPayload[$key] ?? null;
+
+            if (! is_numeric($value)) {
+                return null;
+            }
+
+            $scores[$key] = max(0.0, min($max, (float) $value));
+        }
+
+        return $scores;
+    }
+
+    /**
+     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>,2:list<array{title:string, reason:string, priority_score:?string}>}
      */
     private function persistTopics(TopicDiscoveryResult $result, TopicDiscoveryInput $input): array
     {
         $savedTopics = [];
         $skippedDuplicates = [];
+        $skippedDailyLimit = [];
         $seenKeys = [];
 
         foreach ($result->topics as $topic) {
@@ -250,7 +310,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 
             $duplicateCheck = $this->checkDuplicateTopic->check(
                 title: $topic->title,
-                cluster: $topic->cluster,
+                categoryId: $input->categoryId,
                 primaryKeyword: $topic->primaryKeyword,
                 slug: $topic->slug,
             );
@@ -264,10 +324,20 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 continue;
             }
 
-            $savedTopics[] = $this->saveTopicIdea->save($topic, $input->audience);
+            if (! $this->dailyLimits->canPersistAiSuggestedTopic($topic->priorityScore)) {
+                $skippedDailyLimit[] = [
+                    'title' => $topic->title,
+                    'reason' => 'daily_high_priority_topic_limit_reached',
+                    'priority_score' => $topic->priorityScore,
+                ];
+
+                continue;
+            }
+
+            $savedTopics[] = $this->saveTopicIdea->save($topic, $input->categoryId, $input->audience);
         }
 
-        return [$savedTopics, $skippedDuplicates];
+        return [$savedTopics, $skippedDuplicates, $skippedDailyLimit];
     }
 
     /**
@@ -276,6 +346,9 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     private function buildJobInputPayload(TopicDiscoveryInput $input): array
     {
         return [
+            'category_id' => $input->categoryId,
+            'category_name' => $input->categoryName,
+            'category_slug' => $input->categorySlug,
             'cluster' => $input->cluster,
             'target_count' => max(1, $input->targetCount),
             'audience' => $input->audience,
@@ -286,7 +359,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     }
 
     /**
-     * @param  mixed  $value
      * @return list<string>
      */
     private function normalizeStringList(mixed $value): array
@@ -301,9 +373,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         )));
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private function normalizeString(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -315,9 +384,6 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         return $normalized !== '' ? $normalized : null;
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private function normalizeDecimal(mixed $value): ?string
     {
         if (! is_numeric($value)) {
@@ -351,7 +417,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
         return is_string($model) && $model !== '' ? $model : null;
     }
 
-    private function resolveOrCreateJob(TopicDiscoveryInput $input): \App\Models\AiJob
+    private function resolveOrCreateJob(TopicDiscoveryInput $input): AiJob
     {
         $existingJobId = $input->metadata['ai_job_id'] ?? null;
 
@@ -367,7 +433,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
 
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
-            status: \App\Models\AiJob::STATUS_PENDING,
+            status: AiJob::STATUS_PENDING,
             entityType: 'content_topic_batch',
             provider: $this->resolveProvider($input),
             model: $this->resolveModel($input),

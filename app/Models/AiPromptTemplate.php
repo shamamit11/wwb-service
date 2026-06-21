@@ -25,17 +25,11 @@ class AiPromptTemplate extends Model
 
     public const TYPE_TOPIC_DISCOVERY = 'topic_discovery';
 
-    public const TYPE_CONTENT_BRIEF = 'content_brief';
-
     public const TYPE_BLOG_WRITER = 'blog_writer';
 
-    public const TYPE_EDITOR = 'editor';
+    public const KEY_TOPIC_STANDARD = 'topic_standard';
 
-    public const TYPE_SEO_OPTIMIZER = 'seo_optimizer';
-
-    public const TYPE_EDITORIAL_REFINER = 'editorial_refiner';
-
-    public const TYPE_PUBLISHING = 'publishing';
+    public const KEY_BLOG_STANDARD = 'blog_standard';
 
     public const STATUSES = [
         self::STATUS_DRAFT,
@@ -43,14 +37,19 @@ class AiPromptTemplate extends Model
         self::STATUS_ARCHIVED,
     ];
 
-    public const TYPES = [
+    public const MANAGED_TYPES = [
         self::TYPE_TOPIC_DISCOVERY,
-        self::TYPE_CONTENT_BRIEF,
         self::TYPE_BLOG_WRITER,
-        self::TYPE_EDITOR,
-        self::TYPE_SEO_OPTIMIZER,
-        self::TYPE_EDITORIAL_REFINER,
-        self::TYPE_PUBLISHING,
+    ];
+
+    public const MANAGED_KEYS = [
+        self::KEY_TOPIC_STANDARD,
+        self::KEY_BLOG_STANDARD,
+    ];
+
+    public const MANAGED_KEY_TYPE_MAP = [
+        self::KEY_TOPIC_STANDARD => self::TYPE_TOPIC_DISCOVERY,
+        self::KEY_BLOG_STANDARD => self::TYPE_BLOG_WRITER,
     ];
 
     /**

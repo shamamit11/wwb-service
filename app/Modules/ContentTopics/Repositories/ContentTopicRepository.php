@@ -25,7 +25,7 @@ interface ContentTopicRepository
 
     public function existsBySlug(string $slug, ?int $ignoreId = null): bool;
 
-    public function existsDuplicate(string $title, string $cluster, ?string $primaryKeyword = null, ?int $ignoreId = null): bool;
+    public function existsDuplicate(string $title, int $categoryId, ?string $primaryKeyword = null, ?int $ignoreId = null): bool;
 
     /**
      * @return Collection<int, ContentTopic>

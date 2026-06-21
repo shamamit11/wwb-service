@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\V1\Admin\AiPromptTemplateController as AdminAiPromp
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ContactPageController as AdminContactPageController;
 use App\Http\Controllers\Api\V1\Admin\ContactSubmissionController as AdminContactSubmissionController;
-use App\Http\Controllers\Api\V1\Admin\ContentBriefController as AdminContentBriefController;
 use App\Http\Controllers\Api\V1\Admin\ContentTopicController as AdminContentTopicController;
 use App\Http\Controllers\Api\V1\Admin\HomepageController as AdminHomepageController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeBaseEntryController as AdminKnowledgeBaseEntryController;
@@ -25,7 +24,6 @@ use App\Http\Controllers\Api\V1\Admin\SeoScoreController as AdminSeoScoreControl
 use App\Http\Controllers\Api\V1\Admin\SitemapController as AdminSitemapController;
 use App\Http\Controllers\Api\V1\Admin\SiteSettingsController as AdminSiteSettingsController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
-use App\Http\Controllers\Api\V1\Admin\TemplateController as AdminTemplateController;
 use App\Http\Controllers\Api\V1\Auth\AdminLoginController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -106,24 +104,14 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.content-topics.update');
             Route::delete('content-topics/{contentTopic}', [AdminContentTopicController::class, 'destroy'])
                 ->name('api.v1.admin.content-topics.destroy');
-            Route::post('content-topics/{contentTopic}/generate-brief', [AdminContentTopicController::class, 'generateBrief'])
-                ->name('api.v1.admin.content-topics.generate-brief');
+            Route::post('content-topics/{contentTopic}/generate-draft', [AdminContentTopicController::class, 'generateDraft'])
+                ->name('api.v1.admin.content-topics.generate-draft');
             Route::post('content-topics/{contentTopic}/approve', [AdminContentTopicController::class, 'approve'])
                 ->name('api.v1.admin.content-topics.approve');
             Route::post('content-topics/{contentTopic}/reject', [AdminContentTopicController::class, 'reject'])
                 ->name('api.v1.admin.content-topics.reject');
             Route::post('content-topics/{contentTopic}/mark-used', [AdminContentTopicController::class, 'markUsed'])
                 ->name('api.v1.admin.content-topics.mark-used');
-            Route::get('content-briefs', [AdminContentBriefController::class, 'index'])
-                ->name('api.v1.admin.content-briefs.index');
-            Route::get('content-briefs/{contentBrief}', [AdminContentBriefController::class, 'show'])
-                ->name('api.v1.admin.content-briefs.show');
-            Route::patch('content-briefs/{contentBrief}', [AdminContentBriefController::class, 'update'])
-                ->name('api.v1.admin.content-briefs.update');
-            Route::post('content-briefs/{contentBrief}/approve', [AdminContentBriefController::class, 'approve'])
-                ->name('api.v1.admin.content-briefs.approve');
-            Route::post('content-briefs/{contentBrief}/generate-draft', [AdminContentBriefController::class, 'generateDraft'])
-                ->name('api.v1.admin.content-briefs.generate-draft');
 
             Route::get('homepage', [AdminHomepageController::class, 'show'])
                 ->name('api.v1.admin.homepage.show');
@@ -214,12 +202,8 @@ Route::prefix('v1')->group(function (): void {
                 ->name('api.v1.admin.posts.suggest-metadata');
             Route::post('posts/{post}/refine-title-excerpt', [AdminPostController::class, 'refineTitleExcerpt'])
                 ->name('api.v1.admin.posts.refine-title-excerpt');
-            Route::post('posts/{post}/rewrite', [AdminPostController::class, 'rewrite'])
-                ->name('api.v1.admin.posts.rewrite');
             Route::post('posts/{post}/publish', [AdminPostController::class, 'publish'])
                 ->name('api.v1.admin.posts.publish');
-            Route::post('posts/{post}/schedule', [AdminPostController::class, 'schedule'])
-                ->name('api.v1.admin.posts.schedule');
             Route::post('posts/{post}/unpublish', [AdminPostController::class, 'unpublish'])
                 ->name('api.v1.admin.posts.unpublish');
 
@@ -242,12 +226,6 @@ Route::prefix('v1')->group(function (): void {
             Route::apiResource('tags', AdminTagController::class)
                 ->names('api.v1.admin.tags');
 
-            Route::apiResource('templates', AdminTemplateController::class)
-                ->names('api.v1.admin.templates');
-            Route::post('templates/{template}/preview', [AdminTemplateController::class, 'preview'])
-                ->name('api.v1.admin.templates.preview');
-            Route::post('templates/{template}/seed-post', [AdminTemplateController::class, 'seedPost'])
-                ->name('api.v1.admin.templates.seed-post');
         });
 
     Route::get('categories', [CategoryController::class, 'index'])

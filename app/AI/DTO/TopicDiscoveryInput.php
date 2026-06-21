@@ -11,6 +11,9 @@ final readonly class TopicDiscoveryInput extends AgentInput
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
+        public int $categoryId,
+        public string $categoryName,
+        public string $categorySlug,
         public string $cluster,
         public int $targetCount = 10,
         public ?string $audience = null,

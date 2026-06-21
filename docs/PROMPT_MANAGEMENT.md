@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This document explains how prompt management works in the current AI content engine.
+This document explains prompt ownership in the current AI content engine.
 
 ## Core Principle
 
-Workflow prompts are database-backed and versioned.
+Main-flow prompts are database-backed and versioned.
 
-Prompt text should not be hardcoded in agent classes when the workflow depends on an editable prompt template.
+Prompt text for the topic and blog generation workflows should not be duplicated in `site_settings` or hardcoded in agent classes.
 
 ## Prompt Entities
 
@@ -17,27 +17,23 @@ Prompt management is built around:
 - `ai_prompt_templates`
 - `ai_prompt_template_versions`
 
-The template describes the workflow-level prompt identity.
+The template stores the stable workflow identity.
 The version stores the active prompt content, schema, and declared variables.
 
-## Supported Prompt Categories
+## Supported Standard Families
 
-The current backend supports prompt template types for:
+The current editable main-flow prompt families are:
 
-- topic discovery
-- content brief
-- blog writer
-- editor
-- seo optimizer
-- publishing
+- `topic_standard`
+- `blog_standard`
 
-Not every type is fully exercised by the Phase 3 MVP workflow today, but the schema is prepared for those categories.
+Helper AI passes such as metadata suggestions and title/excerpt refinement use fixed internal prompts and are not part of the versioned main-flow prompt family surface.
 
 ## Active Version Model
 
-Each prompt template can have multiple versions.
+Each template can have multiple versions.
 
-One version is activated as the current live version for the workflow. Agents and workflows should resolve the active version instead of selecting arbitrary prompt text.
+One version is active at a time and should be resolved by workflows rather than selecting arbitrary prompt text.
 
 ## Rendering Flow
 
@@ -49,58 +45,33 @@ That service:
 - replaces `{{ variable }}` placeholders
 - returns rendered system and user prompts
 - records declared variables
-- reports missing variables instead of failing silently
+- reports missing variables explicitly
 
-## Current Workflow Usage
+## Workflow Usage
 
-Prompt templates currently matter most for:
+Versioned prompt templates are the source of truth for:
 
 - topic discovery
-- content brief generation
 - blog draft generation
 
-Each workflow may accept an optional `prompt_template_key` override, but the workflow still stays inside the same business guardrails.
-
-## Admin Placeholder
-
-The backend already exposes prompt management APIs for future admin UI work:
-
-- list templates
-- create templates
-- read templates
-- update templates
-- create versions
-- activate versions
-
-This is the current Prompt Management placeholder referenced by the AI documentation.
+The backend still supports prompt template version management through admin APIs for these standard families.
 
 ## What Prompt Templates Should Contain
 
-Prompt templates should define:
-
 - stable workflow instructions
 - variable placeholders for domain context
-- output schema expectations where applicable
-- workflow-specific framing rather than raw provider-specific hacks
+- output-shape expectations where applicable
+- workflow-specific framing rather than provider-specific hacks
 
 ## What Prompt Templates Should Not Do
 
 - bypass business rules
 - encode publish authorization
 - replace service-layer validation
-- assume AI may create live content
+- create a second source of truth outside prompt template versions
 
 ## Operational Notes
 
-- Prompt changes should be auditable through versions.
-- Missing variables should be visible during development and debugging.
-- Prompt keys should remain stable so workflows and admin consumers can reference them safely.
-
-## Summary
-
-Prompt management is a backend subsystem, not just a text field. Its job is to keep workflow prompting:
-
-- editable
-- versioned
-- reviewable
-- compatible with provider-agnostic orchestration
+- prompt changes should be auditable through versions
+- prompt keys should remain stable
+- prompt ownership for the main flow must remain centralized in prompt templates

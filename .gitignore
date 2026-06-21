@@ -43,4 +43,5 @@ Thumbs.db
 
 # Optional local agent scratch space if introduced later
 .agent/tmp/
+.agent/tasks/
 vendor

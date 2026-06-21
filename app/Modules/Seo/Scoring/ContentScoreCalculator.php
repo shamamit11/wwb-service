@@ -2,7 +2,6 @@
 
 namespace App\Modules\Seo\Scoring;
 
-use App\Enums\ContentBlockType;
 use App\Models\Post;
 
 class ContentScoreCalculator
@@ -17,18 +16,19 @@ class ContentScoreCalculator
         $recommendations = [];
         $focusKeyword = mb_strtolower((string) ($post->seo?->focus_keyword ?? ''));
         $hasFocusKeyword = $focusKeyword !== '';
-        $hasHeading = $post->blocks->contains(fn ($block): bool => $block->block_type === ContentBlockType::HEADING->value);
-        $hasFaq = $post->blocks->contains(fn ($block): bool => $block->block_type === ContentBlockType::FAQ->value);
+        $html = trim((string) ($post->full_article_html ?? ''));
+        $wordCount = $this->wordCount($html);
+        $hasHeading = preg_match('/<h[1-6]\b/i', $html) === 1;
+        $hasFaq = is_array($post->faq) && $post->faq !== [];
 
-        if (($post->excerpt ?? null) !== null) {
+        if (($post->short_description ?? null) !== null) {
             $score += 5;
-            $checks[] = $this->check('excerpt', true, 5, 'Excerpt is present.');
+            $checks[] = $this->check('short_description', true, 5, 'Short description is present.');
         } else {
-            $checks[] = $this->check('excerpt', false, 0, 'Excerpt is missing.');
-            $recommendations[] = 'Add a concise excerpt.';
+            $checks[] = $this->check('short_description', false, 0, 'Short description is missing.');
+            $recommendations[] = 'Add a concise short description.';
         }
 
-        $wordCount = (int) ($post->word_count ?? 0);
         if ($wordCount >= 600) {
             $score += 10;
             $checks[] = $this->check('word_count', true, 10, 'Word count is strong for editorial depth.');
@@ -41,15 +41,15 @@ class ContentScoreCalculator
             $checks[] = $this->check('word_count', true, 2, 'Word count is low for a complete article.');
             $recommendations[] = 'Increase the article depth.';
         } else {
-            $checks[] = $this->check('word_count', false, 0, 'Word count is missing or zero.');
+            $checks[] = $this->check('word_count', false, 0, 'Article body is missing or empty.');
             $recommendations[] = 'Add enough content to support search intent.';
         }
 
         if ($hasHeading) {
             $score += 5;
-            $checks[] = $this->check('headings', true, 5, 'Structured heading blocks are present.');
+            $checks[] = $this->check('headings', true, 5, 'Heading structure is present.');
         } else {
-            $checks[] = $this->check('headings', false, 0, 'No heading blocks were found.');
+            $checks[] = $this->check('headings', false, 0, 'No article headings were found.');
             $recommendations[] = 'Add heading structure to the article.';
         }
 
@@ -77,6 +77,17 @@ class ContentScoreCalculator
             'checks' => $checks,
             'recommendations' => array_values(array_unique($recommendations)),
         ];
+    }
+
+    private function wordCount(string $html): int
+    {
+        if ($html === '') {
+            return 0;
+        }
+
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
+
+        return count($matches[0]);
     }
 
     /**

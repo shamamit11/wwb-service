@@ -2,31 +2,32 @@
 
 ## Purpose
 
-This document describes how AI jobs move through the current service implementation.
+This document describes how AI jobs move through the simplified Wide Web Blog service workflow.
 
 ## Why AI Jobs Exist
 
-`ai_jobs` provide workflow-level tracking for long-running or reviewable AI operations.
+`ai_jobs` provide operational tracking for long-running or reviewable AI work.
 
 They exist so the system can:
 
 - track queued work
-- record provider/model usage
+- record provider and model usage
 - capture failures
 - support retries
-- expose operational status to future admin UI screens
+- expose workflow state to admin tooling
 
-## Current Workflow Types
+## Active Workflow Types
 
-The current lifecycle is used for:
+The current lifecycle is centered on:
 
-- topic discovery
-- content brief generation
-- blog draft generation
+- topic discovery and scoring
+- article draft generation
 
-## Current Statuses
+Legacy content brief workflows are no longer part of the active system.
 
-The current backend uses these job statuses:
+## Supported Statuses
+
+The backend supports these job states:
 
 - `pending`
 - `queued`
@@ -36,35 +37,29 @@ The current backend uses these job statuses:
 - `cancelled`
 - `reviewed`
 
-Not every status is exercised by every workflow yet, but these are the supported states in the model.
+Not every workflow uses every state, but these remain the shared operational statuses.
 
-## Lifecycle By Workflow
+## Topic Discovery Lifecycle
 
-### Topic Discovery
+1. A scheduler, command, or admin action requests topic discovery.
+2. A workflow service creates an `ai_jobs` record for the discovery run.
+3. A queued job runs the Topic Agent using category and knowledge-base context.
+4. The workflow stores scored topics and records duplicates or skips in job metadata.
+5. Automatic routing then evaluates the score:
+   - scores below `90` are deleted by automated cleanup
+   - scores above `90` queue draft generation automatically
 
-1. Admin API, scheduler, or console command requests topic discovery.
-2. `TopicDiscoveryWorkflow::dispatch()` creates an `ai_jobs` record with `queued` status.
-3. `DiscoverContentTopicsJob` is dispatched onto the `ai` queue.
-4. The queued workflow executes the agent and persistence flow.
-5. Saved topics and skipped duplicates are recorded in job output metadata.
+## Draft Generation Lifecycle
 
-### Content Brief Generation
-
-1. An approved topic is selected.
-2. `ContentBriefWorkflow::generate()` checks for an existing brief first.
-3. If no brief exists, an AI job is created for the workflow.
-4. The brief generation service runs and persists the resulting brief.
-
-### Draft Generation
-
-1. An approved content brief is selected.
-2. `DraftGenerationWorkflow::queue()` creates an `ai_jobs` record with `queued` status.
-3. `GenerateBlogDraftJob` is dispatched to the `ai` queue.
-4. The queued workflow either reuses an existing post or generates a new draft safely.
+1. A qualified topic is selected by automation.
+2. A draft-generation workflow creates an `ai_jobs` record.
+3. A queued job runs the Blog Agent using the standard blog prompt.
+4. The workflow creates or updates a draft post as a single article record.
+5. The resulting post remains draft-only for admin review.
 
 ## AI Generation Steps
 
-`ai_generation_steps` sit under the parent job and record per-agent execution details such as:
+`ai_generation_steps` sit under a parent `ai_jobs` record and capture step-level execution detail such as:
 
 - agent name
 - status
@@ -73,11 +68,11 @@ Not every status is exercised by every workflow yet, but these are the supported
 - usage payload
 - error message
 
-These records are important because a single workflow can involve more than one meaningful generation step over time.
+This allows one workflow to remain inspectable even when it includes multiple internal agent actions.
 
 ## Job Inputs And Outputs
 
-The job record stores:
+Job records store workflow-facing metadata such as:
 
 - workflow type
 - entity type and entity ID
@@ -89,62 +84,47 @@ The job record stores:
 - retry linkage
 - timestamps
 
-This is the stable operational record that future agents and admin UI should expect.
+This is the canonical operational record for the AI pipeline.
 
 ## Retry Behavior
 
-Retries are explicit.
+Retries are explicit and workflow-aware.
 
-The current retry path is orchestrator-driven and workflow-aware:
+Current expectations:
 
-- topic discovery retries rebuild discovery input and queue a new job
-- content brief retries create a new queued brief job
-- blog writer retries queue a new draft-generation job from the source brief
+- topic discovery retries should not create unnecessary duplicate topics
+- draft generation retries should avoid creating duplicate posts for the same source topic when a reusable draft already exists
 
-Retry safety expectations:
+Retries should preserve observability by creating a new job record rather than mutating the history away.
 
-- do not duplicate topics unnecessarily
-- do not generate multiple briefs for the same topic when one already exists
-- do not create duplicate posts when an existing brief-linked draft already exists
-
-## Admin Placeholder
-
-The current AI Jobs admin placeholder is the backend API for:
-
-- listing jobs
-- reading a job
-- queueing topic discovery
-- retrying failed jobs
-
-This is the operational entry point that future admin UI work is expected to consume.
-
-## Human Approval Boundary
+## Approval Boundary
 
 AI jobs track generation state, not editorial approval state.
 
-That distinction matters:
+That distinction is mandatory:
 
-- an AI job may complete successfully
-- the resulting topic, brief, or post draft may still require human review
-- successful AI completion never implies publish permission
+- an AI job can complete successfully
+- the resulting topic may still be rejected by score-based automation
+- the resulting post draft may still require editing
+- no completed AI job can publish content on its own
 
-## Manual Images In This Phase
+## Image Scope
 
 Image generation is outside the current AI job lifecycle.
 
-The MVP allows AI to suggest:
+AI may support article creation with:
 
-- image ideas
-- placement notes
+- featured image suggestions
+- placement guidance
 - alt text suggestions
 
-But no image-generation job should be assumed in this phase.
+But no image-generation workflow is required in the current baseline.
 
 ## Summary
 
-The AI job lifecycle is the operational spine of the AI content engine. It makes workflows:
+The simplified AI job lifecycle exists to make the topic-to-article pipeline observable, retryable, and safe:
 
-- observable
-- retryable
-- auditable
-- safe to expose through future admin tooling
+- discover topics
+- score and route them automatically
+- generate article drafts
+- keep human approval at the publish boundary

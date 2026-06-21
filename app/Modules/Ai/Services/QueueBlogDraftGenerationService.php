@@ -3,7 +3,7 @@
 namespace App\Modules\Ai\Services;
 
 use App\Models\AiJob;
-use App\Models\ContentBrief;
+use App\Models\ContentTopic;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 
 class QueueBlogDraftGenerationService
@@ -12,8 +12,8 @@ class QueueBlogDraftGenerationService
         private readonly AiWorkflowOrchestrator $workflows,
     ) {}
 
-    public function handle(ContentBrief $brief, QueueBlogDraftGenerationData $data): AiJob
+    public function handle(ContentTopic $topic, QueueBlogDraftGenerationData $data): AiJob
     {
-        return $this->workflows->queueDraftGeneration($brief, $data);
+        return $this->workflows->queueDraftGeneration($topic, $data);
     }
 }

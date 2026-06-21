@@ -3,7 +3,6 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Http\Resources\Api\ApiResource;
-use App\Models\Template;
 use App\Modules\Seo\Services\CanonicalUrlService;
 use App\Modules\Seo\Services\GenerateSchemaPayloadService;
 use Illuminate\Http\Request;
@@ -19,7 +18,7 @@ class PublicPostDetailResource extends ApiResource
         $canonicalUrls = app(CanonicalUrlService::class);
         /** @var GenerateSchemaPayloadService $schemas */
         $schemas = app(GenerateSchemaPayloadService::class);
-        $contentMarkdown = $this->contentMarkdown();
+        $contentHtml = $this->contentHtml();
         $relatedPosts = $this->resource->relationLoaded('relatedPosts')
             ? $this->resource->getRelation('relatedPosts')
             : collect();
@@ -28,15 +27,18 @@ class PublicPostDetailResource extends ApiResource
             'id' => $this->resource->id,
             'title' => $this->resource->title,
             'slug' => $this->resource->slug,
-            'excerpt' => $this->resource->excerpt,
+            'short_description' => $this->resource->short_description,
+            'description' => $this->resource->description,
             'canonical_url' => $canonicalUrls->for($this->resource),
             'published_at' => $this->resource->published_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
-            'reading_time_minutes' => $this->resource->reading_time_minutes,
-            'read_time' => $this->formatReadTime($this->resource->reading_time_minutes),
-            'word_count' => $this->resource->word_count,
-            'content' => $contentMarkdown,
-            'content_markdown' => $contentMarkdown,
+            'reading_time_minutes' => $this->readingTimeMinutes($contentHtml),
+            'read_time' => $this->formatReadTime($this->readingTimeMinutes($contentHtml)),
+            'word_count' => $this->wordCount($contentHtml),
+            'content' => $contentHtml,
+            'full_article_html' => $this->resource->full_article_html,
+            'full_article_delta' => $this->resource->full_article_delta,
+            'faq' => $this->resource->faq ?? [],
             'author' => $this->resource->author === null ? null : [
                 'id' => $this->resource->author->id,
                 'name' => $this->resource->author->name,
@@ -53,13 +55,9 @@ class PublicPostDetailResource extends ApiResource
                 'name' => $tag->name,
                 'slug' => $tag->slug,
             ])->values()->all(),
-            'template' => $this->resource->template !== null && $this->resource->template->status === Template::STATUS_ACTIVE
-                ? (new PublicTemplateResource($this->resource->template))->resolve()
-                : null,
             'seo' => $this->resource->seo === null ? null : (new PublicSeoMetadataResource($this->resource->seo->loadMissing('ogImageMedia')))->resolve(),
             'related_posts' => PublicPostSummaryResource::collection($relatedPosts)->resolve(),
             'schema' => $schemas->handle('post', $this->resource->id),
-            'blocks' => PublicPostBlockResource::collection($this->resource->blocks)->resolve(),
         ];
     }
 
@@ -81,18 +79,34 @@ class PublicPostDetailResource extends ApiResource
         return (new PublicMediaResource($this->resource->featuredMedia))->resolve()['url'] ?? null;
     }
 
-    private function contentMarkdown(): ?string
+    private function contentHtml(): ?string
     {
-        $parts = $this->resource->blocks
-            ->map(fn ($block): ?string => filled($block->content_markdown) ? trim((string) $block->content_markdown) : null)
-            ->filter(fn (?string $content): bool => $content !== null && $content !== '')
-            ->values()
-            ->all();
+        if (filled($this->resource->full_article_html)) {
+            return trim((string) $this->resource->full_article_html);
+        }
 
-        if ($parts === []) {
+        return null;
+    }
+
+    private function readingTimeMinutes(?string $html): ?int
+    {
+        $wordCount = $this->wordCount($html);
+
+        if ($wordCount <= 0) {
             return null;
         }
 
-        return implode("\n\n", $parts);
+        return max(1, (int) ceil($wordCount / 200));
+    }
+
+    private function wordCount(?string $html): int
+    {
+        if ($html === null || trim($html) === '') {
+            return 0;
+        }
+
+        preg_match_all('/\pL[\pL\pN\'_-]*/u', strip_tags($html), $matches);
+
+        return count($matches[0]);
     }
 }

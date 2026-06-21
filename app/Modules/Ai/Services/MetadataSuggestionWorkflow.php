@@ -15,6 +15,8 @@ use Throwable;
 
 class MetadataSuggestionWorkflow
 {
+    private const JOB_TYPE = 'post_metadata_suggestion';
+
     public function __construct(
         private readonly AiJobRepository $jobs,
         private readonly TrackAiJobService $trackAiJob,
@@ -25,14 +27,13 @@ class MetadataSuggestionWorkflow
     public function queue(Post $post, QueuePostMetadataSuggestionData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
     {
         $job = $this->jobs->create(new CreateAiJobData(
-            type: AiPromptTemplate::TYPE_SEO_OPTIMIZER,
+            type: self::JOB_TYPE,
             status: AiJob::STATUS_QUEUED,
             entityType: 'post',
             entityId: (int) $post->id,
             inputPayload: [
                 'post_id' => (int) $post->id,
                 'instructions' => $data->instructions,
-                'prompt_template_key' => $data->promptTemplateKey,
             ],
             attempts: max(1, $attempts),
             retryOfAiJobId: $retryOfAiJobId,
@@ -64,7 +65,6 @@ class MetadataSuggestionWorkflow
                 post: $post,
                 instructions: is_string($payload['instructions'] ?? null) ? $payload['instructions'] : null,
                 aiJobId: (int) $job->id,
-                promptTemplateKey: is_string($payload['prompt_template_key'] ?? null) ? $payload['prompt_template_key'] : null,
             );
         } catch (Throwable $throwable) {
             $job = $this->jobs->findById($aiJobId);

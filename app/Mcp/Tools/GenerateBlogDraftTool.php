@@ -7,7 +7,7 @@ use App\Mcp\Support\SerializesMcpPayloads;
 use App\Models\Post;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 use App\Modules\Ai\Services\QueueBlogDraftGenerationService;
-use App\Modules\ContentBriefs\Services\ReadContentBriefService;
+use App\Modules\ContentTopics\Services\ReadContentTopicService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -17,37 +17,33 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tool;
 
 #[Name('generateBlogDraft')]
-#[Description('Queue blog draft generation from an approved content brief. This creates drafts only and never publishes content.')]
+#[Description('Queue blog draft generation from an approved topic. This creates drafts only and never publishes content.')]
 class GenerateBlogDraftTool extends Tool
 {
     use SerializesMcpPayloads;
 
     public function __construct(
-        private readonly ReadContentBriefService $readBrief,
+        private readonly ReadContentTopicService $readTopic,
         private readonly QueueBlogDraftGenerationService $workflow,
     ) {}
 
     public function handle(Request $request): ResponseFactory
     {
         $validated = $request->validate([
-            'content_brief_id' => ['required', 'integer', 'min:1'],
+            'content_topic_id' => ['required', 'integer', 'min:1'],
             'author_user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'template_id' => ['sometimes', 'nullable', 'integer', 'exists:templates,id'],
+            'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'featured_media_id' => ['sometimes', 'nullable', 'integer', 'exists:media,id'],
             'visibility' => ['sometimes', 'string', 'in:'.implode(',', Post::VISIBILITIES)],
-            'prompt_template_key' => ['sometimes', 'nullable', 'string', 'max:190'],
             'generation_mode' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', BlogDraftGenerationMode::values())],
         ]);
 
-        $brief = $this->readBrief->handle((int) $validated['content_brief_id']);
-        $job = $this->workflow->handle($brief, new QueueBlogDraftGenerationData(
+        $topic = $this->readTopic->handle((int) $validated['content_topic_id']);
+        $job = $this->workflow->handle($topic, new QueueBlogDraftGenerationData(
             authorUserId: isset($validated['author_user_id']) ? (int) $validated['author_user_id'] : null,
-            categoryId: (int) $validated['category_id'],
-            templateId: isset($validated['template_id']) ? (int) $validated['template_id'] : null,
+            categoryId: isset($validated['category_id']) ? (int) $validated['category_id'] : (int) $topic->category_id,
             featuredMediaId: isset($validated['featured_media_id']) ? (int) $validated['featured_media_id'] : null,
             visibility: $validated['visibility'] ?? Post::VISIBILITY_PUBLIC,
-            promptTemplateKey: $validated['prompt_template_key'] ?? null,
             generationMode: $validated['generation_mode'] ?? null,
         ));
 
@@ -60,13 +56,11 @@ class GenerateBlogDraftTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'content_brief_id' => $schema->integer()->required()->description('Approved content brief ID.'),
+            'content_topic_id' => $schema->integer()->required()->description('Approved topic ID.'),
             'author_user_id' => $schema->integer()->description('Optional post author ID.'),
-            'category_id' => $schema->integer()->required()->description('Category ID for the generated draft.'),
-            'template_id' => $schema->integer()->description('Optional template ID.'),
+            'category_id' => $schema->integer()->description('Optional category override. Defaults to the topic category.'),
             'featured_media_id' => $schema->integer()->description('Optional featured media ID.'),
             'visibility' => $schema->string()->description('Draft visibility.'),
-            'prompt_template_key' => $schema->string()->description('Optional prompt template override.'),
             'generation_mode' => $schema->string()->description('Optional editorial mode: tutorial, comparison, opinionated_analysis, or checklist.'),
         ];
     }

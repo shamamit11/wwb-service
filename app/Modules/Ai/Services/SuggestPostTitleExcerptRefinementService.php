@@ -23,20 +23,19 @@ class SuggestPostTitleExcerptRefinementService
         Post $post,
         ?string $instructions = null,
         ?int $aiJobId = null,
-        ?string $promptTemplateKey = null,
     ): AgentResult {
-        $post = $this->posts->findById((int) $post->id) ?? $post->loadMissing(['tags', 'blocks']);
+        $post = $this->posts->findById((int) $post->id) ?? $post->loadMissing(['tags']);
         $meta = is_array($post->meta) ? $post->meta : [];
 
         $result = $this->agent->run(new PostTitleExcerptRefinementInput(
             postId: (int) $post->id,
             postTitle: $post->title,
             postSlug: $post->slug,
-            postExcerpt: $post->excerpt,
+            postExcerpt: $post->short_description,
             postStatus: $post->status,
             primaryKeyword: $this->normalizeString($meta['primary_keyword'] ?? null),
             secondaryKeywords: $this->normalizeStringList($meta['secondary_keywords'] ?? []),
-            existingMarkdownBody: $this->resolveMarkdownBody($post, $meta),
+            existingArticleBody: $this->resolveArticleBody($post, $meta),
             existingTags: $post->tags->pluck('name')->filter()->values()->all(),
             knowledgeBaseContext: $this->knowledgeContext->forPrompt(new KnowledgeContextQueryData(
                 subject: $post->title,
@@ -48,12 +47,9 @@ class SuggestPostTitleExcerptRefinementService
                 maxEntryCharacters: 260,
                 maxTotalCharacters: 1600,
             )),
-            briefOutline: $this->resolveBriefOutline($meta),
-            briefHeadings: $this->resolveBriefHeadings($meta),
             instructions: $instructions,
             metadata: array_filter([
                 'ai_job_id' => $aiJobId,
-                'prompt_template_key' => $promptTemplateKey,
             ], static fn (mixed $value): bool => $value !== null),
         ));
 
@@ -67,46 +63,15 @@ class SuggestPostTitleExcerptRefinementService
     /**
      * @param  array<string, mixed>  $meta
      */
-    private function resolveMarkdownBody(Post $post, array $meta): string
+    private function resolveArticleBody(Post $post, array $meta): string
     {
-        $markdown = $this->normalizeString($meta['markdown_body'] ?? null);
+        $html = $this->normalizeString($meta['html_body'] ?? null);
 
-        if ($markdown !== null) {
-            return $markdown;
+        if ($html !== null) {
+            return strip_tags($html);
         }
 
-        $blocks = $post->blocks->sortBy('sort_order');
-        $parts = [];
-
-        foreach ($blocks as $block) {
-            $content = trim((string) ($block->content_markdown ?? ''));
-
-            if ($content !== '') {
-                $parts[] = $content;
-            }
-        }
-
-        return trim(implode("\n\n", $parts));
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     * @return list<array<string, mixed>>
-     */
-    private function resolveBriefOutline(array $meta): array
-    {
-        $outline = $meta['brief_outline'] ?? null;
-
-        return is_array($outline) ? array_values(array_filter($outline, 'is_array')) : [];
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     * @return list<string>
-     */
-    private function resolveBriefHeadings(array $meta): array
-    {
-        return $this->normalizeStringList($meta['brief_headings'] ?? []);
+        return trim(strip_tags((string) ($post->full_article_html ?? '')));
     }
 
     private function normalizeString(mixed $value): ?string

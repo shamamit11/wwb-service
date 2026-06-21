@@ -57,7 +57,7 @@ class FindRelatedContentService
     {
         return new InternalLinkContextData(
             title: $post->title,
-            excerpt: $post->excerpt,
+            excerpt: $post->short_description,
             categoryId: $post->category_id,
             tagNames: $post->tags->pluck('name')->all(),
             focusKeyword: $post->seo?->focus_keyword,
@@ -85,7 +85,7 @@ class FindRelatedContentService
                     $contextTerms,
                     $this->terms(
                         $post->title,
-                        $post->excerpt,
+                        $post->short_description,
                         $post->seo?->focus_keyword,
                         ...$post->tags->pluck('name')->all(),
                     ),
@@ -105,7 +105,7 @@ class FindRelatedContentService
                 }
 
                 if ($context->focusKeyword !== null && stripos(
-                    implode(' ', [$post->title, $post->excerpt, $post->seo?->focus_keyword]),
+                    implode(' ', [$post->title, $post->short_description, $post->seo?->focus_keyword]),
                     $context->focusKeyword
                 ) !== false) {
                     $score += 4;

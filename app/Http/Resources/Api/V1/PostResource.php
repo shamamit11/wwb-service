@@ -19,12 +19,10 @@ class PostResource extends ApiResource
         /** @var CanonicalUrlService $canonicalUrls */
         $canonicalUrls = app(CanonicalUrlService::class);
         $meta = is_array($this->resource->meta) ? $this->resource->meta : [];
-        $sourceContentBriefId = $this->nullableInt($meta['source_content_brief_id'] ?? null);
         $sourceContentTopicId = $this->nullableInt($meta['source_content_topic_id'] ?? null);
         $generatedByAiJobId = $this->nullableInt($meta['ai_job_id'] ?? null);
         $generatedBy = is_string($meta['generated_by'] ?? null) && $meta['generated_by'] !== '' ? $meta['generated_by'] : null;
-        $isAiGenerated = $sourceContentBriefId !== null
-            || $sourceContentTopicId !== null
+        $isAiGenerated = $sourceContentTopicId !== null
             || $generatedByAiJobId !== null
             || $generatedBy !== null;
 
@@ -33,18 +31,16 @@ class PostResource extends ApiResource
             'ulid' => $this->resource->ulid,
             'title' => $this->resource->title,
             'slug' => $this->resource->slug,
-            'excerpt' => $this->resource->excerpt,
+            'short_description' => $this->resource->short_description,
+            'description' => $this->resource->description,
+            'full_article_html' => $this->resource->full_article_html,
+            'full_article_delta' => $this->resource->full_article_delta,
+            'faq' => $this->resource->faq ?? [],
             'status' => $this->resource->status,
             'visibility' => $this->resource->visibility,
             'published_at' => $this->resource->published_at?->toISOString(),
-            'scheduled_for' => $this->resource->scheduled_for?->toISOString(),
             'canonical_url' => $canonicalUrls->for($this->resource),
-            'content_version' => $this->resource->content_version,
-            'reading_time_minutes' => $this->resource->reading_time_minutes,
-            'word_count' => $this->resource->word_count,
-            'is_featured' => (bool) $this->resource->is_featured,
             'is_ai_generated' => $isAiGenerated,
-            'source_content_brief_id' => $sourceContentBriefId,
             'source_content_topic_id' => $sourceContentTopicId,
             'generated_by_ai_job_id' => $generatedByAiJobId,
             'generated_by' => $generatedBy,
@@ -58,12 +54,6 @@ class PostResource extends ApiResource
                 'id' => $this->resource->category->id,
                 'name' => $this->resource->category->name,
                 'slug' => $this->resource->category->slug,
-            ]),
-            'template' => $this->whenLoaded('template', fn (): ?array => $this->resource->template === null ? null : [
-                'id' => $this->resource->template->id,
-                'name' => $this->resource->template->name,
-                'slug' => $this->resource->template->slug,
-                'template_type' => $this->resource->template->template_type,
             ]),
             'featured_media' => $this->whenLoaded('featuredMedia', fn (): ?array => $this->resource->featuredMedia === null ? null : [
                 'id' => $this->resource->featuredMedia->id,
@@ -82,7 +72,6 @@ class PostResource extends ApiResource
                 ])
                 ->values()
                 ->all()),
-            'blocks' => PostBlockResource::collection($this->whenLoaded('blocks')),
             'created_at' => $this->resource->created_at?->toISOString(),
             'updated_at' => $this->resource->updated_at?->toISOString(),
         ];

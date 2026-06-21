@@ -14,6 +14,12 @@ class ContentTopicResource extends ApiResource
     {
         return [
             'id' => $this->resource->id,
+            'category_id' => $this->resource->category_id,
+            'category' => $this->whenLoaded('category', fn (): ?array => $this->resource->category === null ? null : [
+                'id' => $this->resource->category->id,
+                'name' => $this->resource->category->name,
+                'slug' => $this->resource->category->slug,
+            ]),
             'title' => $this->resource->title,
             'slug' => $this->resource->slug,
             'cluster' => $this->resource->cluster,
@@ -21,11 +27,12 @@ class ContentTopicResource extends ApiResource
             'secondary_keywords' => $this->resource->secondary_keywords ?? [],
             'search_intent' => $this->resource->search_intent,
             'priority_score' => $this->resource->priority_score,
+            'score_breakdown' => $this->resource->score_breakdown ?? null,
             'difficulty_note' => $this->resource->difficulty_note,
             'source' => $this->resource->source,
             'status' => $this->resource->status,
             'notes' => $this->resource->notes,
-            'can_generate_content_brief' => $this->resource->canGenerateContentBrief(),
+            'can_generate_draft' => $this->resource->canGenerateDraft(),
             'approved_at' => $this->resource->approved_at?->toISOString(),
             'rejected_at' => $this->resource->rejected_at?->toISOString(),
             'used_at' => $this->resource->used_at?->toISOString(),

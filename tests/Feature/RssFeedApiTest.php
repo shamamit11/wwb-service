@@ -37,7 +37,7 @@ class RssFeedApiTest extends TestCase
         $olderPublished = $this->createPost($admin, $category, [
             'title' => 'Older Published',
             'slug' => 'older-published',
-            'excerpt' => 'Older feed summary',
+            'short_description' => 'Older feed summary',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-10 08:00:00',
@@ -47,7 +47,7 @@ class RssFeedApiTest extends TestCase
         $newerPublished = $this->createPost($admin, $category, [
             'title' => 'Newer Published',
             'slug' => 'newer-published',
-            'excerpt' => 'Newer feed summary',
+            'short_description' => 'Newer feed summary',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => '2026-06-12 09:30:00',
@@ -65,7 +65,7 @@ class RssFeedApiTest extends TestCase
         $this->createPost($admin, $category, [
             'title' => 'Draft Post',
             'slug' => 'draft-post',
-            'excerpt' => 'Draft summary',
+            'short_description' => 'Draft summary',
             'status' => Post::STATUS_DRAFT,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => null,
@@ -74,7 +74,7 @@ class RssFeedApiTest extends TestCase
         $this->createPost($admin, $category, [
             'title' => 'Internal Published',
             'slug' => 'internal-published',
-            'excerpt' => 'Internal summary',
+            'short_description' => 'Internal summary',
             'status' => Post::STATUS_PUBLISHED,
             'visibility' => Post::VISIBILITY_INTERNAL,
             'published_at' => '2026-06-09 08:00:00',
@@ -124,19 +124,17 @@ class RssFeedApiTest extends TestCase
         return tap(Post::query()->create(array_merge([
             'author_user_id' => $author->id,
             'category_id' => $category->id,
-            'template_id' => null,
             'featured_media_id' => null,
             'title' => 'Sample Post',
             'slug' => 'sample-post',
-            'excerpt' => null,
+            'short_description' => null,
+            'description' => null,
+            'full_article_html' => '<h1>Sample Post</h1><p>Sample body.</p>',
+            'full_article_delta' => null,
+            'faq' => [],
             'status' => Post::STATUS_DRAFT,
             'visibility' => Post::VISIBILITY_PUBLIC,
             'published_at' => null,
-            'scheduled_for' => null,
-            'content_version' => 1,
-            'reading_time_minutes' => null,
-            'word_count' => null,
-            'is_featured' => false,
             'meta' => null,
         ], $overrides)), function (Post $post) use ($overrides): void {
             if (array_key_exists('updated_at', $overrides)) {

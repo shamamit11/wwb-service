@@ -30,13 +30,11 @@ class SuggestPostMetadataTool extends Tool
         $validated = $request->validate([
             'post_id' => ['required', 'string'],
             'instructions' => ['sometimes', 'nullable', 'string'],
-            'prompt_template_key' => ['sometimes', 'nullable', 'string', 'max:190'],
         ]);
 
         $post = $this->posts->handle((string) $validated['post_id']);
         $job = $this->workflow->handle($post, new QueuePostMetadataSuggestionData(
             instructions: isset($validated['instructions']) ? (string) $validated['instructions'] : null,
-            promptTemplateKey: $validated['prompt_template_key'] ?? null,
         ));
 
         return Response::structured([
@@ -50,7 +48,6 @@ class SuggestPostMetadataTool extends Tool
         return [
             'post_id' => $schema->string()->required()->description('Draft or post numeric ID or ULID.'),
             'instructions' => $schema->string()->description('Optional editorial or SEO guidance for the suggestion pass.'),
-            'prompt_template_key' => $schema->string()->description('Optional prompt template override.'),
         ];
     }
 }

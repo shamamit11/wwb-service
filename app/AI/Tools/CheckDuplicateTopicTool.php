@@ -15,11 +15,11 @@ class CheckDuplicateTopicTool
     /**
      * @return array{is_duplicate: bool, matches: list<string>}
      */
-    public function check(string $title, string $cluster, ?string $primaryKeyword = null, ?string $slug = null): array
+    public function check(string $title, int $categoryId, ?string $primaryKeyword = null, ?string $slug = null): array
     {
         $matches = [];
 
-        if ($this->topics->existsDuplicate($title, $cluster, $primaryKeyword)) {
+        if ($this->topics->existsDuplicate($title, $categoryId, $primaryKeyword)) {
             $matches[] = 'content_topic';
         }
 

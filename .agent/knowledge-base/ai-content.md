@@ -2,17 +2,17 @@
 
 ## AI Workflow Goals
 
-- help discover topics
+- discover valuable topics
 - generate draft articles
-- generate SEO metadata
-- support future image generation
+- generate helper SEO suggestions
+- support future image suggestion workflows
 
-## Phase 3 MVP Flow
+## Current MVP Flow
 
 1. Knowledge Base context is gathered.
-2. `TopicDiscoveryAgent` suggests topics within approved clusters.
-3. approved topics feed `ContentBriefAgent`.
-4. approved briefs feed `BlogWriterAgent`.
+2. `TopicDiscoveryAgent` suggests scored topics within approved clusters.
+3. topics below `90` are pruned automatically.
+4. topics at `90` or higher are eligible for automatic draft routing.
 5. draft posts are reviewed, edited, approved, and published manually in Admin.
 
 ## Approved Topic Clusters
@@ -26,15 +26,14 @@
 
 ## Guardrails
 
-- AI output starts as draft
-- human approval is required before publication
-- moderation and auditability should be first-class design concerns
-- AI must not auto-approve topics or briefs
-- AI must not auto-publish posts
-- prompts must be database-backed and versioned
-- images remain manual in MVP; AI may only suggest ideas, placement, and alt text
-- retries must not create duplicate topics, briefs, or posts
-- AI work must record jobs and generation steps
+- AI output starts as draft.
+- human approval is required before publication.
+- AI must not auto-publish posts.
+- prompts must be database-backed and versioned.
+- the main editable prompt families are `topic_standard` and `blog_standard`.
+- images remain manual in MVP; AI may only suggest ideas, placement, and alt text.
+- retries must not create duplicate topics or posts.
+- AI work must record jobs and generation steps.
 
 ## Implementation Bias
 

@@ -13,7 +13,6 @@ use App\AI\Support\DecodesJsonResponse;
 use App\AI\Tools\FindInternalLinksTool;
 use App\AI\Tools\SavePostDraftTool;
 use App\AI\Tools\SearchExistingPostsTool;
-use App\Enums\ContentBlockType;
 use App\Infrastructure\Ai\Contracts\AiClient;
 use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
@@ -30,7 +29,7 @@ class BlogWriterAgent implements ContentAgentInterface
 {
     use DecodesJsonResponse;
 
-    private const DEFAULT_PROMPT_KEY = 'blog_writer_default';
+    private const DEFAULT_PROMPT_KEY = AiPromptTemplate::KEY_BLOG_STANDARD;
 
     public function __construct(
         private readonly AiClient $aiClient,
@@ -81,7 +80,6 @@ class BlogWriterAgent implements ContentAgentInterface
 
             $parsedResponse = $this->parseResponse($response->content, $contextualInput);
             $post = $this->savePostDraft->save(
-                contentBriefId: $contextualInput->contentBriefId,
                 contentTopicId: $contextualInput->contentTopicId,
                 primaryKeyword: $contextualInput->primaryKeyword,
                 secondaryKeywords: $contextualInput->secondaryKeywords,
@@ -95,7 +93,7 @@ class BlogWriterAgent implements ContentAgentInterface
                 'post_id' => (int) $post->id,
                 'title' => $parsedResponse->title,
                 'slug' => $post->slug,
-                'block_count' => count($parsedResponse->contentBlocks),
+                'full_article_html_length' => mb_strlen($parsedResponse->fullArticleHtml),
                 'faq_suggestions' => $parsedResponse->faqSuggestions,
                 'suggested_tags' => $parsedResponse->suggestedTags,
                 'image_placement_notes' => $parsedResponse->imagePlacementNotes,
@@ -159,7 +157,6 @@ class BlogWriterAgent implements ContentAgentInterface
             );
 
         return new BlogDraftInput(
-            contentBriefId: $input->contentBriefId,
             contentTopicId: $input->contentTopicId,
             title: $input->title,
             slug: $input->slug,
@@ -241,42 +238,22 @@ class BlogWriterAgent implements ContentAgentInterface
 
         $title = $this->normalizeString($decoded['title'] ?? null) ?? $input->title;
         $slug = $this->normalizeString($decoded['slug'] ?? null) ?? $input->slug;
-        $markdownBody = $this->normalizeString($decoded['markdown_body'] ?? null);
+        $fullArticleHtml = $this->normalizeString($decoded['full_article_html'] ?? $decoded['article_html'] ?? null);
 
-        if ($markdownBody === null) {
-            throw new RuntimeException('Blog writer response did not include markdown_body.');
-        }
-
-        $contentBlocks = $this->normalizeContentBlocks($decoded['content_blocks'] ?? []);
-
-        if ($contentBlocks === []) {
-            throw new RuntimeException('Blog writer response did not include any valid content_blocks.');
+        if ($fullArticleHtml === null) {
+            throw new RuntimeException('Blog writer response did not include full_article_html.');
         }
 
         $faqSuggestions = $this->normalizeFaqSuggestions($decoded['faq_suggestions'] ?? []);
 
-        if ($faqSuggestions !== [] && ! $this->containsFaqBlock($contentBlocks)) {
-            $contentBlocks[] = [
-                'block_type' => ContentBlockType::FAQ->value,
-                'sort_order' => count($contentBlocks) + 1,
-                'content' => [
-                    'items' => array_map(
-                        static fn (array $faq): array => [
-                            'question' => $faq['question'],
-                            'answer_markdown' => $faq['answer_markdown'],
-                        ],
-                        $faqSuggestions,
-                    ),
-                ],
-            ];
-        }
-
         return new BlogDraftResult(
             title: $title,
             slug: (string) \Illuminate\Support\Str::slug($slug),
-            markdownBody: $markdownBody,
+            fullArticleHtml: $fullArticleHtml,
+            fullArticleDelta: $this->normalizeArray($decoded['full_article_delta'] ?? $decoded['quill_delta'] ?? null),
+            shortDescription: $this->normalizeString($decoded['short_description'] ?? null),
+            description: $this->normalizeString($decoded['description'] ?? null),
             excerpt: $this->normalizeString($decoded['excerpt'] ?? null),
-            contentBlocks: $contentBlocks,
             seoTitle: $this->normalizeString($decoded['seo_title'] ?? null),
             metaDescription: $this->normalizeString($decoded['meta_description'] ?? null),
             faqSuggestions: $faqSuggestions,
@@ -292,7 +269,6 @@ class BlogWriterAgent implements ContentAgentInterface
     private function buildJobInputPayload(BlogDraftInput $input): array
     {
         return [
-            'content_brief_id' => $input->contentBriefId,
             'content_topic_id' => $input->contentTopicId,
             'title' => $input->title,
             'slug' => $input->slug,
@@ -333,135 +309,6 @@ class BlogWriterAgent implements ContentAgentInterface
 
     /**
      * @param  mixed  $value
-     * @return list<array<string, mixed>>
-     */
-    private function normalizeContentBlocks(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        $blocks = [];
-
-        foreach (array_values($value) as $index => $blockPayload) {
-            if (! is_array($blockPayload)) {
-                continue;
-            }
-
-            $blockType = $this->normalizeString($blockPayload['block_type'] ?? $blockPayload['type'] ?? null);
-            $content = $blockPayload['content'] ?? null;
-
-            if ($blockType === ContentBlockType::HEADING->value || $blockType === ContentBlockType::PARAGRAPH->value || $blockType === ContentBlockType::LIST->value || $blockType === ContentBlockType::FAQ->value || $blockType === ContentBlockType::IMAGE->value || $blockType === ContentBlockType::QUOTE->value || $blockType === ContentBlockType::CODE->value || $blockType === ContentBlockType::CALLOUT->value) {
-                if (! is_array($content)) {
-                    continue;
-                }
-
-                $sortOrder = $blockPayload['sort_order'] ?? ($index + 1);
-                $sortOrder = is_numeric($sortOrder) ? max(1, (int) $sortOrder) : ($index + 1);
-
-                $blocks[] = [
-                    'block_type' => $blockType,
-                    'sort_order' => $sortOrder,
-                    'content' => $content,
-                ];
-
-                continue;
-            }
-
-            if ($blockType === 'section') {
-                $sortOrder = $blockPayload['sort_order'] ?? ($index + 1);
-                $sortOrder = is_numeric($sortOrder) ? max(1, (int) $sortOrder) : ($index + 1);
-
-                foreach ($this->expandSectionBlock($blockPayload, $sortOrder) as $expandedBlock) {
-                    $blocks[] = $expandedBlock;
-                }
-            }
-        }
-
-        usort($blocks, static fn (array $left, array $right): int => $left['sort_order'] <=> $right['sort_order']);
-
-        return array_values(array_map(
-            static fn (array $block, int $index): array => [
-                'block_type' => $block['block_type'],
-                'sort_order' => $index + 1,
-                'content' => $block['content'],
-            ],
-            $blocks,
-            array_keys($blocks),
-        ));
-    }
-
-    /**
-     * @param  array<string, mixed>  $blockPayload
-     * @return list<array{block_type:string,sort_order:int,content:array<string, mixed>}>
-     */
-    private function expandSectionBlock(array $blockPayload, int $sortOrder): array
-    {
-        $content = is_array($blockPayload['content'] ?? null) ? $blockPayload['content'] : [];
-        $blocks = [];
-
-        $heading = $this->normalizeString(
-            $blockPayload['heading']
-            ?? $blockPayload['title']
-            ?? $content['heading']
-            ?? $content['title']
-            ?? null
-        );
-
-        if ($heading !== null) {
-            $blocks[] = [
-                'block_type' => ContentBlockType::HEADING->value,
-                'sort_order' => $sortOrder,
-                'content' => [
-                    'text' => $heading,
-                    'level' => 2,
-                ],
-            ];
-        }
-
-        $markdown = $this->normalizeString(
-            $blockPayload['markdown']
-            ?? $blockPayload['text']
-            ?? $blockPayload['body']
-            ?? $content['markdown']
-            ?? $content['text']
-            ?? $content['body']
-            ?? $content['content']
-            ?? null
-        );
-
-        if ($markdown !== null) {
-            $blocks[] = [
-                'block_type' => ContentBlockType::PARAGRAPH->value,
-                'sort_order' => $sortOrder + count($blocks),
-                'content' => [
-                    'markdown' => $markdown,
-                ],
-            ];
-        }
-
-        $items = is_array($content['items'] ?? null)
-            ? array_values(array_filter(array_map(
-                fn (mixed $item): ?string => $this->normalizeString($item),
-                $content['items'],
-            )))
-            : [];
-
-        if ($items !== []) {
-            $blocks[] = [
-                'block_type' => ContentBlockType::LIST->value,
-                'sort_order' => $sortOrder + count($blocks),
-                'content' => [
-                    'items' => $items,
-                ],
-            ];
-        }
-
-        return $blocks;
-    }
-
-    /**
-     * @param  mixed  $value
      * @return list<array{question:string,answer_markdown:string}>
      */
     private function normalizeFaqSuggestions(mixed $value): array
@@ -494,20 +341,6 @@ class BlogWriterAgent implements ContentAgentInterface
     }
 
     /**
-     * @param  list<array<string, mixed>>  $blocks
-     */
-    private function containsFaqBlock(array $blocks): bool
-    {
-        foreach ($blocks as $block) {
-            if (($block['block_type'] ?? null) === ContentBlockType::FAQ->value) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * @param  mixed  $value
      */
     private function normalizeString(mixed $value): ?string
@@ -519,6 +352,14 @@ class BlogWriterAgent implements ContentAgentInterface
         $normalized = trim($value);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    /**
+     * @return array<int|string, mixed>|null
+     */
+    private function normalizeArray(mixed $value): ?array
+    {
+        return is_array($value) ? $value : null;
     }
 
     /**
@@ -578,8 +419,8 @@ class BlogWriterAgent implements ContentAgentInterface
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_BLOG_WRITER,
             status: \App\Models\AiJob::STATUS_PENDING,
-            entityType: 'content_brief',
-            entityId: $input->contentBriefId,
+            entityType: 'content_topic',
+            entityId: $input->contentTopicId,
             provider: $this->resolveProvider($input),
             model: $this->resolveModel($input),
             inputPayload: $this->buildJobInputPayload($input),

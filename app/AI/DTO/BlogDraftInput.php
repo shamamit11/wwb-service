@@ -16,7 +16,6 @@ final readonly class BlogDraftInput extends AgentInput
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
-        public int $contentBriefId,
         public int $contentTopicId,
         public string $title,
         public string $slug,

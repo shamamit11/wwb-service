@@ -19,7 +19,6 @@ Use this file to choose the smallest project document set for strategy-heavy tas
 ## Implementation Specs
 
 - API contracts: `docs/OPENAPI_SPEC.md`
-- template system: `docs/TEMPLATE_ENGINE.md`
 - media system: `docs/MEDIA_SERVICE.md`
 - knowledge base: `docs/KNOWLEDGE_BASE.md`
 - AI engine: `docs/AI_CONTENT_ENGINE.md`
