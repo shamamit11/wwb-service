@@ -6,7 +6,9 @@ use App\AI\DTO\TopicSuggestionData;
 use App\AI\Tools\CheckDuplicateTopicTool;
 use App\AI\Tools\SaveTopicIdeaTool;
 use App\Mcp\Support\SerializesMcpPayloads;
+use App\Models\Category;
 use App\Models\ContentTopic;
+use App\Modules\Ai\Services\ResolveTopicDiscoveryClusterService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -24,7 +26,7 @@ class CreateTopicSuggestionTool extends Tool
     public function __construct(
         private readonly CheckDuplicateTopicTool $duplicates,
         private readonly SaveTopicIdeaTool $saveTopic,
-        private readonly \App\Modules\Ai\Services\ResolveTopicDiscoveryClusterService $clusters,
+        private readonly ResolveTopicDiscoveryClusterService $clusters,
     ) {}
 
     public function handle(Request $request): ResponseFactory
@@ -37,16 +39,16 @@ class CreateTopicSuggestionTool extends Tool
             'primary_keyword' => ['sometimes', 'nullable', 'string', 'max:255'],
             'secondary_keywords' => ['sometimes', 'array'],
             'secondary_keywords.*' => ['string', 'max:255'],
-            'search_intent' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'search_intent' => ['sometimes', 'nullable', 'string', 'max:'.ContentTopic::SEARCH_INTENT_MAX_LENGTH],
             'priority_score' => ['sometimes', 'nullable', 'numeric', 'between:0,999.99'],
             'difficulty_note' => ['sometimes', 'nullable', 'string'],
             'summary' => ['sometimes', 'nullable', 'string'],
             'audience' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
-        $category = \App\Models\Category::query()->where('is_active', true)->find((int) $validated['category_id']);
+        $category = Category::query()->where('is_active', true)->find((int) $validated['category_id']);
 
-        if (! $category instanceof \App\Models\Category) {
+        if (! $category instanceof Category) {
             return Response::structured([
                 'created' => false,
                 'duplicate_check' => ['is_duplicate' => false, 'matches' => []],

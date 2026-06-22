@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class ContentTopic extends Model
 {
+    public const SEARCH_INTENT_MAX_LENGTH = 255;
+
     public const STATUS_SUGGESTED = 'suggested';
 
     public const STATUS_APPROVED = 'approved';

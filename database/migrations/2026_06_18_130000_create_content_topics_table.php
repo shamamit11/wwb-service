@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ContentTopic;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -18,7 +19,7 @@ return new class extends Migration
             $table->string('cluster', 60);
             $table->string('primary_keyword', 255)->nullable();
             $table->json('secondary_keywords')->nullable();
-            $table->string('search_intent', 120)->nullable();
+            $table->string('search_intent', ContentTopic::SEARCH_INTENT_MAX_LENGTH)->nullable();
             $table->decimal('priority_score', 5, 2)->nullable();
             $table->text('difficulty_note')->nullable();
             $table->string('source', 120);
