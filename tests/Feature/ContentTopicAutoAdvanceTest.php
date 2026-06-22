@@ -38,6 +38,36 @@ class ContentTopicAutoAdvanceTest extends TestCase
         Queue::assertPushed(GenerateBlogDraftJob::class, 2);
     }
 
+    public function test_it_persists_long_search_intent_text_with_ai_suggested_topics(): void
+    {
+        Queue::fake();
+
+        $author = User::factory()->create();
+        $category = $this->createCategory($author, 'AI Tools', 'ai-tools');
+        $service = app(CreateContentTopicService::class);
+        $searchIntent = 'Find actionable criteria, benchmarks, and trade-offs for selecting an LLM provider that meets strict latency and concurrency SLAs.';
+
+        $topic = $service->handle(new CreateContentTopicData(
+            categoryId: (int) $category->id,
+            title: 'How to Choose an LLM Provider for Low-Latency, High-Concurrency Production Apps',
+            slug: null,
+            cluster: ContentTopic::CLUSTER_AI_TOOLS,
+            primaryKeyword: 'llm provider latency',
+            secondaryKeywords: ['low latency llm api', 'llm concurrency'],
+            searchIntent: $searchIntent,
+            priorityScore: '89.00',
+            source: ContentTopic::SOURCE_AI_SUGGESTED,
+            status: ContentTopic::STATUS_SUGGESTED,
+        ));
+
+        $this->assertSame($searchIntent, $topic->search_intent);
+        $this->assertDatabaseHas('content_topics', [
+            'id' => $topic->id,
+            'search_intent' => $searchIntent,
+        ]);
+        Queue::assertNothingPushed();
+    }
+
     private function topicData(int $categoryId, string $title, string $priorityScore): CreateContentTopicData
     {
         return new CreateContentTopicData(

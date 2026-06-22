@@ -27,7 +27,7 @@ class StoreContentTopicRequest extends FormRequest
             'primary_keyword' => ['nullable', 'string', 'max:255'],
             'secondary_keywords' => ['nullable', 'array'],
             'secondary_keywords.*' => ['string', 'max:255'],
-            'search_intent' => ['nullable', 'string', 'max:255'],
+            'search_intent' => ['nullable', 'string', 'max:'.ContentTopic::SEARCH_INTENT_MAX_LENGTH],
             'priority_score' => ['nullable', 'numeric', 'between:0,999.99'],
             'score_breakdown' => ['nullable', 'array'],
             'score_breakdown.trend_score' => ['nullable', 'numeric', 'between:0,35'],
