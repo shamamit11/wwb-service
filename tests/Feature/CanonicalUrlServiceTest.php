@@ -37,7 +37,7 @@ class CanonicalUrlServiceTest extends TestCase
         $service = app(CanonicalUrlService::class);
 
         $this->assertSame('https://www.worldwideweb.test/categories/ai-agents/', $service->for($category));
-        $this->assertSame('https://www.worldwideweb.test/how-ai-agent-memory-works/', $service->for($post));
+        $this->assertSame('https://www.worldwideweb.test/articles/how-ai-agent-memory-works/', $service->for($post));
     }
 
     public function test_service_respects_canonical_override_when_present(): void
@@ -91,7 +91,7 @@ class CanonicalUrlServiceTest extends TestCase
 
         $payload = (new PostResource($post))->resolve();
 
-        $this->assertSame('https://www.worldwideweb.test/how-ai-agent-memory-works/', $payload['canonical_url']);
+        $this->assertSame('https://www.worldwideweb.test/articles/how-ai-agent-memory-works/', $payload['canonical_url']);
     }
 
     private function createCategory(User $author, string $name, string $slug): Category

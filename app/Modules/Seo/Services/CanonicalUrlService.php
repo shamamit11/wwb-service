@@ -33,7 +33,7 @@ class CanonicalUrlService
             return null;
         }
 
-        return $this->absolute("{$post->slug}/");
+        return $this->absolute("articles/{$post->slug}/");
     }
 
     private function forCategory(Category $category): ?string
