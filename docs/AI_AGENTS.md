@@ -49,7 +49,7 @@ Generate scored editorial topics inside approved content clusters.
 
 - cluster must be approved
 - duplicates should be skipped safely
-- topics below `90` should not remain in the queue
+- topics below `70` should not remain in the queue
 
 ## BlogWriterAgent
 

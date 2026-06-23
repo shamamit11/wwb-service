@@ -47,8 +47,9 @@ The canonical editorial flow is:
 
 1. Topic Queue stores candidate topics.
 2. Topic Agent generates and scores topics from categories plus knowledge base context.
-3. Topics with score below `90` are automatically deleted by worker cleanup.
-4. Topics with score above `90` automatically queue article draft generation.
+3. Topics with score below `70` are automatically deleted by worker cleanup.
+4. Topics with score from `70` through `84.99` remain in Topic Queue for editorial review.
+5. Topics with score at or above `85` automatically queue article draft generation.
 5. Blog Agent generates one full article draft using the standard blog prompt.
 6. Admin reviews and edits the draft in a Quill-based article editor.
 7. Publish remains manual.
@@ -58,8 +59,10 @@ flowchart LR
     C["Categories"] --> T["Topic Agent"]
     K["Knowledge Base"] --> T
     T --> Q["Topic Queue"]
-    Q --> S{"Score >= 90?"}
-    S -- "No" --> D["Auto-delete topic"]
+    Q --> S{"Score >= 85?"}
+    S -- "No" --> R{"Score >= 70?"}
+    R -- "No" --> D["Auto-delete topic"]
+    R -- "Yes" --> E["Keep for editorial review"]
     S -- "Yes" --> J["Queue draft generation"]
     J --> B["Blog Agent"]
     B --> P["Draft Post"]

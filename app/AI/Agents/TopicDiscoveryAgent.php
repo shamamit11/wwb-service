@@ -86,7 +86,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 targetCount: $input->targetCount,
             );
 
-            [$savedTopics, $skippedDuplicates, $skippedDailyLimit] = $this->persistTopics($parsedResponse, $input);
+            [$savedTopics, $skippedDuplicates, $skippedDailyLimit, $skippedUnscored] = $this->persistTopics($parsedResponse, $input);
 
             $usagePayload = $response->usage->toArray();
             $outputPayload = [
@@ -100,6 +100,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 ),
                 'skipped_duplicates' => $skippedDuplicates,
                 'skipped_daily_limit' => $skippedDailyLimit,
+                'skipped_unscored' => $skippedUnscored,
             ];
 
             $step = $this->trackAiJob->completeStep($step, $outputPayload, $usagePayload);
@@ -123,6 +124,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                     ),
                     'skipped_duplicates' => $skippedDuplicates,
                     'skipped_daily_limit' => $skippedDailyLimit,
+                    'skipped_unscored' => $skippedUnscored,
                 ],
             );
         } catch (Throwable $throwable) {
@@ -238,7 +240,12 @@ class TopicDiscoveryAgent implements ContentAgentInterface
      */
     private function resolvePriorityScore(array $topicPayload): ?string
     {
-        $explicit = $this->normalizeDecimal($topicPayload['priority_score'] ?? null);
+        $explicit = $this->normalizeDecimal(
+            $topicPayload['priority_score']
+                ?? $topicPayload['total_score']
+                ?? $topicPayload['score']
+                ?? null,
+        );
 
         if ($explicit !== null) {
             return $explicit;
@@ -268,11 +275,14 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             'originality_gap' => 15.0,
             'execution_confidence' => 10.0,
         ];
+        $payload = is_array($topicPayload['score_breakdown'] ?? null)
+            ? $topicPayload['score_breakdown']
+            : $topicPayload;
 
         $scores = [];
 
         foreach ($map as $key => $max) {
-            $value = $topicPayload[$key] ?? null;
+            $value = $payload[$key] ?? null;
 
             if (! is_numeric($value)) {
                 return null;
@@ -285,13 +295,14 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     }
 
     /**
-     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>,2:list<array{title:string, reason:string, priority_score:?string}>}
+     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>,2:list<array{title:string, reason:string, priority_score:?string}>,3:list<array{title:string, reason:string}>}
      */
     private function persistTopics(TopicDiscoveryResult $result, TopicDiscoveryInput $input): array
     {
         $savedTopics = [];
         $skippedDuplicates = [];
         $skippedDailyLimit = [];
+        $skippedUnscored = [];
         $seenKeys = [];
 
         foreach ($result->topics as $topic) {
@@ -324,6 +335,15 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 continue;
             }
 
+            if ($topic->priorityScore === null) {
+                $skippedUnscored[] = [
+                    'title' => $topic->title,
+                    'reason' => 'missing_priority_score',
+                ];
+
+                continue;
+            }
+
             if (! $this->dailyLimits->canPersistAiSuggestedTopic($topic->priorityScore)) {
                 $skippedDailyLimit[] = [
                     'title' => $topic->title,
@@ -337,7 +357,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             $savedTopics[] = $this->saveTopicIdea->save($topic, $input->categoryId, $input->audience);
         }
 
-        return [$savedTopics, $skippedDuplicates, $skippedDailyLimit];
+        return [$savedTopics, $skippedDuplicates, $skippedDailyLimit, $skippedUnscored];
     }
 
     /**

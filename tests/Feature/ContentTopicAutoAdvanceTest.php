@@ -18,7 +18,7 @@ class ContentTopicAutoAdvanceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_auto_advance_approves_score_ninety_topics_but_caps_draft_queueing_at_two(): void
+    public function test_auto_advance_approves_score_eighty_five_topics_but_caps_draft_queueing_at_two(): void
     {
         Queue::fake();
 
@@ -26,7 +26,7 @@ class ContentTopicAutoAdvanceTest extends TestCase
         $category = $this->createCategory($author, 'AI Tools', 'ai-tools');
         $service = app(CreateContentTopicService::class);
 
-        $first = $service->handle($this->topicData((int) $category->id, 'AI Tool Reviews', '90.00'));
+        $first = $service->handle($this->topicData((int) $category->id, 'AI Tool Reviews', '85.00'));
         $second = $service->handle($this->topicData((int) $category->id, 'AI Tool Comparisons', '95.00'));
         $third = $service->handle($this->topicData((int) $category->id, 'AI Tool Governance', '97.00'));
 
@@ -55,7 +55,7 @@ class ContentTopicAutoAdvanceTest extends TestCase
             primaryKeyword: 'llm provider latency',
             secondaryKeywords: ['low latency llm api', 'llm concurrency'],
             searchIntent: $searchIntent,
-            priorityScore: '89.00',
+            priorityScore: '84.00',
             source: ContentTopic::SOURCE_AI_SUGGESTED,
             status: ContentTopic::STATUS_SUGGESTED,
         ));

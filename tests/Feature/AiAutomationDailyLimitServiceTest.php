@@ -15,13 +15,13 @@ class AiAutomationDailyLimitServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_service_treats_score_of_ninety_as_high_priority(): void
+    public function test_service_treats_score_of_eighty_five_as_high_priority(): void
     {
         $service = app(AiAutomationDailyLimitService::class);
 
-        $this->assertTrue($service->isHighPriorityScore('90.00'));
+        $this->assertTrue($service->isHighPriorityScore('85.00'));
         $this->assertTrue($service->isHighPriorityScore('91'));
-        $this->assertFalse($service->isHighPriorityScore('89.99'));
+        $this->assertFalse($service->isHighPriorityScore('84.99'));
     }
 
     public function test_service_caps_daily_high_priority_topics_and_draft_jobs(): void
@@ -34,7 +34,7 @@ class AiAutomationDailyLimitServiceTest extends TestCase
             'title' => 'AI Tooling Systems',
             'slug' => 'ai-tooling-systems',
             'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
-            'priority_score' => '90.00',
+            'priority_score' => '85.00',
             'source' => ContentTopic::SOURCE_AI_SUGGESTED,
             'status' => ContentTopic::STATUS_SUGGESTED,
         ]);
@@ -72,7 +72,7 @@ class AiAutomationDailyLimitServiceTest extends TestCase
         $service = app(AiAutomationDailyLimitService::class);
 
         $this->assertFalse($service->canPersistAiSuggestedTopic('92.00'));
-        $this->assertTrue($service->canPersistAiSuggestedTopic('89.00'));
+        $this->assertTrue($service->canPersistAiSuggestedTopic('84.00'));
         $this->assertFalse($service->canQueueAutomaticDraft());
     }
 

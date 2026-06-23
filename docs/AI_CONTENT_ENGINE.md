@@ -10,8 +10,9 @@ The service uses AI to accelerate editorial work, not to replace editorial appro
 
 - AI never publishes posts directly.
 - topic discovery creates scored topics.
-- topics below `90` are pruned automatically.
-- topics at `90` or higher queue draft generation automatically.
+- topics below `70` are pruned automatically.
+- topics from `70` through `84.99` remain in Topic Queue for editorial review.
+- topics at `85` or higher queue draft generation automatically.
 - generated posts remain drafts until an admin reviews and publishes them.
 - image generation is not part of the active workflow.
 
@@ -21,12 +22,14 @@ The service uses AI to accelerate editorial work, not to replace editorial appro
 flowchart LR
     A["Knowledge Base Context"] --> B["TopicDiscoveryAgent"]
     B --> C["Scored Topics"]
-    C --> D["Score < 90"]
-    C --> E["Score >= 90"]
+    C --> D["Score < 70"]
+    C --> E["Score >= 85"]
+    C --> R["Score 70-84.99"]
     D --> F["Auto Prune"]
     E --> G["Queue BlogWriterAgent"]
+    R --> I["Editorial Review"]
     G --> H["Draft Posts"]
-    H --> I["Human Review And Publish"]
+    H --> J["Human Review And Publish"]
 ```
 
 ## Main Building Blocks

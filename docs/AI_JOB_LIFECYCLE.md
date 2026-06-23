@@ -46,8 +46,9 @@ Not every workflow uses every state, but these remain the shared operational sta
 3. A queued job runs the Topic Agent using category and knowledge-base context.
 4. The workflow stores scored topics and records duplicates or skips in job metadata.
 5. Automatic routing then evaluates the score:
-   - scores below `90` are deleted by automated cleanup
-   - scores above `90` queue draft generation automatically
+   - scores below `70` are deleted by automated cleanup
+   - scores from `70` through `84.99` remain in Topic Queue for editorial review
+   - scores at or above `85` queue draft generation automatically
 
 ## Draft Generation Lifecycle
 
