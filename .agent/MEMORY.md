@@ -20,7 +20,7 @@ Store only stable, reusable service knowledge here. Do not write temporary task 
 - Response formatting belongs in API Resources.
 - External API calls should be isolated behind client classes.
 - AI content and image generation should be implemented behind service and client abstractions, not directly inside controllers.
-- The editorial AI flow is topic discovery -> topic scoring -> automatic low-score pruning -> automatic draft generation for scores above 90 -> human review -> manual publish.
+- The editorial AI flow is topic discovery -> topic scoring -> automatic pruning below 70 -> editorial review for 70-84.99 -> automatic draft generation for scores at or above 85 -> human review -> manual publish.
 - AI-generated content must remain in draft until explicit admin approval.
 - Posts are article-first records rather than block-based compositions.
 - The system no longer uses content briefs, templates, template blocks, or post content blocks.

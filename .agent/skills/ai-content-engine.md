@@ -26,7 +26,7 @@ Use this skill for service-side AI content workflows, including topic discovery,
 
 - Every AI output begins as draft content.
 - Human review is mandatory before publication.
-- The current MVP sequence is topic discovery -> score/prune -> auto-queue draft generation for scores above `90` -> manual review/publish.
+- The current MVP sequence is topic discovery -> prune below `70` -> editorial review for `70-84.99` -> auto-queue draft generation for scores at or above `85` -> manual review/publish.
 - Prompting, generation, moderation, and approval should be separable stages.
 - Keep provider integrations behind service and client abstractions.
 - Keep prompts database-backed and versioned rather than hardcoded in agents.

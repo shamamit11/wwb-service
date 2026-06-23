@@ -69,8 +69,9 @@ Important fields include:
 
 Current business rules:
 
-- topics below `90` are pruned automatically
-- topics above `90` may auto-queue draft generation
+- topics below `70` are pruned automatically
+- topics from `70` through `84.99` remain available for editorial review
+- topics at `85` or above may auto-queue draft generation
 
 ### `ai_prompt_templates`
 

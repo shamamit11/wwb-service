@@ -10,7 +10,7 @@ use Carbon\CarbonImmutable;
 
 class AiAutomationDailyLimitService
 {
-    public const HIGH_PRIORITY_TOPIC_THRESHOLD = 90.0;
+    public const HIGH_PRIORITY_TOPIC_THRESHOLD = 85.0;
 
     public const MAX_HIGH_PRIORITY_TOPICS_PER_DAY = 2;
 

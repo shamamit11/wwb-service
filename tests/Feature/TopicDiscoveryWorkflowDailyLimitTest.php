@@ -51,7 +51,7 @@ class TopicDiscoveryWorkflowDailyLimitTest extends TestCase
                                 'title' => 'AI Tool Governance for Small Teams',
                                 'slug' => 'ai-tool-governance-for-small-teams',
                                 'primary_keyword' => 'ai tool governance',
-                                'priority_score' => 90,
+                                'priority_score' => 85,
                             ],
                         ],
                     ], JSON_THROW_ON_ERROR),
@@ -75,6 +75,98 @@ class TopicDiscoveryWorkflowDailyLimitTest extends TestCase
         $this->assertSame('AI Tool Governance for Small Teams', $result->metadata['skipped_daily_limit'][0]['title']);
         $this->assertDatabaseCount('content_topics', 2);
         $this->assertSame(2, ContentTopic::query()->count());
+    }
+
+    public function test_workflow_accepts_nested_score_breakdown_payloads(): void
+    {
+        Queue::fake();
+        $this->seed(AiPromptTemplateSeeder::class);
+
+        $author = User::factory()->create();
+        $category = $this->createCategory($author, 'SEO', 'seo');
+
+        $this->app->bind(AiClient::class, fn (): AiClient => new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: json_encode([
+                        'topics' => [[
+                            'title' => 'Schema Patterns That Pass Rich Result Tests',
+                            'slug' => 'schema-patterns-rich-result-tests',
+                            'primary_keyword' => 'schema rich result tests',
+                            'score_breakdown' => [
+                                'trend_score' => 34,
+                                'knowledge_base_fit' => 18,
+                                'business_value' => 19,
+                                'originality_gap' => 11,
+                                'execution_confidence' => 8,
+                            ],
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                    provider: 'fake',
+                    model: 'fake-model',
+                    usage: new AiUsageData(promptTokens: 10, completionTokens: 10),
+                );
+            }
+        });
+
+        $result = app(TopicDiscoveryWorkflow::class)->run(new DiscoverContentTopicsData(
+            categoryId: (int) $category->id,
+            count: 1,
+            audience: 'Technical bloggers and SEO-focused content teams.',
+            metadata: ['trigger' => 'test'],
+        ));
+
+        $this->assertTrue($result->isSuccessful());
+        $this->assertSame([], $result->metadata['skipped_unscored'] ?? []);
+        $this->assertDatabaseHas('content_topics', [
+            'title' => 'Schema Patterns That Pass Rich Result Tests',
+            'priority_score' => '90.00',
+            'status' => ContentTopic::STATUS_APPROVED,
+        ]);
+    }
+
+    public function test_workflow_skips_unscored_topics(): void
+    {
+        Queue::fake();
+        $this->seed(AiPromptTemplateSeeder::class);
+
+        $author = User::factory()->create();
+        $category = $this->createCategory($author, 'SEO', 'seo');
+
+        $this->app->bind(AiClient::class, fn (): AiClient => new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: json_encode([
+                        'topics' => [[
+                            'title' => 'Crawl Budget Audits for Large Sites',
+                            'slug' => 'crawl-budget-audits-large-sites',
+                            'primary_keyword' => 'crawl budget audit',
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                    provider: 'fake',
+                    model: 'fake-model',
+                    usage: new AiUsageData(promptTokens: 10, completionTokens: 10),
+                );
+            }
+        });
+
+        $result = app(TopicDiscoveryWorkflow::class)->run(new DiscoverContentTopicsData(
+            categoryId: (int) $category->id,
+            count: 1,
+            audience: 'Technical bloggers and SEO-focused content teams.',
+            metadata: ['trigger' => 'test'],
+        ));
+
+        $this->assertTrue($result->isSuccessful());
+        $this->assertCount(1, $result->metadata['skipped_unscored'] ?? []);
+        $this->assertSame('Crawl Budget Audits for Large Sites', $result->metadata['skipped_unscored'][0]['title']);
+        $this->assertDatabaseMissing('content_topics', [
+            'title' => 'Crawl Budget Audits for Large Sites',
+        ]);
     }
 
     private function createCategory(User $author, string $name, string $slug): Category

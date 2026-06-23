@@ -6,7 +6,7 @@ use App\Models\ContentTopic;
 
 class DeleteLowScoreTopicsService
 {
-    public const MINIMUM_REVIEW_SCORE = 90.0;
+    public const MINIMUM_REVIEW_SCORE = 70.0;
 
     public function handle(): int
     {
