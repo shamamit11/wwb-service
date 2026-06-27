@@ -57,7 +57,7 @@ class RssFeedApiTest extends TestCase
         $newerPublished->seo()->create([
             'meta_title' => 'Newer Published SEO',
             'meta_description' => 'SEO description for the latest article',
-            'canonical_url' => 'https://service.widewebblog.test/articles/newer-published/',
+            'canonical_url' => 'https://service.widewebblog.test/newer-published/',
             'robots_index' => true,
             'robots_follow' => true,
         ]);

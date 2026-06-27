@@ -54,20 +54,44 @@ class ArticleSchemaBuilder
             ];
         }
 
-        return $this->mergeOverrides($schema, $metadata?->schema_payload);
+        return $this->mergeOverrides($schema, $metadata?->schema_payload, $post);
     }
 
     /**
      * @param  array<string, mixed>|null  $overrides
      * @return array<string, mixed>
      */
-    private function mergeOverrides(array $schema, ?array $overrides): array
+    private function mergeOverrides(array $schema, ?array $overrides, Post $post): array
     {
         if ($overrides === null || $overrides === []) {
             return $schema;
         }
 
-        return array_replace_recursive($schema, $overrides);
+        return $this->normalizeUrls(
+            array_replace_recursive($schema, $overrides),
+            $post,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeUrls(array $payload, Post $post): array
+    {
+        foreach ($payload as $key => $value) {
+            if (is_string($value)) {
+                $payload[$key] = $this->canonicalUrls->normalizeFor($value, $post) ?? $value;
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $payload[$key] = $this->normalizeUrls($value, $post);
+            }
+        }
+
+        return $payload;
     }
 
     private function wordCount(?string $html): int
