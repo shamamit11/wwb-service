@@ -36,7 +36,7 @@ class SeoMetadataResource extends ApiResource
             'seoable_id' => $this->resource->seoable_id,
             'meta_title' => $this->resource->meta_title,
             'meta_description' => $this->resource->meta_description,
-            'canonical_url' => $canonicalUrls->normalize($this->resource->canonical_url),
+            'canonical_url' => $canonicalUrls->normalizeFor($this->resource->canonical_url, $seoable),
             'robots_index' => (bool) $this->resource->robots_index,
             'robots_follow' => (bool) $this->resource->robots_follow,
             'og_title' => $this->resource->og_title,

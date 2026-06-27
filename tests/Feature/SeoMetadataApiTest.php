@@ -68,7 +68,7 @@ class SeoMetadataApiTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.seoable_type', 'post')
             ->assertJsonPath('data.seoable_id', $post->id)
-            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/how-ai-agent-memory-works')
+            ->assertJsonPath('data.canonical_url', 'https://www.widewebblog.com/articles/how-ai-agent-memory-works/')
             ->assertJsonPath('data.robots_follow', false)
             ->assertJsonPath('data.og_image_media.id', $media->id)
             ->assertJsonPath('data.schema_type', 'Article')

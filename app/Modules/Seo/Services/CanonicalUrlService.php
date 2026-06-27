@@ -15,7 +15,7 @@ class CanonicalUrlService
         $override = trim((string) ($seoable->seo?->canonical_url ?? ''));
 
         if ($override !== '') {
-            return $this->normalize($override);
+            return $this->normalizeFor($override, $seoable);
         }
 
         return match ($seoable::class) {
@@ -33,7 +33,7 @@ class CanonicalUrlService
             return null;
         }
 
-        return $this->absolute("{$post->slug}/");
+        return $this->absolute("articles/{$post->slug}/");
     }
 
     private function forCategory(Category $category): ?string
@@ -89,6 +89,56 @@ class CanonicalUrlService
         }
 
         return $frontendUrl.$remainder;
+    }
+
+    public function normalizeFor(?string $url, ?Model $seoable = null): ?string
+    {
+        $normalized = $this->normalize($url);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        return $seoable instanceof Post
+            ? $this->normalizeLegacyPostPath($normalized)
+            : $normalized;
+    }
+
+    private function normalizeLegacyPostPath(string $url): string
+    {
+        $frontendUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+        $frontendHost = parse_url($frontendUrl, PHP_URL_HOST);
+        $urlHost = parse_url($url, PHP_URL_HOST);
+
+        if (! is_string($frontendHost) || $frontendHost === '' || ! is_string($urlHost) || $urlHost !== $frontendHost) {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+
+        if (! is_string($path) || $path === '' || $path === '/') {
+            return $url;
+        }
+
+        $trimmed = trim($path, '/');
+
+        if ($trimmed === '' || str_contains($trimmed, '/')) {
+            return $url;
+        }
+
+        $query = parse_url($url, PHP_URL_QUERY);
+        $fragment = parse_url($url, PHP_URL_FRAGMENT);
+        $normalized = $frontendUrl."/articles/{$trimmed}/";
+
+        if (is_string($query) && $query !== '') {
+            $normalized .= '?'.$query;
+        }
+
+        if (is_string($fragment) && $fragment !== '') {
+            $normalized .= '#'.$fragment;
+        }
+
+        return $normalized;
     }
 
     private function absolute(string $path): string

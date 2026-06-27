@@ -37,7 +37,7 @@ class CanonicalUrlServiceTest extends TestCase
         $service = app(CanonicalUrlService::class);
 
         $this->assertSame('https://www.worldwideweb.test/categories/ai-agents/', $service->for($category));
-        $this->assertSame('https://www.worldwideweb.test/how-ai-agent-memory-works/', $service->for($post));
+        $this->assertSame('https://www.worldwideweb.test/articles/how-ai-agent-memory-works/', $service->for($post));
     }
 
     public function test_service_respects_canonical_override_when_present(): void
@@ -55,6 +55,33 @@ class CanonicalUrlServiceTest extends TestCase
         $service = app(CanonicalUrlService::class);
 
         $this->assertSame('https://override.example/categories/ai-agents', $service->for($category->fresh()->load('seo')));
+    }
+
+    public function test_service_normalizes_legacy_post_canonical_override_to_articles_path(): void
+    {
+        $author = User::factory()->create(['is_admin' => true]);
+        $category = $this->createCategory($author, 'AI Agents', 'ai-agents');
+        $post = $this->createPost($author, $category, [
+            'title' => 'How AI Agent Memory Works',
+            'slug' => 'how-ai-agent-memory-works',
+            'status' => Post::STATUS_PUBLISHED,
+            'visibility' => Post::VISIBILITY_PUBLIC,
+            'published_at' => '2026-06-16 12:00:00',
+        ]);
+
+        $post->seo()->create([
+            'meta_title' => 'How AI Agent Memory Works',
+            'canonical_url' => 'https://service.widewebblog.test/how-ai-agent-memory-works/',
+            'robots_index' => true,
+            'robots_follow' => true,
+        ]);
+
+        $service = app(CanonicalUrlService::class);
+
+        $this->assertSame(
+            'https://www.worldwideweb.test/articles/how-ai-agent-memory-works/',
+            $service->for($post->fresh()->load('seo')),
+        );
     }
 
     public function test_service_normalizes_service_host_canonical_override_to_frontend_host(): void
@@ -91,7 +118,7 @@ class CanonicalUrlServiceTest extends TestCase
 
         $payload = (new PostResource($post))->resolve();
 
-        $this->assertSame('https://www.worldwideweb.test/how-ai-agent-memory-works/', $payload['canonical_url']);
+        $this->assertSame('https://www.worldwideweb.test/articles/how-ai-agent-memory-works/', $payload['canonical_url']);
     }
 
     private function createCategory(User $author, string $name, string $slug): Category
