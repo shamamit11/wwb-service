@@ -4,11 +4,11 @@ namespace App\Modules\Ai\Services;
 
 use App\AI\Agents\TopicDiscoveryAgent;
 use App\AI\DTO\AgentResult;
+use App\AI\DTO\TopicDiscoveryInput;
 use App\Jobs\AI\DiscoverContentTopicsJob;
-use App\Models\Category;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
-use App\Models\ContentTopic;
+use App\Models\Category;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Repositories\AiJobRepository;
@@ -79,7 +79,7 @@ class TopicDiscoveryWorkflow
         $category = $this->resolveCategory($data->categoryId);
         $cluster = $this->resolveCluster($category);
 
-        return $this->agent->run(new \App\AI\DTO\TopicDiscoveryInput(
+        return $this->agent->run(new TopicDiscoveryInput(
             categoryId: (int) $category->id,
             categoryName: $category->name,
             categorySlug: $category->slug,

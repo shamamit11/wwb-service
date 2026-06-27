@@ -8,7 +8,9 @@ use Illuminate\Database\Seeder;
 class AdminUserSeeder extends Seeder
 {
     public const NAME = 'Admin User';
+
     public const EMAIL = 'admin@example.com';
+
     public const PASSWORD = 'admin12345';
 
     public function run(): void

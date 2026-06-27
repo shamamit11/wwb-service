@@ -3,6 +3,7 @@
 namespace App\Modules\Newsletter\Services;
 
 use App\Models\NewsletterCampaign;
+use App\Models\NewsletterCampaignRecipient;
 use App\Models\NewsletterSubscriber;
 use App\Modules\Newsletter\Data\CreateNewsletterCampaignRecipientData;
 use App\Modules\Newsletter\Enums\NewsletterRecipientStatus;
@@ -16,7 +17,7 @@ class NewsletterDeliveryService
 
     /**
      * @param  iterable<NewsletterSubscriber>  $subscribers
-     * @return array<int, \App\Models\NewsletterCampaignRecipient>
+     * @return array<int, NewsletterCampaignRecipient>
      */
     public function stageRecipients(NewsletterCampaign $campaign, iterable $subscribers): array
     {

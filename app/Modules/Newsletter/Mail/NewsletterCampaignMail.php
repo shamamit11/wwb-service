@@ -6,6 +6,7 @@ use App\Models\NewsletterCampaign;
 use App\Models\NewsletterCampaignRecipient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -24,7 +25,7 @@ class NewsletterCampaignMail extends Mailable
     {
         return new Envelope(
             subject: $this->campaign->subject,
-            from: new \Illuminate\Mail\Mailables\Address(
+            from: new Address(
                 config('newsletter.from.address'),
                 config('newsletter.from.name'),
             ),

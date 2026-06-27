@@ -10,6 +10,7 @@ use App\AI\DTO\PostMetadataSuggestionInput;
 use App\AI\DTO\PostMetadataSuggestionResult;
 use App\AI\Support\DecodesJsonResponse;
 use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Models\AiJob;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Repositories\AiJobRepository;
@@ -193,7 +194,6 @@ PROMPT;
     }
 
     /**
-     * @param  mixed  $value
      * @return list<string>
      */
     private function normalizeStringList(mixed $value): array
@@ -250,7 +250,7 @@ PROMPT;
         return is_string($model) && $model !== '' ? $model : null;
     }
 
-    private function resolveOrCreateJob(PostMetadataSuggestionInput $input): \App\Models\AiJob
+    private function resolveOrCreateJob(PostMetadataSuggestionInput $input): AiJob
     {
         $existingJobId = $input->metadata['ai_job_id'] ?? null;
 
@@ -266,7 +266,7 @@ PROMPT;
 
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
             type: self::JOB_TYPE,
-            status: \App\Models\AiJob::STATUS_PENDING,
+            status: AiJob::STATUS_PENDING,
             entityType: 'post',
             entityId: $input->postId,
             provider: $this->resolveProvider($input),

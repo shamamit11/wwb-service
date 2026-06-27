@@ -30,12 +30,12 @@ class ListPublicPostsService
         return $this->baseQuery()
             ->when($filters->search, function (Builder $query, string $search): void {
                 $query->where(function (Builder $inner) use ($search): void {
-                        $inner
-                            ->where('title', 'like', "%{$search}%")
-                            ->orWhere('slug', 'like', "%{$search}%")
-                            ->orWhere('short_description', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%")
-                            ->orWhere('full_article_html', 'like', "%{$search}%")
+                    $inner
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhere('short_description', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('full_article_html', 'like', "%{$search}%")
                         ->orWhereHas('category', fn (Builder $categoryQuery) => $categoryQuery
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('slug', 'like', "%{$search}%"))

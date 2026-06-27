@@ -11,6 +11,7 @@ use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Data\QueueBlogDraftGenerationData;
 use App\Modules\Ai\Data\QueuePostMetadataSuggestionData;
 use App\Modules\Ai\Data\QueuePostTitleExcerptRefinementData;
+use App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException;
 use RuntimeException;
 
 class AiWorkflowOrchestrator
@@ -74,7 +75,7 @@ class AiWorkflowOrchestrator
     public function retry(AiJob $job): AiJob
     {
         if (! $job->canRetry()) {
-            throw new \App\Modules\Ai\Exceptions\AiJobRetryNotAllowedException($job->status);
+            throw new AiJobRetryNotAllowedException($job->status);
         }
 
         return match ($job->type) {
@@ -123,7 +124,7 @@ class AiWorkflowOrchestrator
             authorUserId: isset($payload['author_user_id']) && $payload['author_user_id'] !== null ? (int) $payload['author_user_id'] : null,
             categoryId: (int) $payload['category_id'],
             featuredMediaId: isset($payload['featured_media_id']) && $payload['featured_media_id'] !== null ? (int) $payload['featured_media_id'] : null,
-            visibility: is_string($payload['visibility'] ?? null) ? $payload['visibility'] : \App\Models\Post::VISIBILITY_PUBLIC,
+            visibility: is_string($payload['visibility'] ?? null) ? $payload['visibility'] : Post::VISIBILITY_PUBLIC,
         ), (int) $job->id, $job->attempts + 1);
     }
 

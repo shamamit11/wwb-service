@@ -43,7 +43,7 @@ class RewriteSeoCanonicalHostCommand extends Command
             ->whereNotNull('canonical_url')
             ->where('canonical_url', 'like', $from.'%')
             ->orderBy('id')
-            ->chunkById(200, function ($rows) use ($from, $to, &$matches): void {
+            ->chunkById(200, function ($rows) use ($from, &$matches): void {
                 foreach ($rows as $row) {
                     $current = (string) $row->canonical_url;
 

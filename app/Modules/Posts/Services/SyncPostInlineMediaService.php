@@ -136,6 +136,7 @@ class SyncPostInlineMediaService
 
             if (in_array($mediaUrl, $normalizedUrls, true)) {
                 $ids[] = (int) $media->id;
+
                 continue;
             }
 

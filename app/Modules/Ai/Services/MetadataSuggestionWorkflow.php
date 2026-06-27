@@ -4,7 +4,6 @@ namespace App\Modules\Ai\Services;
 
 use App\Jobs\AI\GeneratePostMetadataSuggestionsJob;
 use App\Models\AiJob;
-use App\Models\AiPromptTemplate;
 use App\Models\Post;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Data\QueuePostMetadataSuggestionData;

@@ -14,14 +14,16 @@ use App\AI\Tools\FindInternalLinksTool;
 use App\AI\Tools\SavePostDraftTool;
 use App\AI\Tools\SearchExistingPostsTool;
 use App\Infrastructure\Ai\Contracts\AiClient;
+use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
 use App\Modules\Ai\Data\CreateAiGenerationStepData;
 use App\Modules\Ai\Data\CreateAiJobData;
-use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
 use App\Modules\Ai\Repositories\AiJobRepository;
+use App\Modules\Ai\Repositories\AiPromptTemplateRepository;
 use App\Modules\Ai\Services\RecordAiUsageService;
 use App\Modules\Ai\Services\RenderAiPromptTemplateService;
 use App\Modules\Ai\Services\TrackAiJobService;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -248,7 +250,7 @@ class BlogWriterAgent implements ContentAgentInterface
 
         return new BlogDraftResult(
             title: $title,
-            slug: (string) \Illuminate\Support\Str::slug($slug),
+            slug: (string) Str::slug($slug),
             fullArticleHtml: $fullArticleHtml,
             fullArticleDelta: $this->normalizeArray($decoded['full_article_delta'] ?? $decoded['quill_delta'] ?? null),
             shortDescription: $this->normalizeString($decoded['short_description'] ?? null),
@@ -308,7 +310,6 @@ class BlogWriterAgent implements ContentAgentInterface
     }
 
     /**
-     * @param  mixed  $value
      * @return list<array{question:string,answer_markdown:string}>
      */
     private function normalizeFaqSuggestions(mixed $value): array
@@ -340,9 +341,6 @@ class BlogWriterAgent implements ContentAgentInterface
         return $items;
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private function normalizeString(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -363,7 +361,6 @@ class BlogWriterAgent implements ContentAgentInterface
     }
 
     /**
-     * @param  mixed  $value
      * @return list<string>
      */
     private function normalizeStringList(mixed $value): array
@@ -402,7 +399,7 @@ class BlogWriterAgent implements ContentAgentInterface
         return is_string($model) && $model !== '' ? $model : null;
     }
 
-    private function resolveOrCreateJob(BlogDraftInput $input): \App\Models\AiJob
+    private function resolveOrCreateJob(BlogDraftInput $input): AiJob
     {
         $existingJobId = $input->metadata['ai_job_id'] ?? null;
 
@@ -418,7 +415,7 @@ class BlogWriterAgent implements ContentAgentInterface
 
         $job = $this->trackAiJob->createJob(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_BLOG_WRITER,
-            status: \App\Models\AiJob::STATUS_PENDING,
+            status: AiJob::STATUS_PENDING,
             entityType: 'content_topic',
             entityId: $input->contentTopicId,
             provider: $this->resolveProvider($input),

@@ -15,6 +15,7 @@ use App\Modules\Newsletter\Enums\NewsletterRecipientStatus;
 use App\Modules\Newsletter\Enums\NewsletterSubscriberStatus;
 use App\Modules\Newsletter\Mail\NewsletterCampaignMail;
 use App\Modules\Newsletter\Services\NewsletterTrackingService;
+use App\Modules\Newsletter\Services\SendNewsletterCampaignService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -111,7 +112,7 @@ class NewsletterRuntimeFlowTest extends TestCase
             'status' => NewsletterRecipientStatus::Pending,
         ]);
 
-        app(\App\Modules\Newsletter\Services\SendNewsletterCampaignService::class)->handle((int) $campaign->id);
+        app(SendNewsletterCampaignService::class)->handle((int) $campaign->id);
 
         DeliverNewsletterCampaignRecipientJob::dispatchSync((int) $recipient->id);
 
