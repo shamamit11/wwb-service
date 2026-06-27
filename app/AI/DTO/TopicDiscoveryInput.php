@@ -14,6 +14,7 @@ final readonly class TopicDiscoveryInput extends AgentInput
         public int $categoryId,
         public string $categoryName,
         public string $categorySlug,
+        public ?string $categoryBrief,
         public string $cluster,
         public int $targetCount = 10,
         public ?string $audience = null,

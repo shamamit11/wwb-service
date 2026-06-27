@@ -62,9 +62,9 @@ class AiPromptTemplateSeeder extends Seeder
                 'versions' => [[
                     'version' => 1,
                     'system_prompt' => 'You suggest grounded editorial topics for Wide Web Blog.',
-                    'user_prompt' => 'Cluster {{cluster}} Audience {{audience}} Existing {{existing_topics}} Knowledge {{knowledge_context}}',
+                    'user_prompt' => 'Cluster {{cluster}} Category brief {{category_brief}} Audience {{audience}} Existing {{existing_topics}} Knowledge {{knowledge_context}}',
                     'output_schema' => ['type' => 'object'],
-                    'variables' => ['cluster', 'audience', 'existing_topics', 'knowledge_context'],
+                    'variables' => ['cluster', 'category_brief', 'audience', 'existing_topics', 'knowledge_context'],
                     'status' => AiPromptTemplateVersion::STATUS_ACTIVE,
                 ]],
             ],
