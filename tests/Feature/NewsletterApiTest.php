@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\NewsletterCampaign;
 use App\Models\NewsletterList;
 use App\Models\NewsletterSubscriber;
 use App\Models\User;

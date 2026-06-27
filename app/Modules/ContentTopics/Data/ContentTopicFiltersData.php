@@ -9,9 +9,14 @@ final readonly class ContentTopicFiltersData extends DataTransferObject
     public function __construct(
         public ?string $search = null,
         public ?string $status = null,
+        public ?string $recommendation = null,
         public ?int $categoryId = null,
         public ?string $cluster = null,
         public ?string $source = null,
+        public ?bool $isDuplicate = null,
+        public ?bool $hasDraftGenerationJob = null,
+        public ?float $priorityScoreMin = null,
+        public ?float $priorityScoreMax = null,
         public string $sort = '-created_at',
     ) {}
 }

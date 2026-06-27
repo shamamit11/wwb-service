@@ -9,8 +9,8 @@ use App\Modules\ContentTopics\Exceptions\InvalidContentTopicStateTransitionExcep
 use App\Modules\Media\Exceptions\MediaInUseException;
 use App\Modules\Newsletter\Exceptions\NewsletterCampaignSendNotAllowedException;
 use App\Modules\Posts\Exceptions\BlogDraftGenerationNotAllowedException;
-use App\Modules\Posts\Exceptions\PostRewriteNotAllowedException;
 use App\Modules\Posts\Exceptions\InvalidPostStateTransitionException;
+use App\Modules\Posts\Exceptions\PostRewriteNotAllowedException;
 use App\Support\ApiErrorResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

@@ -71,7 +71,11 @@ class ContentTopicController extends Controller
         ContentTopic $contentTopic,
         ApproveContentTopicService $service,
     ): ContentTopicResource {
-        return new ContentTopicResource($service->handle($contentTopic, $request->notes()));
+        return new ContentTopicResource($service->handle(
+            $contentTopic,
+            $request->notes(),
+            $request->queueDraft(),
+        ));
     }
 
     public function reject(

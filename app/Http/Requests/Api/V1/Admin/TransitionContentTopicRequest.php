@@ -18,14 +18,23 @@ class TransitionContentTopicRequest extends FormRequest
     {
         return [
             'notes' => ['nullable', 'string'],
+            'queue_draft' => ['sometimes', 'boolean'],
         ];
     }
 
     public function notes(): ?string
     {
-        /** @var array{notes?:string|null} $validated */
+        /** @var array{notes?:string|null,queue_draft?:bool|null} $validated */
         $validated = $this->validated();
 
         return $validated['notes'] ?? null;
+    }
+
+    public function queueDraft(): bool
+    {
+        /** @var array{notes?:string|null,queue_draft?:bool|null} $validated */
+        $validated = $this->validated();
+
+        return (bool) ($validated['queue_draft'] ?? false);
     }
 }

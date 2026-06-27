@@ -19,6 +19,7 @@ final readonly class UpdateContentTopicData extends DataTransferObject
         public ?string $searchIntent = null,
         public ?string $priorityScore = null,
         public ?array $scoreBreakdown = null,
+        public ?array $discoveryMetadata = null,
         public ?string $difficultyNote = null,
         public string $source = 'manual',
         public ?string $notes = null,

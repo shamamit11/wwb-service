@@ -41,6 +41,10 @@ class AutoAdvanceHighPriorityTopicService
 
     private function shouldAutoAdvance(ContentTopic $topic): bool
     {
+        if ($topic->isDuplicateDiscovery()) {
+            return false;
+        }
+
         if ($topic->priority_score === null) {
             return false;
         }

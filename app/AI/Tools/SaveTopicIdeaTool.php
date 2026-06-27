@@ -15,6 +15,16 @@ class SaveTopicIdeaTool
 
     public function save(TopicSuggestionData $topic, int $categoryId, ?string $audience = null): ContentTopic
     {
+        $discoveryMetadata = $topic->discoveryMetadata;
+
+        if ($audience !== null && $audience !== '') {
+            $discoveryMetadata['audience'] = $audience;
+        }
+
+        if ($topic->summary !== null && $topic->summary !== '') {
+            $discoveryMetadata['summary'] = $topic->summary;
+        }
+
         return $this->createTopic->handle(new CreateContentTopicData(
             categoryId: $categoryId,
             title: $topic->title,
@@ -25,24 +35,10 @@ class SaveTopicIdeaTool
             searchIntent: $topic->searchIntent,
             priorityScore: $topic->priorityScore,
             scoreBreakdown: $topic->scoreBreakdown,
+            discoveryMetadata: $discoveryMetadata !== [] ? $discoveryMetadata : null,
             difficultyNote: $topic->difficultyNote,
             source: ContentTopic::SOURCE_AI_SUGGESTED,
             status: ContentTopic::STATUS_SUGGESTED,
-            notes: $this->buildNotes($topic, $audience),
         ));
-    }
-
-    private function buildNotes(TopicSuggestionData $topic, ?string $audience): ?string
-    {
-        $parts = array_values(array_filter([
-            $topic->summary ? "AI summary: {$topic->summary}" : null,
-            $audience ? "Audience: {$audience}" : null,
-        ]));
-
-        if ($parts === []) {
-            return null;
-        }
-
-        return implode("\n\n", $parts);
     }
 }

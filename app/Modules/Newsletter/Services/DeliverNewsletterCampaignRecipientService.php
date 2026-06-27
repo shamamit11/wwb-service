@@ -4,6 +4,7 @@ namespace App\Modules\Newsletter\Services;
 
 use App\Models\NewsletterCampaignRecipient;
 use App\Modules\Newsletter\Contracts\NewsletterDeliveryProvider;
+use App\Modules\Newsletter\Data\UpdateNewsletterCampaignData;
 use App\Modules\Newsletter\Data\UpdateNewsletterCampaignRecipientStatusData;
 use App\Modules\Newsletter\Enums\NewsletterCampaignStatus;
 use App\Modules\Newsletter\Enums\NewsletterRecipientStatus;
@@ -71,7 +72,7 @@ class DeliverNewsletterCampaignRecipientService
 
         $sentCount = $recipients->filter(fn ($recipient) => $recipient->status->value === NewsletterRecipientStatus::Sent->value)->count();
 
-        $this->campaigns->update($campaign, new \App\Modules\Newsletter\Data\UpdateNewsletterCampaignData(
+        $this->campaigns->update($campaign, new UpdateNewsletterCampaignData(
             title: $campaign->title,
             subject: $campaign->subject,
             previewText: $campaign->preview_text,

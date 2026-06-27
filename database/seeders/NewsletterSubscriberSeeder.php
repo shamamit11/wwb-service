@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\NewsletterList;
 use App\Models\NewsletterSubscriber;
 use App\Modules\Newsletter\Enums\NewsletterSubscriberStatus;
 use Illuminate\Database\Seeder;
@@ -42,8 +43,8 @@ class NewsletterSubscriberSeeder extends Seeder
      */
     private function records(): array
     {
-        $weeklyListId = \App\Models\NewsletterList::query()->where('slug', 'weekly-editorial-systems')->value('id');
-        $productListId = \App\Models\NewsletterList::query()->where('slug', 'product-updates')->value('id');
+        $weeklyListId = NewsletterList::query()->where('slug', 'weekly-editorial-systems')->value('id');
+        $productListId = NewsletterList::query()->where('slug', 'product-updates')->value('id');
 
         return [
             [

@@ -4,11 +4,11 @@ namespace App\Modules\Ai\Services;
 
 use App\AI\Agents\TopicDiscoveryAgent;
 use App\AI\DTO\AgentResult;
+use App\AI\DTO\TopicDiscoveryInput;
 use App\Jobs\AI\DiscoverContentTopicsJob;
-use App\Models\Category;
 use App\Models\AiJob;
 use App\Models\AiPromptTemplate;
-use App\Models\ContentTopic;
+use App\Models\Category;
 use App\Modules\Ai\Data\CreateAiJobData;
 use App\Modules\Ai\Data\DiscoverContentTopicsData;
 use App\Modules\Ai\Repositories\AiJobRepository;
@@ -26,12 +26,14 @@ class TopicDiscoveryWorkflow
         private readonly ContentTopicRepository $topics,
         private readonly KnowledgeContextService $knowledgeContext,
         private readonly ResolveTopicDiscoveryClusterService $clusterResolver,
+        private readonly ResolveCategoryDiscoveryBriefService $categoryBriefResolver,
     ) {}
 
     public function dispatch(DiscoverContentTopicsData $data, ?int $retryOfAiJobId = null, int $attempts = 1): AiJob
     {
         $category = $this->resolveCategory($data->categoryId);
         $cluster = $this->resolveCluster($category);
+        $categoryBrief = $this->categoryBriefResolver->forCategory($category);
 
         $job = $this->jobs->create(new CreateAiJobData(
             type: AiPromptTemplate::TYPE_TOPIC_DISCOVERY,
@@ -40,6 +42,7 @@ class TopicDiscoveryWorkflow
             inputPayload: [
                 'category_id' => (int) $category->id,
                 'cluster' => $cluster,
+                'category_brief' => $categoryBrief,
                 'count' => max(1, $data->count),
                 'audience' => $data->audience,
                 'prompt_template_key' => $data->promptTemplateKey,
@@ -62,7 +65,8 @@ class TopicDiscoveryWorkflow
             throw new RuntimeException("AI job [{$aiJobId}] could not be found.");
         }
 
-        $payload = is_array($job->input_payload) ? $job->input_payload : [];
+        $payload = $job->getAttributeValue('input_payload');
+        $payload = is_array($payload) ? $payload : [];
         $categoryId = $this->positiveInt($payload['category_id'] ?? null, 'category_id');
 
         return $this->run(new DiscoverContentTopicsData(
@@ -78,11 +82,13 @@ class TopicDiscoveryWorkflow
     {
         $category = $this->resolveCategory($data->categoryId);
         $cluster = $this->resolveCluster($category);
+        $categoryBrief = $this->categoryBriefResolver->forCategory($category);
 
-        return $this->agent->run(new \App\AI\DTO\TopicDiscoveryInput(
+        return $this->agent->run(new TopicDiscoveryInput(
             categoryId: (int) $category->id,
             categoryName: $category->name,
             categorySlug: $category->slug,
+            categoryBrief: $categoryBrief,
             cluster: $cluster,
             targetCount: max(1, $data->count),
             audience: $data->audience,

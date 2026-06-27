@@ -15,6 +15,7 @@ use App\Modules\Posts\Services\UpdatePostService;
 use App\Modules\Seo\Data\UpdateSeoMetadataData;
 use App\Modules\Seo\Services\UpsertSeoMetadataService;
 use App\Modules\Tags\Repositories\TagRepository;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class SavePostDraftTool
@@ -188,7 +189,7 @@ class SavePostDraftTool
                 continue;
             }
 
-            $slug = mb_strtolower((string) \Illuminate\Support\Str::slug($suggestedTag));
+            $slug = mb_strtolower((string) Str::slug($suggestedTag));
 
             if (isset($lookup[$normalized])) {
                 $tagIds[] = $lookup[$normalized];

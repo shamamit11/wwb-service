@@ -19,7 +19,7 @@ class CreateContentTopicService
 
     public function handle(CreateContentTopicData $data): ContentTopic
     {
-        $this->guardAgainstDuplicate($data->title, $data->categoryId, $data->primaryKeyword);
+        $this->guardAgainstDuplicate($data);
 
         $topic = $this->topics->create(new CreateContentTopicData(
             categoryId: $data->categoryId,
@@ -31,6 +31,7 @@ class CreateContentTopicService
             searchIntent: $data->searchIntent,
             priorityScore: $data->priorityScore,
             scoreBreakdown: $data->scoreBreakdown,
+            discoveryMetadata: $data->discoveryMetadata,
             difficultyNote: $data->difficultyNote,
             source: $data->source,
             status: $data->status,
@@ -48,15 +49,19 @@ class CreateContentTopicService
         return $this->autoAdvanceHighPriorityTopic->handle($topic);
     }
 
-    private function guardAgainstDuplicate(string $title, int $categoryId, ?string $primaryKeyword): void
+    private function guardAgainstDuplicate(CreateContentTopicData $data): void
     {
-        if (! $this->topics->existsDuplicate($title, $categoryId, $primaryKeyword)) {
+        if (($data->discoveryMetadata['is_duplicate'] ?? false) === true) {
+            return;
+        }
+
+        if (! $this->topics->existsDuplicate($data->title, $data->categoryId, $data->primaryKeyword)) {
             return;
         }
 
         throw new DuplicateContentTopicException(
-            title: $title,
-            cluster: (string) $categoryId,
+            title: $data->title,
+            cluster: (string) $data->categoryId,
             message: 'A similar topic already exists in this category.',
         );
     }
