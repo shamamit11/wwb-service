@@ -20,7 +20,7 @@ class TopicDiscoveryWorkflowDailyLimitTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_workflow_saves_only_two_high_priority_topics_per_day(): void
+    public function test_workflow_keeps_high_priority_topics_visible_even_after_daily_auto_queue_limit_is_hit(): void
     {
         Queue::fake();
         $this->seed(AiPromptTemplateSeeder::class);
@@ -70,11 +70,15 @@ class TopicDiscoveryWorkflowDailyLimitTest extends TestCase
         ));
 
         $this->assertTrue($result->isSuccessful());
-        $this->assertCount(2, $result->metadata['saved_topic_ids']);
+        $this->assertCount(3, $result->metadata['saved_topic_ids']);
         $this->assertCount(1, $result->metadata['skipped_daily_limit']);
         $this->assertSame('AI Tool Governance for Small Teams', $result->metadata['skipped_daily_limit'][0]['title']);
-        $this->assertDatabaseCount('content_topics', 2);
-        $this->assertSame(2, ContentTopic::query()->count());
+        $this->assertDatabaseCount('content_topics', 3);
+        $this->assertSame(3, ContentTopic::query()->count());
+        $this->assertDatabaseHas('content_topics', [
+            'title' => 'AI Tool Governance for Small Teams',
+            'status' => ContentTopic::STATUS_APPROVED,
+        ]);
     }
 
     public function test_workflow_accepts_nested_score_breakdown_payloads(): void
@@ -127,7 +131,7 @@ class TopicDiscoveryWorkflowDailyLimitTest extends TestCase
         ]);
     }
 
-    public function test_workflow_skips_unscored_topics(): void
+    public function test_workflow_retains_unscored_topics_for_review(): void
     {
         Queue::fake();
         $this->seed(AiPromptTemplateSeeder::class);
@@ -164,9 +168,70 @@ class TopicDiscoveryWorkflowDailyLimitTest extends TestCase
         $this->assertTrue($result->isSuccessful());
         $this->assertCount(1, $result->metadata['skipped_unscored'] ?? []);
         $this->assertSame('Crawl Budget Audits for Large Sites', $result->metadata['skipped_unscored'][0]['title']);
-        $this->assertDatabaseMissing('content_topics', [
+        $this->assertTrue($result->metadata['skipped_unscored'][0]['persisted']);
+        $this->assertDatabaseHas('content_topics', [
             'title' => 'Crawl Budget Audits for Large Sites',
         ]);
+    }
+
+    public function test_workflow_persists_duplicate_discoveries_for_editor_visibility(): void
+    {
+        Queue::fake();
+        $this->seed(AiPromptTemplateSeeder::class);
+
+        $author = User::factory()->create();
+        $category = $this->createCategory($author, 'AI Tools', 'ai-tools');
+
+        ContentTopic::query()->create([
+            'category_id' => $category->id,
+            'title' => 'AI Tool Governance for Small Teams',
+            'slug' => 'ai-tool-governance-for-small-teams-existing',
+            'cluster' => ContentTopic::CLUSTER_AI_TOOLS,
+            'primary_keyword' => 'ai tool governance',
+            'priority_score' => '88.00',
+            'source' => ContentTopic::SOURCE_MANUAL,
+            'status' => ContentTopic::STATUS_SUGGESTED,
+        ]);
+
+        $this->app->bind(AiClient::class, fn (): AiClient => new class implements AiClient
+        {
+            public function generateText(GenerateTextRequest $request): TextGenerationResult
+            {
+                return new TextGenerationResult(
+                    content: json_encode([
+                        'topics' => [[
+                            'title' => 'AI Tool Governance for Small Teams',
+                            'slug' => 'ai-tool-governance-for-small-teams',
+                            'primary_keyword' => 'ai tool governance',
+                            'priority_score' => 92,
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                    provider: 'fake',
+                    model: 'fake-model',
+                    usage: new AiUsageData(promptTokens: 10, completionTokens: 10),
+                );
+            }
+        });
+
+        $result = app(TopicDiscoveryWorkflow::class)->run(new DiscoverContentTopicsData(
+            categoryId: (int) $category->id,
+            count: 1,
+            audience: 'Technical publishers',
+            metadata: ['trigger' => 'test'],
+        ));
+
+        $this->assertTrue($result->isSuccessful());
+        $this->assertCount(1, $result->metadata['skipped_duplicates'] ?? []);
+        $this->assertTrue($result->metadata['skipped_duplicates'][0]['persisted']);
+        $this->assertSame(2, ContentTopic::query()->count());
+
+        $duplicateTopic = ContentTopic::query()
+            ->where('slug', 'ai-tool-governance-for-small-teams')
+            ->firstOrFail();
+
+        $this->assertSame(ContentTopic::RECOMMENDATION_DUPLICATE, $duplicateTopic->editorialRecommendation());
+        $this->assertTrue($duplicateTopic->isDuplicateDiscovery());
+        $this->assertSame(['content_topic'], $duplicateTopic->duplicateMatches());
     }
 
     private function createCategory(User $author, string $name, string $slug): Category

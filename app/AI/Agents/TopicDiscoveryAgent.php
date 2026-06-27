@@ -182,8 +182,8 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             'cluster' => $input->cluster,
             'target_count' => max(1, $input->targetCount),
             'audience' => $input->audience,
-            'existing_topics' => array_values($input->existingTopics),
-            'knowledge_context' => array_values($input->knowledgeContext),
+            'existing_topics' => $input->existingTopics,
+            'knowledge_context' => $input->knowledgeContext,
         ];
     }
 
@@ -223,6 +223,7 @@ class TopicDiscoveryAgent implements ContentAgentInterface
                 searchIntent: $this->normalizeString($topicPayload['search_intent'] ?? null),
                 priorityScore: $this->resolvePriorityScore($topicPayload),
                 scoreBreakdown: $this->resolveScoreBreakdown($topicPayload),
+                discoveryMetadata: $this->buildDiscoveryMetadata($topicPayload),
                 difficultyNote: $this->normalizeString($topicPayload['difficulty_note'] ?? null),
                 summary: $this->normalizeString($topicPayload['summary'] ?? null),
             );
@@ -295,14 +296,14 @@ class TopicDiscoveryAgent implements ContentAgentInterface
     }
 
     /**
-     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>}>,2:list<array{title:string, reason:string, priority_score:?string}>,3:list<array{title:string, reason:string}>}
+     * @return array{0:list<ContentTopic>,1:list<array{title:string, matches:list<string>, persisted?:bool}>,2:list<array{title:string, reason:string, priority_score:?string}>,3:list<array{title:string, reason:string, persisted?:bool}>}
      */
     private function persistTopics(TopicDiscoveryResult $result, TopicDiscoveryInput $input): array
     {
         $savedTopics = [];
         $skippedDuplicates = [];
-        $skippedDailyLimit = [];
-        $skippedUnscored = [];
+        $retainedDailyLimit = [];
+        $retainedUnscored = [];
         $seenKeys = [];
 
         foreach ($result->topics as $topic) {
@@ -327,37 +328,134 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             );
 
             if ($duplicateCheck['is_duplicate']) {
+                $duplicateTopic = $this->cloneTopicWithDiscoveryMetadata($topic, [
+                    ...$topic->discoveryMetadata,
+                    'is_duplicate' => true,
+                    'duplicate_matches' => $duplicateCheck['matches'],
+                    'recommendation' => ContentTopic::RECOMMENDATION_DUPLICATE,
+                ]);
+                $savedTopics[] = $this->saveTopicIdea->save($duplicateTopic, $input->categoryId, $input->audience);
+
                 $skippedDuplicates[] = [
                     'title' => $topic->title,
                     'matches' => $duplicateCheck['matches'],
+                    'persisted' => true,
                 ];
 
                 continue;
             }
 
             if ($topic->priorityScore === null) {
-                $skippedUnscored[] = [
+                $unscoredTopic = $this->cloneTopicWithDiscoveryMetadata($topic, [
+                    ...$topic->discoveryMetadata,
+                    'recommendation' => ContentTopic::RECOMMENDATION_UNSCORED,
+                    'rejection_reason' => 'missing_priority_score',
+                ]);
+                $savedTopics[] = $this->saveTopicIdea->save($unscoredTopic, $input->categoryId, $input->audience);
+
+                $retainedUnscored[] = [
                     'title' => $topic->title,
                     'reason' => 'missing_priority_score',
+                    'persisted' => true,
                 ];
 
                 continue;
             }
 
             if (! $this->dailyLimits->canPersistAiSuggestedTopic($topic->priorityScore)) {
-                $skippedDailyLimit[] = [
+                $retainedDailyLimit[] = [
                     'title' => $topic->title,
                     'reason' => 'daily_high_priority_topic_limit_reached',
                     'priority_score' => $topic->priorityScore,
                 ];
-
-                continue;
             }
 
             $savedTopics[] = $this->saveTopicIdea->save($topic, $input->categoryId, $input->audience);
         }
 
-        return [$savedTopics, $skippedDuplicates, $skippedDailyLimit, $skippedUnscored];
+        return [$savedTopics, $skippedDuplicates, $retainedDailyLimit, $retainedUnscored];
+    }
+
+    /**
+     * @param  array<string, mixed>  $discoveryMetadata
+     */
+    private function cloneTopicWithDiscoveryMetadata(TopicSuggestionData $topic, array $discoveryMetadata): TopicSuggestionData
+    {
+        return new TopicSuggestionData(
+            title: $topic->title,
+            slug: $topic->slug,
+            cluster: $topic->cluster,
+            primaryKeyword: $topic->primaryKeyword,
+            secondaryKeywords: $topic->secondaryKeywords,
+            searchIntent: $topic->searchIntent,
+            priorityScore: $topic->priorityScore,
+            scoreBreakdown: $topic->scoreBreakdown,
+            discoveryMetadata: $discoveryMetadata,
+            difficultyNote: $topic->difficultyNote,
+            summary: $topic->summary,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $topicPayload
+     * @return array<string, mixed>
+     */
+    private function buildDiscoveryMetadata(array $topicPayload): array
+    {
+        $metadata = [];
+
+        $strengths = $this->normalizeStringList($topicPayload['strengths'] ?? []);
+        $weaknesses = $this->normalizeStringList($topicPayload['weaknesses'] ?? []);
+        $improvements = $this->normalizeStringList($topicPayload['improvement_suggestions'] ?? []);
+        $rejectionReason = $this->normalizeString($topicPayload['rejection_reason'] ?? null);
+
+        if ($strengths !== []) {
+            $metadata['strengths'] = $strengths;
+        }
+
+        if ($weaknesses !== []) {
+            $metadata['weaknesses'] = $weaknesses;
+        }
+
+        if ($improvements !== []) {
+            $metadata['improvement_suggestions'] = $improvements;
+        }
+
+        if ($rejectionReason !== null) {
+            $metadata['rejection_reason'] = $rejectionReason;
+        }
+
+        $metadata['recommendation'] = $this->recommendationForTopicPayload($topicPayload);
+
+        return $metadata;
+    }
+
+    /**
+     * @param  array<string, mixed>  $topicPayload
+     */
+    private function recommendationForTopicPayload(array $topicPayload): string
+    {
+        $priorityScore = $this->resolvePriorityScore($topicPayload);
+
+        if (! is_numeric($priorityScore)) {
+            return ContentTopic::RECOMMENDATION_UNSCORED;
+        }
+
+        $score = (float) $priorityScore;
+
+        if ($score >= 85.0) {
+            return ContentTopic::RECOMMENDATION_AUTO_QUEUE;
+        }
+
+        if ($score >= 70.0) {
+            return ContentTopic::RECOMMENDATION_REVIEW;
+        }
+
+        if ($score >= 50.0) {
+            return ContentTopic::RECOMMENDATION_LOW_SCORE;
+        }
+
+        return ContentTopic::RECOMMENDATION_DISCARDED;
     }
 
     /**
@@ -372,8 +470,8 @@ class TopicDiscoveryAgent implements ContentAgentInterface
             'cluster' => $input->cluster,
             'target_count' => max(1, $input->targetCount),
             'audience' => $input->audience,
-            'existing_topics' => array_values($input->existingTopics),
-            'knowledge_context' => array_values($input->knowledgeContext),
+            'existing_topics' => $input->existingTopics,
+            'knowledge_context' => $input->knowledgeContext,
             'prompt_template_key' => $input->metadata['prompt_template_key'] ?? self::DEFAULT_PROMPT_KEY,
         ];
     }

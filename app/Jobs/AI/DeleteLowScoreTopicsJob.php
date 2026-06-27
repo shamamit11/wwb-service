@@ -10,13 +10,14 @@ class DeleteLowScoreTopicsJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly bool $hardDelete = false,
+    ) {
         $this->onQueue('ai');
     }
 
     public function handle(DeleteLowScoreTopicsService $service): void
     {
-        $service->handle();
+        $service->handle($this->hardDelete);
     }
 }

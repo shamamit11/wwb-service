@@ -116,7 +116,7 @@ class InternalLinkingServiceTest extends TestCase
         $this->assertSame('knowledge_base_entry', $results[1]->contentType);
         $this->assertSame($knowledgeBaseEntry->id, $results[1]->id);
         $this->assertContains('memory', $results[0]->matchedTerms);
-        $this->assertSame('https://www.widewebblog.com/ai-agent-memory-patterns/', $results[0]->url);
+        $this->assertSame('https://www.widewebblog.com/articles/ai-agent-memory-patterns/', $results[0]->url);
         $this->assertSame('https://www.widewebblog.com/knowledge-base/agent-memory-research-notes/', $results[1]->url);
     }
 
