@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -119,6 +120,33 @@ class Post extends Model
     public function inlineMedia(): BelongsToMany
     {
         return $this->belongsToMany(Media::class, 'post_media')->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<ArticleVideoRecommendation, $this>
+     */
+    public function articleVideoRecommendations(): HasMany
+    {
+        return $this->hasMany(ArticleVideoRecommendation::class, 'post_id')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @return HasMany<ArticleVideo, $this>
+     */
+    public function articleVideos(): HasMany
+    {
+        return $this->hasMany(ArticleVideo::class, 'post_id')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @return HasMany<ArticleVideoMemoryEntry, $this>
+     */
+    public function articleVideoMemoryEntries(): HasMany
+    {
+        return $this->hasMany(ArticleVideoMemoryEntry::class, 'post_id')
+            ->orderByDesc('id');
     }
 
     /**
