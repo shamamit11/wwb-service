@@ -29,13 +29,14 @@ class ListPostsRequest extends FormRequest
             'is_ai_generated' => ['nullable', 'boolean'],
             'source_content_topic_id' => ['nullable', 'integer', 'exists:content_topics,id'],
             'generated_by_ai_job_id' => ['nullable', 'integer', 'exists:ai_jobs,id'],
+            'needs_originality_review' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'string', Rule::in(['title', '-title', 'created_at', '-created_at', 'updated_at', '-updated_at', 'published_at', '-published_at'])],
         ];
     }
 
     public function toData(): PostFiltersData
     {
-        /** @var array{search?:string|null,status?:string|null,visibility?:string|null,category_slug?:string|null,is_featured?:bool|null,author_user_id?:int|null,is_ai_generated?:bool|null,source_content_topic_id?:int|null,generated_by_ai_job_id?:int|null,sort?:string|null} $validated */
+        /** @var array{search?:string|null,status?:string|null,visibility?:string|null,category_slug?:string|null,is_featured?:bool|null,author_user_id?:int|null,is_ai_generated?:bool|null,source_content_topic_id?:int|null,generated_by_ai_job_id?:int|null,needs_originality_review?:bool|null,sort?:string|null} $validated */
         $validated = $this->validated();
 
         return new PostFiltersData(
@@ -48,6 +49,7 @@ class ListPostsRequest extends FormRequest
             isAiGenerated: $validated['is_ai_generated'] ?? null,
             sourceContentTopicId: $validated['source_content_topic_id'] ?? null,
             generatedByAiJobId: $validated['generated_by_ai_job_id'] ?? null,
+            needsOriginalityReview: $validated['needs_originality_review'] ?? null,
             sort: $validated['sort'] ?? '-updated_at',
         );
     }

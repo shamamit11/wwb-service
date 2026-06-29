@@ -34,9 +34,20 @@ interface PostRepository
     public function existsPotentialDuplicate(string $title, ?string $slug = null): bool;
 
     /**
+     * @param  array<string, mixed>  $meta
+     */
+    public function updateMeta(Post $post, array $meta): Post;
+
+    /**
      * @return Collection<int, Post>
      */
     public function getAdminOrdered(): Collection;
+
+    /**
+     * @param  list<string>  $keywords
+     * @return Collection<int, Post>
+     */
+    public function getOriginalityComparisonCandidates(Post $post, array $keywords = [], int $limit = 25): Collection;
 
     /**
      * @return Collection<int, Post>

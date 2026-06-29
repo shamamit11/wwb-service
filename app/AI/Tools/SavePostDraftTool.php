@@ -10,6 +10,7 @@ use App\Modules\ContentTopics\Services\MarkContentTopicUsedService;
 use App\Modules\Posts\Data\CreatePostCommandData;
 use App\Modules\Posts\Data\UpdatePostCommandData;
 use App\Modules\Posts\Repositories\PostRepository;
+use App\Modules\Posts\Services\AssessPostOriginalityService;
 use App\Modules\Posts\Services\CreatePostService;
 use App\Modules\Posts\Services\UpdatePostService;
 use App\Modules\Seo\Data\UpdateSeoMetadataData;
@@ -25,6 +26,7 @@ class SavePostDraftTool
         private readonly TagRepository $tags,
         private readonly CreatePostService $createPost,
         private readonly UpdatePostService $updatePost,
+        private readonly AssessPostOriginalityService $assessPostOriginality,
         private readonly UpsertSeoMetadataService $upsertSeoMetadata,
         private readonly MarkContentTopicUsedService $markTopicUsed,
     ) {}
@@ -52,12 +54,13 @@ class SavePostDraftTool
             : $matchedTagIds;
 
         $meta = $this->buildMeta(
-            existingMeta: $existing?->meta,
+            existingMeta: $existing?->getAttributeValue('meta'),
             contentTopicId: $contentTopicId,
             primaryKeyword: $primaryKeyword,
             secondaryKeywords: $secondaryKeywords,
             searchIntent: $searchIntent,
             result: $result,
+            metadata: $metadata,
         );
 
         if ($existing instanceof Post) {
@@ -126,26 +129,29 @@ class SavePostDraftTool
 
         $this->markTopicUsedById($contentTopicId);
 
-        return $post->refresh()->load(['author', 'category', 'featuredMedia', 'tags', 'seo']);
+        return $this->assessPostOriginality->handle($post);
     }
 
     /**
      * @param  array<string, mixed>|null  $existingMeta
+     * @param  array<string, mixed>  $metadata
      * @param  list<string>  $secondaryKeywords
      * @return array<string, mixed>
      */
     private function buildMeta(
-        ?array $existingMeta,
+        mixed $existingMeta,
         int $contentTopicId,
         ?string $primaryKeyword,
         array $secondaryKeywords,
         ?string $searchIntent,
         BlogDraftResult $result,
+        array $metadata,
     ): array {
-        $meta = array_merge($existingMeta ?? [], [
+        $meta = array_merge(is_array($existingMeta) ? $existingMeta : [], [
             'source_content_topic_id' => $contentTopicId,
+            'ai_job_id' => $this->nullablePositiveInt($metadata['ai_job_id'] ?? null, 'ai_job_id'),
             'primary_keyword' => $primaryKeyword,
-            'secondary_keywords' => array_values($secondaryKeywords),
+            'secondary_keywords' => $secondaryKeywords,
             'search_intent' => $searchIntent,
             'html_body' => $result->fullArticleHtml,
             'quill_delta' => $result->fullArticleDelta,
@@ -172,10 +178,6 @@ class SavePostDraftTool
         $lookup = [];
 
         foreach ($this->tags->getActiveOrdered() as $tag) {
-            if (! $tag instanceof Tag) {
-                continue;
-            }
-
             $lookup[mb_strtolower($tag->name)] = (int) $tag->id;
             $lookup[mb_strtolower($tag->slug)] = (int) $tag->id;
         }

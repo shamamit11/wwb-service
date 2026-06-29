@@ -143,12 +143,49 @@ class EloquentPostRepository implements PostRepository
             ->exists();
     }
 
+    public function updateMeta(Post $post, array $meta): Post
+    {
+        $post->update([
+            'meta' => $meta,
+        ]);
+
+        return $this->refreshWithRelations($post);
+    }
+
     /**
      * @return Collection<int, Post>
      */
     public function getAdminOrdered(): Collection
     {
         return $this->searchAdmin(new PostFiltersData);
+    }
+
+    /**
+     * @return Collection<int, Post>
+     */
+    public function getOriginalityComparisonCandidates(Post $post, array $keywords = [], int $limit = 25): Collection
+    {
+        $normalizedTitle = mb_strtolower(trim($post->title));
+
+        return Post::query()
+            ->select(['id', 'title', 'slug', 'full_article_html'])
+            ->whereKeyNot($post->id)
+            ->when($keywords !== [], function ($query) use ($keywords, $normalizedTitle): void {
+                $query->where(function ($innerQuery) use ($keywords, $normalizedTitle): void {
+                    $innerQuery->whereRaw('LOWER(title) = ?', [$normalizedTitle]);
+
+                    foreach ($keywords as $keyword) {
+                        $innerQuery
+                            ->orWhere('title', 'like', "%{$keyword}%")
+                            ->orWhere('description', 'like', "%{$keyword}%")
+                            ->orWhere('full_article_html', 'like', "%{$keyword}%");
+                    }
+                });
+            })
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->limit(max(1, $limit))
+            ->get();
     }
 
     /**
@@ -197,6 +234,19 @@ class EloquentPostRepository implements PostRepository
             })
             ->when($filters->sourceContentTopicId, fn ($query, int $sourceContentTopicId) => $query->where('meta->source_content_topic_id', $sourceContentTopicId))
             ->when($filters->generatedByAiJobId, fn ($query, int $generatedByAiJobId) => $query->where('meta->ai_job_id', $generatedByAiJobId))
+            ->when($filters->needsOriginalityReview !== null, function ($query) use ($filters): void {
+                if ($filters->needsOriginalityReview) {
+                    $query->where('meta->needs_originality_review', true);
+
+                    return;
+                }
+
+                $query->where(function ($innerQuery): void {
+                    $innerQuery
+                        ->whereNull('meta->needs_originality_review')
+                        ->orWhere('meta->needs_originality_review', false);
+                });
+            })
             ->orderBy($sortColumn, $descending ? 'desc' : 'asc')
             ->orderByDesc('id')
             ->get();

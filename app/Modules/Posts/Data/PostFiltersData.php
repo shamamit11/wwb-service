@@ -16,6 +16,7 @@ final readonly class PostFiltersData extends DataTransferObject
         public ?bool $isAiGenerated = null,
         public ?int $sourceContentTopicId = null,
         public ?int $generatedByAiJobId = null,
+        public ?bool $needsOriginalityReview = null,
         public string $sort = '-updated_at',
     ) {}
 }

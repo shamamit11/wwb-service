@@ -22,6 +22,8 @@ class PostResource extends ApiResource
         $sourceContentTopicId = $this->nullableInt($meta['source_content_topic_id'] ?? null);
         $generatedByAiJobId = $this->nullableInt($meta['ai_job_id'] ?? null);
         $generatedBy = is_string($meta['generated_by'] ?? null) && $meta['generated_by'] !== '' ? $meta['generated_by'] : null;
+        $needsOriginalityReview = ($meta['needs_originality_review'] ?? false) === true;
+        $originalityReview = is_array($meta['originality_review'] ?? null) ? $meta['originality_review'] : null;
         $isAiGenerated = $sourceContentTopicId !== null
             || $generatedByAiJobId !== null
             || $generatedBy !== null;
@@ -44,6 +46,8 @@ class PostResource extends ApiResource
             'source_content_topic_id' => $sourceContentTopicId,
             'generated_by_ai_job_id' => $generatedByAiJobId,
             'generated_by' => $generatedBy,
+            'needs_originality_review' => $needsOriginalityReview,
+            'originality_review' => $originalityReview,
             'meta' => $meta,
             'author' => $this->whenLoaded('author', fn (): array => [
                 'id' => $this->resource->author->id,
