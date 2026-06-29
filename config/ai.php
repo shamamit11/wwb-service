@@ -192,6 +192,8 @@ return [
         'providers' => [
             'openai' => [
                 'text_model' => env('OPENAI_TEXT_MODEL'),
+                'audio_model' => env('OPENAI_AUDIO_MODEL'),
+                'audio_voice' => env('OPENAI_AUDIO_VOICE', 'alloy'),
             ],
             'anthropic' => [
                 'text_model' => env('ANTHROPIC_TEXT_MODEL'),
