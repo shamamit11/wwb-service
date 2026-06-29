@@ -1,5 +1,14 @@
 <?php
 
+$parseBackoff = static function (string $value, array $default): array {
+    $parts = array_values(array_filter(
+        array_map(static fn (string $part): int => (int) trim($part), explode(',', $value)),
+        static fn (int $part): bool => $part > 0,
+    ));
+
+    return $parts !== [] ? $parts : $default;
+};
+
 return [
     'weekly_limit' => (int) env('ARTICLE_VIDEO_WEEKLY_LIMIT', 2),
     'lookback_days' => (int) env('ARTICLE_VIDEO_LOOKBACK_DAYS', 30),
@@ -7,6 +16,27 @@ return [
     'queues' => [
         'ai' => env('ARTICLE_VIDEO_AI_QUEUE', 'ai'),
         'render' => env('ARTICLE_VIDEO_RENDER_QUEUE', 'video-render'),
+    ],
+
+    'jobs' => [
+        'recommendation' => [
+            'queue' => env('ARTICLE_VIDEO_AI_QUEUE', 'ai'),
+            'tries' => (int) env('ARTICLE_VIDEO_AI_TRIES', 3),
+            'backoff_seconds' => $parseBackoff((string) env('ARTICLE_VIDEO_AI_BACKOFF_SECONDS', '60,300,900'), [60, 300, 900]),
+            'timeout_seconds' => (int) env('ARTICLE_VIDEO_AI_TIMEOUT_SECONDS', 120),
+        ],
+        'draft' => [
+            'queue' => env('ARTICLE_VIDEO_AI_QUEUE', 'ai'),
+            'tries' => (int) env('ARTICLE_VIDEO_AI_TRIES', 3),
+            'backoff_seconds' => $parseBackoff((string) env('ARTICLE_VIDEO_AI_BACKOFF_SECONDS', '60,300,900'), [60, 300, 900]),
+            'timeout_seconds' => (int) env('ARTICLE_VIDEO_AI_TIMEOUT_SECONDS', 120),
+        ],
+        'render' => [
+            'queue' => env('ARTICLE_VIDEO_RENDER_QUEUE', 'video-render'),
+            'tries' => (int) env('ARTICLE_VIDEO_RENDER_TRIES', 2),
+            'backoff_seconds' => $parseBackoff((string) env('ARTICLE_VIDEO_RENDER_BACKOFF_SECONDS', '120,600'), [120, 600]),
+            'timeout_seconds' => (int) env('ARTICLE_VIDEO_RENDER_TIMEOUT_SECONDS', 180),
+        ],
     ],
 
     'render' => [

@@ -17,9 +17,18 @@ php artisan migrate:fresh --seed
 
 ```bash
 php artisan serve
-php artisan queue:work --queue=ai,default
+php artisan queue:work --queue=video-render,ai,default
 php artisan schedule:work
 npm run dev
+```
+
+For Article Videos queue testing, keep a worker listening to both the `video-render` and `ai` queues because recommendation and draft generation use `ai`, while TTS and FFmpeg rendering use `video-render`.
+
+Recommended local worker split when validating Article Videos:
+
+```bash
+php artisan queue:work --queue=ai,default
+php artisan queue:work --queue=video-render
 ```
 
 ## Database
