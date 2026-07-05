@@ -1,0 +1,1 @@
+Read `.agent/INDEX.md`.
